@@ -1,0 +1,12 @@
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+core/models/
+build/
+dist/
+installer_output/
+transcript_*.txt
