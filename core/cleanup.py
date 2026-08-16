@@ -33,7 +33,14 @@ _YOU_KNOW_RE = re.compile(r"\byou know\b[,]?", re.IGNORECASE)
 # "like", but that pattern is uncommon enough to accept the imperfection
 # rather than build real NLP disfluency detection for it.
 _LIKE_MIDSENTENCE_RE = re.compile(r",\s*like\s*,", re.IGNORECASE)
-_LIKE_LEADING_RE = re.compile(r"(^|[.!?]\s+)like\s*,\s*", re.IGNORECASE)
+# A clause can open with a short filler word before "like," itself
+# (e.g. "so like, I went there") -- match past that leading word too, but
+# keep it in the output, since it's the "like," that's the filler, not "so".
+_LIKE_LEAD_WORDS = ("so", "and", "but", "well", "ok", "okay")
+_LIKE_LEADING_RE = re.compile(
+    r"(^|[.!?]\s+)((?:" + "|".join(_LIKE_LEAD_WORDS) + r")\s+)?like\s*,\s*",
+    re.IGNORECASE,
+)
 
 # Collapse an immediately-repeated word ("the the", "I I") into one,
 # regardless of case, keeping the first occurrence's casing.
@@ -59,7 +66,7 @@ def clean_transcript(text: str) -> str:
     # Filler phrases first, before the repeated-word/spacing passes clean
     # up whatever gaps they leave behind.
     result = _LIKE_MIDSENTENCE_RE.sub(",", result)
-    result = _LIKE_LEADING_RE.sub(r"\1", result)
+    result = _LIKE_LEADING_RE.sub(r"\1\2", result)
     result = _YOU_KNOW_RE.sub("", result)
     result = _SIMPLE_FILLER_RE.sub("", result)
 

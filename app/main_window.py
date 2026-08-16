@@ -337,6 +337,7 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge = HotkeyBridge()
         self._hotkey_bridge.press_requested.connect(self._handle_hotkey_press)
         self._hotkey_bridge.release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_registration_error: str | None = None
         try:
             keyboard.on_press_key(
                 GLOBAL_HOTKEY, lambda e: self._hotkey_bridge.press_requested.emit()
@@ -351,12 +352,30 @@ class MainWindow(QMainWindow):
             self._hotkey_hint.setObjectName("hotkeyHint")
             self._hotkey_hint.setWordWrap(True)
             self.centralWidget().layout().addWidget(self._hotkey_hint)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
-            # the app still works fine via the on-screen button.
-            pass
+            # the app still works fine via the on-screen button, but the
+            # user needs to actually be told F9 won't work -- silently
+            # swallowing this left them with no clue why dictating into
+            # other apps never did anything.
+            self._hotkey_registration_error = str(exc)
+            self._hotkey_hint = QLabel(
+                f"Global {GLOBAL_HOTKEY.upper()} hotkey unavailable "
+                f"({exc}). Use the Start/Stop button below instead."
+            )
+            self._hotkey_hint.setObjectName("hotkeyHint")
+            self._hotkey_hint.setWordWrap(True)
+            self._hotkey_hint.setStyleSheet("color: #f0546b;")
+            self.centralWidget().layout().addWidget(self._hotkey_hint)
 
         self._setup_tray_icon()
+
+        # No tray to fall back on and the hotkey didn't register either --
+        # the app would otherwise start invisible with no way for the user
+        # to discover it's running or why F9 doesn't work. Show the window
+        # so the warning label above is actually seen.
+        if self._hotkey_registration_error and self.tray_icon is None:
+            self._show_and_raise()
 
     # -- system tray ------------------------------------------------------
 
@@ -384,13 +403,24 @@ class MainWindow(QMainWindow):
         self.tray_icon.show()
 
         # The app now starts hidden (no window pops up on launch), so this
-        # is the only cue that it's actually running.
-        self.tray_icon.showMessage(
-            "VoxScribe",
-            f"Running in the background. Hold {GLOBAL_HOTKEY.upper()} anywhere to dictate.",
-            QSystemTrayIcon.MessageIcon.Information,
-            4000,
-        )
+        # is the only cue that it's actually running -- and the only place
+        # to tell the user the global hotkey didn't register, since that
+        # failure happens before this tray icon even exists.
+        if self._hotkey_registration_error:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"Couldn't register the {GLOBAL_HOTKEY.upper()} hotkey (often needs "
+                "admin rights). Open VoxScribe and use the Start/Stop button instead.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                6000,
+            )
+        else:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"Running in the background. Hold {GLOBAL_HOTKEY.upper()} anywhere to dictate.",
+                QSystemTrayIcon.MessageIcon.Information,
+                4000,
+            )
 
     def _on_tray_activated(self, reason) -> None:  # noqa: ANN001
         if reason in (
@@ -509,7 +539,26 @@ class MainWindow(QMainWindow):
             # until a release is seen.
             return
         self._f9_key_down = True
-        if self.stream is None:
+        # Guard against starting a new recording while the previous one is
+        # still transcribing on a background TranscribeThread: the on-screen
+        # button is disabled during that window (see _stop_recording), but
+        # this global OS-level hotkey bypasses button state entirely. Without
+        # this check, a quick second hold-and-release overwrites self._worker
+        # while the first TranscribeThread is still running, and Qt fatally
+        # errors ("QThread: Destroyed while thread is still running") once
+        # the orphaned thread object is garbage collected.
+        transcribing = self._worker is not None and self._worker.isRunning()
+        if self.transcriber is None:
+            # Model still loading on ModelLoaderThread. Recording itself
+            # doesn't need it, but _stop_recording hands the buffer straight
+            # to a TranscribeThread(self.transcriber, ...) -- with no guard
+            # here that used to run with transcriber=None and surface a
+            # confusing "'NoneType' object has no attribute 'transcribe'"
+            # instead of telling the user what's actually happening.
+            self._indicator.show_status("not_ready")
+            QTimer.singleShot(1500, self._indicator.hide_indicator)
+            return
+        if self.stream is None and not transcribing:
             self._hotkey_active_session = True
             self._start_recording()
 

@@ -28,10 +28,12 @@ _MARGIN_BOTTOM = 64  # distance from the bottom of the screen
 _DOT_COLORS = {
     "recording": "#3ecf8e",  # green
     "transcribing": "#f0a54a",  # amber
+    "not_ready": "#f0546b",  # red
 }
 _LABELS = {
     "recording": "Recording...",
     "transcribing": "Transcribing...",
+    "not_ready": "Still loading model...",
 }
 
 
