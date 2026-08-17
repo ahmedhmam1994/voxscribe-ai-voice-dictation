@@ -19,6 +19,7 @@
     --accent-hover: #9d90f8;
     --accent-pressed: #7566e0;
     --green: #3ecf8e;
+    --red: #f0546b;
     --amber: #f0a54a;
   }
   * { box-sizing: border-box; }
@@ -29,13 +30,22 @@
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  h1, .subhead, .section-head p { overflow-wrap: break-word; }
+  img { max-width: 100%; }
   a { color: var(--accent-hover); }
+
+  a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-toggle:focus-visible {
+    outline: 2px solid var(--accent-hover);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
 
   /* NAV */
   nav {
-    position: sticky; top: 0; z-index: 10;
+    position: sticky; top: 0; z-index: 20;
     background: rgba(18, 19, 25, 0.85);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border-soft);
@@ -48,20 +58,18 @@
     display: flex; align-items: center; justify-content: center;
   }
   .brand-mark svg { width: 14px; height: 14px; }
-  nav .links { display: flex; gap: 24px; font-size: 14px; color: var(--text-muted); }
+  nav .links { display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--text-muted); }
   nav .links a { color: var(--text-muted); text-decoration: none; }
   nav .links a:hover { color: var(--text-primary); }
+  .nav-toggle {
+    display: none; background: none; border: 1px solid var(--border); border-radius: 8px;
+    width: 38px; height: 38px; align-items: center; justify-content: center; cursor: pointer; color: var(--text-primary);
+  }
 
   /* HERO */
-  header.hero { padding: 88px 24px 64px; text-align: center; }
-  .eyebrow {
-    display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--accent-hover);
-    background: rgba(139, 124, 246, 0.12); border: 1px solid rgba(139, 124, 246, 0.3);
-    padding: 5px 12px; border-radius: 999px; margin-bottom: 22px;
-  }
+  header.hero { padding: 72px 24px 64px; text-align: center; }
   h1 { font-size: 48px; line-height: 1.15; margin: 0 0 18px; font-weight: 800; letter-spacing: -0.01em; }
-  h1 .accent { background: linear-gradient(90deg, var(--accent-hover), #b3a8fb); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h1 .accent { color: var(--accent-hover); }
   .subhead { font-size: 19px; color: var(--text-muted); max-width: 640px; margin: 0 auto 36px; line-height: 1.55; }
   .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
   .btn {
@@ -74,52 +82,31 @@
   .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
   .btn-secondary:hover { background: var(--bg-card-hover); }
   .fine-print { font-size: 13px; color: var(--text-faint); }
+  .fine-print a { color: var(--text-faint); text-decoration: underline; }
 
-  /* MOCKUP */
-  .mockup-shell {
-    margin: 56px auto 0; max-width: 520px;
+  /* PROOF (real recording, not a mockup) */
+  .proof-shell {
+    margin: 48px auto 0; max-width: 560px;
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 16px;
-    box-shadow: 0 24px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02);
+    box-shadow: 0 24px 48px -20px rgba(0,0,0,0.55);
     overflow: hidden;
     text-align: left;
   }
-  .mockup-titlebar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 16px; border-bottom: 1px solid var(--border-soft); background: #17181f;
+  .proof-label {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 18px; border-bottom: 1px solid var(--border-soft); background: #17181f;
+    font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.02em;
   }
-  .mockup-dots { display: flex; gap: 6px; }
-  .mockup-dots span { width: 10px; height: 10px; border-radius: 50%; background: #35374a; }
-  .mockup-title { font-size: 12px; color: var(--text-faint); }
-  .mockup-body { padding: 24px; }
-  .mockup-status {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-    padding: 10px 14px; border-radius: 10px; background: var(--bg-window); border: 1px solid var(--border-soft);
+  .proof-label .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+  .proof-img { display: block; width: 100%; height: auto; background: #fff; }
+  .proof-caption {
+    padding: 12px 18px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 8px;
   }
-  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px 2px rgba(62,207,142,0.5); }
-  .mockup-status span { font-size: 13px; color: var(--text-muted); }
-  .mockup-transcript {
-    background: var(--bg-window); border: 1px solid var(--border-soft); border-radius: 10px;
-    padding: 16px; min-height: 90px; font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 20px;
-  }
-  .mockup-transcript .cursor { display: inline-block; width: 2px; height: 15px; background: var(--accent-hover); vertical-align: middle; animation: blink 1s step-end infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  .mockup-btnrow { display: flex; gap: 10px; }
-  .mockup-btn { flex: 1; text-align: center; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
-  .mockup-btn.record { background: var(--green); color: #08130d; }
-  .mockup-btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
-
-  /* Floating pill mockup */
-  .pill-demo { display: flex; justify-content: center; margin: 28px 0 0; }
-  .pill {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(180deg, #26283a, #1c1e29);
-    border: 1px solid var(--border); border-radius: 999px;
-    padding: 8px 18px; box-shadow: 0 10px 30px -8px rgba(0,0,0,0.6);
-    font-size: 13px; color: var(--text-primary);
-  }
-  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 8px 2px rgba(240,165,74,0.5); }
+  .proof-caption svg { flex: none; color: var(--accent-hover); }
+  .tray-note { margin: 20px auto 0; max-width: 560px; font-size: 14px; color: var(--text-muted); }
 
   /* SECTIONS */
   section { padding: 80px 0; border-top: 1px solid var(--border-soft); }
@@ -128,7 +115,7 @@
   .section-head p { color: var(--text-muted); font-size: 16px; line-height: 1.6; margin: 0; }
 
   /* FEATURES GRID */
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px; }
   .card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px;
   }
@@ -136,6 +123,7 @@
     width: 40px; height: 40px; border-radius: 10px; background: rgba(139,124,246,0.12);
     display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--accent-hover);
   }
+  .card .icon svg { width: 20px; height: 20px; }
   .card h3 { font-size: 16px; margin: 0 0 8px; }
   .card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin: 0; }
 
@@ -148,9 +136,17 @@
   }
   .step h3 { font-size: 16px; margin: 0 0 8px; }
   .step p { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+  .how-footnote {
+    max-width: 620px; margin: 40px auto 0; text-align: center; font-size: 14px; color: var(--text-faint);
+    padding-top: 24px; border-top: 1px solid var(--border-soft);
+  }
 
   /* COMPARISON TABLE */
-  table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  @media (max-width: 480px) {
+    table { min-width: 0; }
+  }
   th, td { padding: 14px 18px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
   th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
   tr:last-child td { border-bottom: none; }
@@ -183,9 +179,16 @@
   @media (max-width: 760px) {
     h1 { font-size: 34px; }
     .subhead { font-size: 16px; }
-    .grid, .steps { grid-template-columns: 1fr; }
-    nav .links { display: none; }
-    table { font-size: 13px; }
+    .grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .nav-toggle { display: flex; }
+    nav .links {
+      display: none; position: absolute; top: 100%; left: 0; right: 0;
+      flex-direction: column; align-items: flex-start; gap: 0;
+      background: var(--bg-window); border-bottom: 1px solid var(--border-soft); padding: 8px 24px 16px;
+    }
+    nav .links.open { display: flex; }
+    nav .links a { padding: 10px 0; width: 100%; }
     th, td { padding: 10px 12px; }
   }
 </style>
@@ -200,52 +203,44 @@
       </div>
       VoxScribe
     </div>
-    <div class="links">
+    <div class="links" id="nav-links">
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#compare">Compare</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
     </div>
-    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest" style="padding:8px 16px; font-size:13px;">Download</a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest" style="padding:8px 16px; font-size:13px;">Download</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
-    <span class="eyebrow">Free &middot; Local &middot; Open Source</span>
     <h1>Talk anywhere on Windows.<br>VoxScribe <span class="accent">types it for you.</span></h1>
     <p class="subhead">Hold a hotkey, speak, release — your words are transcribed on your own PC and typed directly into whatever app you're focused in. No subscription, no cloud upload, no clipboard hijacking.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">⬇ Download for Windows</a>
+      <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v13M12 16l-5-5M12 16l5-5M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for Windows
+      </a>
       <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View on GitHub</a>
     </div>
-    <p class="fine-print">Windows 10/11 &middot; v1.0 &middot; Free &amp; open source (MIT)</p>
+    <p class="fine-print">Free &amp; open source (MIT) &middot; runs 100% locally &middot; Windows 10/11 &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.2">v1.2</a></p>
 
-    <div class="mockup-shell">
-      <div class="mockup-titlebar">
-        <div class="mockup-dots"><span></span><span></span><span></span></div>
-        <div class="mockup-title">VoxScribe</div>
-        <div style="width:36px;"></div>
-      </div>
-      <div class="mockup-body">
-        <div class="mockup-status">
-          <div class="status-dot"></div>
-          <span>Recording — hold F9 to keep talking</span>
-        </div>
-        <div class="mockup-transcript">
-          Hey, can you take these meeting notes and send them over to the team by end of day<span class="cursor"></span>
-        </div>
-        <div class="mockup-btnrow">
-          <div class="mockup-btn record">● Recording</div>
-          <div class="mockup-btn ghost">Copy</div>
-          <div class="mockup-btn ghost">Save</div>
-        </div>
+    <div class="proof-shell">
+      <div class="proof-label"><span class="rec-dot"></span> Real recording, not a mockup</div>
+      <img class="proof-img" src="demo-real.webp" width="680" height="345" alt="Screen recording of VoxScribe's real transcribed text being typed into Notepad, character by character" loading="eager">
+      <div class="proof-caption">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+        Typed directly by VoxScribe, straight from a real F9 recording. No clipboard, no editing.
       </div>
     </div>
-    <div class="pill-demo">
-      <div class="pill"><span class="dot"></span> Transcribing…</div>
-    </div>
+    <p class="tray-note">The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
   </div>
 </header>
 
@@ -253,38 +248,36 @@
   <div class="wrap">
     <div class="section-head">
       <h2>Everything you need, nothing you don't</h2>
-      <p>Built to feel invisible — it stays out of your way until you need it.</p>
+      <p>Built to feel invisible: it stays out of your way until you need it.</p>
     </div>
     <div class="grid">
       <div class="card">
-        <div class="icon">⌨</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12.5" r="2.4" fill="currentColor"/></svg>
+        </div>
         <h3>Hold-to-talk hotkey</h3>
-        <p>Hold F9 anywhere on your system — any app, any window. Release to transcribe. No toggling, no mode switching.</p>
+        <p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p>
       </div>
       <div class="card">
-        <div class="icon">⌁</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
         <h3>Types directly, not clipboard</h3>
         <p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p>
       </div>
       <div class="card">
-        <div class="icon">🔒</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
+        </div>
         <h3>100% local transcription</h3>
         <p>Speech-to-text runs on your own CPU via faster-whisper. Your voice audio never leaves your computer.</p>
       </div>
       <div class="card">
-        <div class="icon">✂</div>
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+        </div>
         <h3>Free filler-word cleanup</h3>
-        <p>Strips "um", "uh", "like", "you know" and fixes spacing/capitalization — rule-based, no paid AI API involved.</p>
-      </div>
-      <div class="card">
-        <div class="icon">◔</div>
-        <h3>Floating status indicator</h3>
-        <p>A small always-on-top pill shows Recording/Transcribing state, then disappears when you're done.</p>
-      </div>
-      <div class="card">
-        <div class="icon">▢</div>
-        <h3>Lives in the tray</h3>
-        <p>Starts hidden and runs quietly in the background. Show the window only when you actually want it.</p>
+        <p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p>
       </div>
     </div>
   </div>
@@ -294,13 +287,13 @@
   <div class="wrap">
     <div class="section-head">
       <h2>How it works</h2>
-      <p>Three steps. No setup, no accounts, no configuration.</p>
+      <p>Three steps, nothing to configure first.</p>
     </div>
     <div class="steps">
       <div class="step">
         <div class="num">1</div>
         <h3>Hold F9</h3>
-        <p>Anywhere on Windows — a text editor, a browser, a chat app.</p>
+        <p>Anywhere on Windows: a text editor, a browser, a chat app.</p>
       </div>
       <div class="step">
         <div class="num">2</div>
@@ -313,6 +306,7 @@
         <p>Cleaned-up text is typed directly where your cursor is.</p>
       </div>
     </div>
+    <p class="how-footnote">VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
   </div>
 </section>
 
@@ -320,35 +314,37 @@
   <div class="wrap">
     <div class="section-head">
       <h2>Free vs. cloud dictation tools</h2>
-      <p>Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe doesn't.</p>
+      <p>Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe runs everything locally, for free.</p>
     </div>
-    <table>
-      <tr>
-        <th></th>
-        <th>VoxScribe</th>
-        <th>Typical cloud dictation tools</th>
-      </tr>
-      <tr>
-        <td class="first">Cost</td>
-        <td class="yes">Free</td>
-        <td class="no">Monthly subscription</td>
-      </tr>
-      <tr>
-        <td class="first">Where transcription runs</td>
-        <td class="yes">Locally on your PC</td>
-        <td class="no">Uploaded to a cloud server</td>
-      </tr>
-      <tr>
-        <td class="first">Works offline (after setup)</td>
-        <td class="yes">Yes</td>
-        <td class="no">No — requires internet every time</td>
-      </tr>
-      <tr>
-        <td class="first">Open source</td>
-        <td class="yes">Yes (MIT)</td>
-        <td class="no">No</td>
-      </tr>
-    </table>
+    <div class="table-scroll">
+      <table>
+        <tr>
+          <th></th>
+          <th>VoxScribe</th>
+          <th>Typical cloud dictation tools</th>
+        </tr>
+        <tr>
+          <td class="first">Cost</td>
+          <td class="yes">Free</td>
+          <td class="no">Monthly subscription</td>
+        </tr>
+        <tr>
+          <td class="first">Where transcription runs</td>
+          <td class="yes">Locally on your PC</td>
+          <td class="no">Uploaded to a cloud server</td>
+        </tr>
+        <tr>
+          <td class="first">Works offline (after setup)</td>
+          <td class="yes">Yes</td>
+          <td class="no">No, requires internet every time</td>
+        </tr>
+        <tr>
+          <td class="first">Open source</td>
+          <td class="yes">Yes (MIT)</td>
+          <td class="no">No</td>
+        </tr>
+      </table>
+    </div>
   </div>
 </section>
 
@@ -365,8 +361,8 @@
         <li>On first launch, VoxScribe <strong>downloads the speech model</strong> (a few hundred MB) — this needs internet once, after that transcription is fully offline</li>
         <li><strong>Hold F9</strong> anywhere and start talking</li>
       </ol>
-      <div class="smartscreen-note">
-        <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info → Run anyway</strong> to proceed — this is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself.
+      <div class="smartscreen-note" id="smartscreen">
+        <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info → Run anyway</strong> to proceed. This is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself.
       </div>
     </div>
   </div>
@@ -383,7 +379,7 @@
     </div>
     <div class="faq-item">
       <h3>Does it need an internet connection?</h3>
-      <p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline — your voice audio is never uploaded anywhere.</p>
+      <p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p>
     </div>
     <div class="faq-item">
       <h3>What platforms does it support?</h3>
@@ -395,7 +391,7 @@
     </div>
     <div class="faq-item">
       <h3>Why does Windows show a security warning when I install it?</h3>
-      <p>The installer isn't code-signed (that requires a paid certificate), and VoxScribe hooks the keyboard to work — a pattern security heuristics flag by default. Click "More info → Run anyway" to continue. The source is fully public if you'd like to audit it.</p>
+      <p>See the <a href="#smartscreen">SmartScreen note</a> in the Install section above for exactly what's happening and what to click.</p>
     </div>
     <div class="faq-item">
       <h3>How accurate is the transcription?</h3>
@@ -411,10 +407,25 @@
       <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Releases</a>
       <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">Report an issue</a>
     </div>
-    <p>VoxScribe — free and open source under the MIT license.</p>
+    <p>VoxScribe: free and open source under the MIT license.</p>
     <p>Not affiliated with Wispr Flow or any other commercial dictation product.</p>
   </div>
 </footer>
+
+<script>
+  var navToggle = document.getElementById('nav-toggle');
+  var navLinks = document.getElementById('nav-links');
+  navToggle.addEventListener('click', function () {
+    var isOpen = navLinks.classList.toggle('open');
+    navToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+  navLinks.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', function () {
+      navLinks.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+</script>
 
 </body>
 </html>
