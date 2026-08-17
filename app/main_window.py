@@ -580,14 +580,20 @@ class MainWindow(QMainWindow):
         def callback(indata, frames, time_info, status):  # noqa: ANN001
             self._chunks.append(indata[:, 0].copy())
 
-        self.stream = sd.InputStream(
-            samplerate=self._record_rate,
-            channels=1,
-            dtype="float32",
-            device=device,
-            callback=callback,
-        )
-        self.stream.start()
+        try:
+            self.stream = sd.InputStream(
+                samplerate=self._record_rate,
+                channels=1,
+                dtype="float32",
+                device=device,
+                callback=callback,
+            )
+            self.stream.start()
+        except Exception as exc:  # noqa: BLE001
+            self.stream = None
+            self._hotkey_active_session = False
+            self._set_status(f"No microphone available: {exc}", "error")
+            return
         self.record_button.setText("Stop Recording")
         self._set_record_button_recording(True)
         self._set_status("Recording...", "recording")
@@ -635,9 +641,11 @@ class MainWindow(QMainWindow):
             # (rich-text/JS-driven inputs, not plain native text fields --
             # e.g. a chat box in an Electron/web-based app) can't keep up
             # with instantly-injected keystrokes and end up scrambling the
-            # character order. 12ms/char is imperceptible to type but gives
-            # such inputs time to process each keystroke before the next.
-            keyboard.write(text, delay=0.012)
+            # character order. 12ms/char wasn't enough for some inputs
+            # (reported: two overlapping copies of the same phrase
+            # interleaved character-by-character) -- 30ms/char still reads
+            # as instant to a human but gives slower inputs enough room.
+            keyboard.write(text, delay=0.03)
         except Exception:  # noqa: BLE001
             pass
 
