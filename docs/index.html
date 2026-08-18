@@ -7,20 +7,23 @@
 <meta name="description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
 <style>
   :root {
-    --bg-window: #121319;
-    --bg-card: #1b1d27;
-    --bg-card-hover: #22242f;
-    --border: #2b2e3b;
-    --border-soft: #242631;
-    --text-primary: #eceef4;
-    --text-muted: #8b8d9c;
-    --text-faint: #5c5e6c;
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
     --accent: #8b7cf6;
-    --accent-hover: #9d90f8;
+    --accent-hover: #a996ff;
     --accent-pressed: #7566e0;
-    --green: #3ecf8e;
+    --cyan: #22d3ee;
+    --magenta: #e879f9;
+    --green: #34d399;
     --red: #f0546b;
     --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
   }
   * { box-sizing: border-box; }
   html, body {
@@ -32,10 +35,41 @@
     scroll-behavior: smooth;
     overflow-x: hidden;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; width: 100%; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; width: 100%; position: relative; }
   h1, .subhead, .section-head p { overflow-wrap: break-word; }
   img { max-width: 100%; }
   a { color: var(--accent-hover); }
+
+  /* EYEBROW PILL */
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(139,124,246,0.1); border: 1px solid rgba(139,124,246,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+
+  /* GRADIENT TEXT */
+  .grad-text {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* AMBIENT GLOW BLOBS */
+  .glow-field { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+  .glow-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.28; }
+  .glow-blob.purple { width: 420px; height: 420px; background: var(--accent); top: -140px; left: -80px; }
+  .glow-blob.cyan { width: 380px; height: 380px; background: var(--cyan); top: -80px; right: -100px; }
+  .glow-blob.magenta { width: 320px; height: 320px; background: var(--magenta); bottom: -180px; left: 40%; opacity: 0.16; }
+  @media (prefers-reduced-motion: no-preference) {
+    .glow-blob { animation: drift 16s ease-in-out infinite alternate; }
+    .glow-blob.cyan { animation-duration: 20s; }
+    .glow-blob.magenta { animation-duration: 24s; }
+  }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to { transform: translate(20px, 30px) scale(1.08); }
+  }
 
   a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-toggle:focus-visible {
     outline: 2px solid var(--accent-hover);
@@ -67,18 +101,20 @@
   }
 
   /* HERO */
-  header.hero { padding: 72px 24px 64px; text-align: center; }
+  header.hero { position: relative; padding: 72px 24px 64px; text-align: center; overflow: hidden; }
+  header.hero .wrap { z-index: 1; }
   h1 { font-size: 48px; line-height: 1.15; margin: 0 0 18px; font-weight: 800; letter-spacing: -0.01em; }
-  h1 .accent { color: var(--accent-hover); }
+  h1 .accent { background: linear-gradient(90deg, var(--accent-hover), var(--cyan), var(--magenta)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .subhead { font-size: 19px; color: var(--text-muted); max-width: 640px; margin: 0 auto 36px; line-height: 1.55; }
   .cta-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 13px 26px; border-radius: 10px; font-size: 15px; font-weight: 600;
     text-decoration: none; border: 1px solid transparent; cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
   }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary { background: var(--gradient-brand); color: #060612; box-shadow: 0 8px 24px -8px rgba(139,124,246,0.55); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(34,211,238,0.5); }
   .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
   .btn-secondary:hover { background: var(--bg-card-hover); }
   .fine-print { font-size: 13px; color: var(--text-faint); }
@@ -119,13 +155,34 @@
   .card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px;
   }
+  .card {
+    transition: transform 150ms ease, border-color 150ms ease;
+  }
+  .card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.16); }
   .card .icon {
     width: 40px; height: 40px; border-radius: 10px; background: rgba(139,124,246,0.12);
     display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--accent-hover);
   }
+  .card .icon.cyan { background: rgba(34,211,238,0.12); color: var(--cyan); }
+  .card .icon.magenta { background: rgba(232,121,249,0.12); color: var(--magenta); }
+  .card .icon.green { background: rgba(52,211,153,0.12); color: var(--green); }
   .card .icon svg { width: 20px; height: 20px; }
   .card h3 { font-size: 16px; margin: 0 0 8px; }
   .card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin: 0; }
+
+  /* QUICK FACTS BAR */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+    max-width: 760px; margin: 56px auto 0; text-align: center;
+  }
+  .stats-bar .stat-num {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.01em;
+    background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .stats-bar .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  @media (max-width: 600px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 28px 16px; }
+  }
 
   /* HOW IT WORKS */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -220,7 +277,13 @@
 </nav>
 
 <header class="hero">
+  <div class="glow-field">
+    <div class="glow-blob purple"></div>
+    <div class="glow-blob cyan"></div>
+    <div class="glow-blob magenta"></div>
+  </div>
   <div class="wrap">
+    <span class="eyebrow">100% Local &middot; Free &amp; Open Source</span>
     <h1>Talk anywhere on Windows.<br>VoxScribe <span class="accent">types it for you.</span></h1>
     <p class="subhead">Hold a hotkey, speak, release — your words are transcribed on your own PC and typed directly into whatever app you're focused in. No subscription, no cloud upload, no clipboard hijacking.</p>
     <div class="cta-row">
@@ -241,12 +304,20 @@
       </div>
     </div>
     <p class="tray-note">The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
+
+    <div class="stats-bar">
+      <div><div class="stat-num">$0</div><div class="stat-label">Cost, forever</div></div>
+      <div><div class="stat-num">100%</div><div class="stat-label">Local transcription</div></div>
+      <div><div class="stat-num">MIT</div><div class="stat-label">Open source license</div></div>
+      <div><div class="stat-num">10/11</div><div class="stat-label">Windows supported</div></div>
+    </div>
   </div>
 </header>
 
 <section id="features">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">Features</span>
       <h2>Everything you need, nothing you don't</h2>
       <p>Built to feel invisible: it stays out of your way until you need it.</p>
     </div>
@@ -259,21 +330,21 @@
         <p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p>
       </div>
       <div class="card">
-        <div class="icon">
+        <div class="icon cyan">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <h3>Types directly, not clipboard</h3>
         <p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p>
       </div>
       <div class="card">
-        <div class="icon">
+        <div class="icon magenta">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
         </div>
         <h3>100% local transcription</h3>
         <p>Speech-to-text runs on your own CPU via faster-whisper. Your voice audio never leaves your computer.</p>
       </div>
       <div class="card">
-        <div class="icon">
+        <div class="icon green">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </div>
         <h3>Free filler-word cleanup</h3>
@@ -286,6 +357,7 @@
 <section id="how">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">Simple by design</span>
       <h2>How it works</h2>
       <p>Three steps, nothing to configure first.</p>
     </div>
@@ -313,6 +385,7 @@
 <section id="compare">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">Compare</span>
       <h2>Free vs. cloud dictation tools</h2>
       <p>Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe runs everything locally, for free.</p>
     </div>
@@ -351,6 +424,7 @@
 <section id="install">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">Get started</span>
       <h2>Install in under a minute</h2>
       <p>No admin rights required.</p>
     </div>
@@ -371,6 +445,7 @@
 <section id="faq">
   <div class="wrap">
     <div class="section-head">
+      <span class="eyebrow">FAQ</span>
       <h2>Frequently asked questions</h2>
     </div>
     <div class="faq-item">
