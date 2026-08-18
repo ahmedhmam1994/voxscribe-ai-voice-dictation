@@ -48,6 +48,8 @@ object WhisperEngine {
     private var recognizer: OfflineRecognizer? = null
     private var checkedAvailability = false
     private var available = false
+    private var loadError: String? = null
+    private var assetFilesFound: Set<String> = emptySet()
 
     /** True once the bundled model assets are present and the recognizer loaded. */
     fun isAvailable(context: Context): Boolean {
@@ -55,16 +57,42 @@ object WhisperEngine {
         return available
     }
 
+    /**
+     * Multi-line human-readable status for the Settings/diagnostics screen --
+     * which files are present, whether the recognizer actually loaded, and
+     * the load exception's message if it didn't.
+     */
+    fun statusDescription(context: Context): String {
+        ensureInitialized(context)
+        val required = listOf(ENCODER, DECODER, TOKENS)
+        val missing = required.filterNot { it in assetFilesFound }
+        return buildString {
+            if (missing.isEmpty()) {
+                append("Model files: all present\n")
+            } else {
+                append("Model files: missing ${missing.joinToString(", ")}\n")
+            }
+            append(
+                when {
+                    available -> "Recognizer: loaded, ready"
+                    missing.isNotEmpty() -> "Recognizer: not loaded (missing files above)"
+                    loadError != null -> "Recognizer: failed to load -- $loadError"
+                    else -> "Recognizer: not loaded"
+                }
+            )
+        }
+    }
+
     private fun ensureInitialized(context: Context) {
         if (checkedAvailability) return
         checkedAvailability = true
 
-        val filesInAssetDir = try {
+        assetFilesFound = try {
             context.assets.list(ASSET_DIR)?.toSet() ?: emptySet()
         } catch (e: Exception) {
             emptySet()
         }
-        if (!filesInAssetDir.containsAll(listOf(ENCODER, DECODER, TOKENS))) {
+        if (!assetFilesFound.containsAll(listOf(ENCODER, DECODER, TOKENS))) {
             Log.i(
                 TAG,
                 "Whisper model assets not found under assets/$ASSET_DIR -- " +
@@ -97,6 +125,7 @@ object WhisperEngine {
             // native layer -- fail closed to the fallback path rather than
             // leaving the IME stuck in a broken state.
             Log.e(TAG, "Failed to load bundled Whisper model, falling back to SpeechRecognizer", e)
+            loadError = e.message ?: e.javaClass.simpleName
             recognizer = null
             available = false
         }

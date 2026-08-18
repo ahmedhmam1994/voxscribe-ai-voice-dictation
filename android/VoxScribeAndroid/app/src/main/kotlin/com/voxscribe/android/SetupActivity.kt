@@ -43,6 +43,9 @@ class SetupActivity : AppCompatActivity() {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.showInputMethodPicker()
         }
+        findViewById<android.view.View>(R.id.open_settings_button).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
     }
 
     private fun refreshStatus() {

@@ -34,6 +34,13 @@
             android:exported="false"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Settings/diagnostics screen, reachable from the keyboard's gear
+             icon and from the setup screen. -->
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title" />
+
         <!-- The actual keyboard / input method. -->
         <service
             android:name=".VoxScribeInputMethodService"

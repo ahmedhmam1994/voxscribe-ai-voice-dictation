@@ -30,15 +30,31 @@ app/src/main/kotlin/com/voxscribe/android/
   WhisperEngine.kt                 Milestone 2: bundled on-device Whisper via
                                     sherpa-onnx. Falls back gracefully (see
                                     below) if its model files aren't present.
+                                    Also exposes statusDescription() for the
+                                    Settings screen's diagnostics section.
   TranscriptCleanup.kt             Direct Kotlin port of your desktop
                                     core/cleanup.py filler-word/spacing cleanup.
-  SetupActivity.kt                 The only "real" screen -- walks you through
-                                    the one-time Android setup steps.
+  SettingsStore.kt                 Typed SharedPreferences wrapper -- every
+                                    user setting (prefer-Whisper toggle,
+                                    fallback language, cleanup/trailing-space
+                                    toggles) reads/writes through here.
+  SettingsActivity.kt              Settings + diagnostics screen: real toggles,
+                                    a fallback-language picker, a "Test Whisper"
+                                    button (records 3s, shows the transcript),
+                                    and read-only status (mic permission,
+                                    keyboard-enabled, Whisper load status).
+                                    Reachable from the keyboard's gear icon or
+                                    the setup screen.
+  SetupActivity.kt                 The only other "real" screen -- walks you
+                                    through the one-time Android setup steps.
   PermissionActivity.kt            Tiny invisible helper: a Service (the IME)
                                     can't pop a permission dialog itself, so it
                                     launches this to ask for microphone access.
 app/src/main/res/
-  layout/keyboard_view.xml         The keyboard's UI (mic button + basic keys).
+  layout/keyboard_view.xml         The keyboard's UI (mic button + basic keys
+                                    + a gear icon opening Settings).
+  layout/activity_setup.xml        Setup screen layout (MD3 MaterialButtons).
+  layout/activity_settings.xml     Settings screen layout.
   xml/method.xml                   Registers this as an Android input method.
   values/strings.xml               All user-facing text.
   drawable/ic_launcher.xml          Placeholder icon -- swap via Android Studio's

@@ -15,6 +15,27 @@
     <string name="desc_switch_keyboard">Switch keyboard</string>
     <string name="desc_backspace">Backspace</string>
     <string name="desc_enter">Enter</string>
+    <string name="desc_settings">Settings</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_status">Status</string>
+    <string name="settings_section_recognition">Recognition</string>
+    <string name="settings_section_text">Text insertion</string>
+    <string name="settings_prefer_whisper">Prefer offline Whisper</string>
+    <string name="settings_prefer_whisper_desc">Use the bundled on-device model when it\'s available. Off = always use the online/offline system recognizer instead.</string>
+    <string name="settings_fallback_language">Fallback recognizer language</string>
+    <string name="settings_cleanup">Clean up filler words</string>
+    <string name="settings_cleanup_desc">Strip "um", "uh", "like", "you know" and fix spacing/capitalization.</string>
+    <string name="settings_trailing_space">Add trailing space</string>
+    <string name="settings_trailing_space_desc">Append a space after each dictated phrase, so the next one doesn\'t run in.</string>
+    <string name="settings_test_whisper">Test Whisper (records 3s)</string>
+    <string name="settings_test_whisper_recording">Recording…</string>
+    <string name="settings_test_whisper_transcribing">Transcribing…</string>
+    <string name="settings_test_result_title">Test result</string>
+    <string name="settings_mic_permission">Microphone permission</string>
+    <string name="settings_keyboard_enabled">VoxScribe keyboard enabled</string>
+    <string name="settings_status_yes">Yes</string>
+    <string name="settings_status_no">No</string>
 
     <string name="status_ready">Ready (online recognizer)</string>
     <string name="status_ready_whisper">Ready (offline Whisper)</string>

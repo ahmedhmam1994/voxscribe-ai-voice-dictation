@@ -78,6 +78,15 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         val spaceButton = view.findViewById<Button>(R.id.space_button)
         val enterButton = view.findViewById<Button>(R.id.enter_button)
         val switchButton = view.findViewById<Button>(R.id.switch_keyboard_button)
+        val settingsButton = view.findViewById<Button>(R.id.settings_button)
+
+        settingsButton.setOnClickListener {
+            startActivity(
+                Intent(this, SettingsActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        }
 
         // Hold-to-talk: press down starts recording, release stops it and
         // triggers transcription -- mirrors the desktop app's F9 behavior.
@@ -152,7 +161,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
     }
 
     private fun readyStatusText(): String =
-        if (WhisperEngine.isAvailable(this)) getString(R.string.status_ready_whisper)
+        if (SettingsStore.preferWhisper(this) && WhisperEngine.isAvailable(this)) getString(R.string.status_ready_whisper)
         else getString(R.string.status_ready)
 
     private fun hasRecordAudioPermission(): Boolean {
@@ -173,11 +182,20 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         micButton.text = getString(R.string.mic_button_recording)
         setMicRecordingVisual(recording = true)
 
-        if (WhisperEngine.isAvailable(this)) {
+        if (SettingsStore.preferWhisper(this) && WhisperEngine.isAvailable(this)) {
             startWhisperCapture()
         } else {
             startFallbackRecognizer()
         }
+    }
+
+    private fun cleanupIfEnabled(text: String): String =
+        if (SettingsStore.cleanupEnabled(this)) TranscriptCleanup.clean(text) else text
+
+    private fun commitDictatedText(text: String) {
+        if (text.isBlank()) return
+        val suffix = if (SettingsStore.trailingSpaceEnabled(this)) " " else ""
+        currentInputConnection?.commitText(text + suffix, 1)
     }
 
     private fun stopListening() {
@@ -239,11 +257,9 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
             record.release()
 
             val samples = pcm16BytesToFloat(pcmBytes.toByteArray())
-            val cleaned = TranscriptCleanup.clean(WhisperEngine.transcribe(samples))
+            val cleaned = cleanupIfEnabled(WhisperEngine.transcribe(samples))
             mainHandler.post {
-                if (cleaned.isNotBlank()) {
-                    currentInputConnection?.commitText("$cleaned ", 1)
-                }
+                commitDictatedText(cleaned)
                 statusText.text = readyStatusText()
             }
         }.also { it.start() }
@@ -279,6 +295,9 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            SettingsStore.fallbackLanguage(this@VoxScribeInputMethodService)?.let { lang ->
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
+            }
         }
         speechRecognizer?.startListening(intent)
     }
@@ -288,10 +307,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
     override fun onResults(results: Bundle?) {
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         val raw = matches?.firstOrNull().orEmpty()
-        val cleaned = TranscriptCleanup.clean(raw)
-        if (cleaned.isNotBlank()) {
-            currentInputConnection?.commitText("$cleaned ", 1)
-        }
+        commitDictatedText(cleanupIfEnabled(raw))
         statusText.text = readyStatusText()
     }
 

@@ -7,14 +7,34 @@
     android:background="@color/vox_surface"
     android:padding="12dp">
 
-    <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/status_text"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:textColor="@color/vox_on_surface_muted"
-        android:textAppearance="?attr/textAppearanceLabelMedium"
-        android:paddingBottom="8dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/status_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textColor="@color/vox_on_surface_muted"
+            android:textAppearance="?attr/textAppearanceLabelMedium" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/settings_button"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_settings"
+            app:iconSize="18dp"
+            app:iconTint="@color/vox_on_surface_muted"
+            android:contentDescription="@string/desc_settings" />
+    </LinearLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/mic_button"
