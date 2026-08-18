@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Material 3, dark-only (this keyboard has one identity, the same one
-         the desktop app uses -- not adapting to system light mode). -->
+         the desktop app uses - not adapting to system light mode). -->
     <style name="Theme.VoxScribe" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/vox_primary</item>
         <item name="colorOnPrimary">@color/vox_on_primary</item>

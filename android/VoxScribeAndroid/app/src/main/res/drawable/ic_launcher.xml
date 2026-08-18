@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Placeholder launcher icon (a simple mic glyph) so the project builds out
      of the box. Replace via Android Studio's Image Asset tool
-     (right-click res/ > New > Image Asset) whenever you want real artwork --
+     (right-click res/ > New > Image Asset) whenever you want real artwork -
      see scripts/generate_icon.py in the desktop project for inspiration. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"

@@ -13,7 +13,7 @@
 
         <!-- Small launcher activity: lets the user open the app to grant the
              mic permission and jump to system settings to enable the keyboard.
-             VoxScribe otherwise has no "main window" -- same spirit as the
+             VoxScribe otherwise has no "main window" - same spirit as the
              desktop app, which is tray-first with no required main window. -->
         <activity
             android:name=".SetupActivity"

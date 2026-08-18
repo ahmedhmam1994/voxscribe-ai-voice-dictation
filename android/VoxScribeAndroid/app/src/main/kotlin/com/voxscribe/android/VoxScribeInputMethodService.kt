@@ -62,7 +62,15 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreateInputView(): View {
-        val view = layoutInflater.inflate(R.layout.keyboard_view, null)
+        // An InputMethodService doesn't reliably inherit the app's manifest
+        // theme the way an Activity does -- on some devices/OEM skins the
+        // inflater context resolves to a plain system theme instead, which
+        // crashes every MaterialButton in the layout at inflate time (they
+        // require a Material3 theme to be present on the context). Wrap it
+        // explicitly rather than relying on inheritance.
+        val themedContext = android.view.ContextThemeWrapper(this, R.style.Theme_VoxScribe)
+        val inflater = layoutInflater.cloneInContext(themedContext)
+        val view = inflater.inflate(R.layout.keyboard_view, null)
 
         statusText = view.findViewById(R.id.status_text)
         micButton = view.findViewById(R.id.mic_button)
