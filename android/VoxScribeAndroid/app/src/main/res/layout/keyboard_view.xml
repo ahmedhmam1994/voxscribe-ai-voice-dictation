@@ -1,61 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#1E1E1E"
-    android:padding="8dp">
+    android:background="@color/vox_surface"
+    android:padding="12dp">
 
-    <TextView
+    <com.google.android.material.textview.MaterialTextView
         android:id="@+id/status_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
-        android:textColor="#FFFFFF"
-        android:textSize="13sp"
-        android:paddingBottom="6dp" />
+        android:textColor="@color/vox_on_surface_muted"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:paddingBottom="8dp" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/mic_button"
+        style="@style/Widget.Material3.Button"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="64dp"
         android:text="@string/mic_button_idle"
         android:textSize="16sp"
-        android:backgroundTint="#4C6EF5" />
+        app:icon="@drawable/ic_mic"
+        app:iconGravity="textStart"
+        app:iconPadding="10dp"
+        app:cornerRadius="20dp"
+        app:backgroundTint="@color/vox_primary"
+        android:textColor="@color/vox_on_primary"
+        app:iconTint="@color/vox_on_primary"
+        android:contentDescription="@string/desc_mic_idle" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginTop="8dp">
+        android:layout_marginTop="10dp">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/switch_keyboard_button"
+            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/key_switch" />
+            android:layout_marginEnd="6dp"
+            app:icon="@drawable/ic_keyboard_switch"
+            app:iconTint="@color/vox_on_surface"
+            app:backgroundTint="@color/vox_surface_container_high"
+            android:contentDescription="@string/desc_switch_keyboard" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/space_button"
+            style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="2"
-            android:text="@string/key_space" />
+            android:layout_marginEnd="6dp"
+            android:text="@string/key_space"
+            android:textColor="@color/vox_on_surface"
+            app:backgroundTint="@color/vox_surface_container_high" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/backspace_button"
+            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/key_backspace" />
+            android:layout_marginEnd="6dp"
+            app:icon="@drawable/ic_backspace"
+            app:iconTint="@color/vox_on_surface"
+            app:backgroundTint="@color/vox_surface_container_high"
+            android:contentDescription="@string/desc_backspace" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/enter_button"
+            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/key_enter" />
+            app:icon="@drawable/ic_keyboard_return"
+            app:iconTint="@color/vox_on_surface"
+            app:backgroundTint="@color/vox_surface_container_high"
+            android:contentDescription="@string/desc_enter" />
 
     </LinearLayout>
 </LinearLayout>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Same identity as the desktop app's dark/violet theme
+         (app/main_window.py's --bg-window/--accent tokens) -- one brand
+         across both platforms, not a keyboard-specific palette. -->
+    <color name="vox_surface">#121319</color>
+    <color name="vox_surface_container">#1B1D27</color>
+    <color name="vox_surface_container_high">#22242F</color>
+    <color name="vox_outline">#2B2E3B</color>
+    <color name="vox_on_surface">#ECEEF4</color>
+    <color name="vox_on_surface_muted">#8B8D9C</color>
+
+    <color name="vox_primary">#8B7CF6</color>
+    <color name="vox_on_primary">#121319</color>
+    <color name="vox_primary_container">#2A2547</color>
+    <color name="vox_on_primary_container">#D8D2FB</color>
+
+    <!-- Recording state is red, not green -- deliberately matching the
+         desktop landing page's own fix (green read as "go/safe", which
+         contradicts "mic is hot"; red is the universal recording convention). -->
+    <color name="vox_error">#F0546B</color>
+    <color name="vox_on_error">#FFFFFF</color>
+</resources>

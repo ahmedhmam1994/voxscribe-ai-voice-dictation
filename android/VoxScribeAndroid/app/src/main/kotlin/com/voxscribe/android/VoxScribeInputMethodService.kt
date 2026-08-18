@@ -1,6 +1,7 @@
 package com.voxscribe.android
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.inputmethodservice.InputMethodService
 import android.media.AudioFormat
 import android.media.AudioRecord
@@ -17,6 +18,8 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -55,7 +58,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
     private var usingWhisper = false
     private var isRecording = false
     private lateinit var statusText: TextView
-    private lateinit var micButton: Button
+    private lateinit var micButton: MaterialButton
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreateInputView(): View {
@@ -120,6 +123,26 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         }
     }
 
+    /**
+     * Swaps the mic button between its idle (violet, mic icon) and
+     * recording (red, stop icon) MD3 states -- deliberately red rather than
+     * green, matching the same "mic is hot" convention fix already made on
+     * the desktop landing page.
+     */
+    private fun setMicRecordingVisual(recording: Boolean) {
+        val iconRes = if (recording) R.drawable.ic_stop else R.drawable.ic_mic
+        val bgColorRes = if (recording) R.color.vox_error else R.color.vox_primary
+        val onColorRes = if (recording) R.color.vox_on_error else R.color.vox_on_primary
+        val descRes = if (recording) R.string.desc_mic_recording else R.string.desc_mic_idle
+
+        micButton.setIconResource(iconRes)
+        val onColor = ColorStateList.valueOf(ContextCompat.getColor(this, onColorRes))
+        micButton.iconTint = onColor
+        micButton.setTextColor(onColor)
+        micButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, bgColorRes))
+        micButton.contentDescription = getString(descRes)
+    }
+
     private fun readyStatusText(): String =
         if (WhisperEngine.isAvailable(this)) getString(R.string.status_ready_whisper)
         else getString(R.string.status_ready)
@@ -140,6 +163,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         isRecording = true
         statusText.text = getString(R.string.status_listening)
         micButton.text = getString(R.string.mic_button_recording)
+        setMicRecordingVisual(recording = true)
 
         if (WhisperEngine.isAvailable(this)) {
             startWhisperCapture()
@@ -152,6 +176,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         if (!isRecording) return
         isRecording = false
         micButton.text = getString(R.string.mic_button_idle)
+        setMicRecordingVisual(recording = false)
         statusText.text = getString(R.string.status_transcribing)
 
         if (usingWhisper) {
@@ -187,6 +212,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
             statusText.text = getString(R.string.status_no_recognizer)
             isRecording = false
             micButton.text = getString(R.string.mic_button_idle)
+            setMicRecordingVisual(recording = false)
             return
         }
 
@@ -231,6 +257,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
             statusText.text = getString(R.string.status_no_recognizer)
             isRecording = false
             micButton.text = getString(R.string.mic_button_idle)
+            setMicRecordingVisual(recording = false)
             return
         }
 
@@ -264,6 +291,7 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         statusText.text = getString(R.string.status_error, error)
         isRecording = false
         micButton.text = getString(R.string.mic_button_idle)
+        setMicRecordingVisual(recording = false)
     }
 
     override fun onPartialResults(partialResults: Bundle?) {}

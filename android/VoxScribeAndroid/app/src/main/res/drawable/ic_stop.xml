@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown on the mic button while actively recording -- a filled square is
+     the universal "stop/recording" glyph, distinct from the idle mic icon
+     so the button visibly changes state, not just its color. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorOnError">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M7,7h10v10H7z" />
+</vector>

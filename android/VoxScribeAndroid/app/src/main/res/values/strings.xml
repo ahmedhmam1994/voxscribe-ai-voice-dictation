@@ -2,8 +2,14 @@
 <resources>
     <string name="app_name">VoxScribe</string>
 
-    <string name="mic_button_idle">🎤 Hold to talk</string>
-    <string name="mic_button_recording">● Recording… release to stop</string>
+    <string name="mic_button_idle">Hold to talk</string>
+    <string name="mic_button_recording">Recording… release to stop</string>
+
+    <string name="desc_mic_idle">Hold to record</string>
+    <string name="desc_mic_recording">Recording, release to stop</string>
+    <string name="desc_switch_keyboard">Switch keyboard</string>
+    <string name="desc_backspace">Backspace</string>
+    <string name="desc_enter">Enter</string>
 
     <string name="status_ready">Ready (online recognizer)</string>
     <string name="status_ready_whisper">Ready (offline Whisper)</string>
@@ -13,8 +19,5 @@
     <string name="status_no_recognizer">No speech recognizer available on this device</string>
     <string name="status_error">Error (%1$d) — try again</string>
 
-    <string name="key_switch">⌨</string>
     <string name="key_space">space</string>
-    <string name="key_backspace">⌫</string>
-    <string name="key_enter">↵</string>
 </resources>

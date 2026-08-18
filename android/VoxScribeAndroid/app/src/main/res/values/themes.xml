@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3, dark-only (this keyboard has one identity, the same one
+         the desktop app uses -- not adapting to system light mode). -->
+    <style name="Theme.VoxScribe" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/vox_primary</item>
+        <item name="colorOnPrimary">@color/vox_on_primary</item>
+        <item name="colorPrimaryContainer">@color/vox_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/vox_on_primary_container</item>
+
+        <item name="colorSurface">@color/vox_surface</item>
+        <item name="colorOnSurface">@color/vox_on_surface</item>
+        <item name="colorSurfaceContainer">@color/vox_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/vox_surface_container_high</item>
+        <item name="colorOutline">@color/vox_outline</item>
+
+        <item name="colorError">@color/vox_error</item>
+        <item name="colorOnError">@color/vox_on_error</item>
+
+        <item name="android:windowBackground">@color/vox_surface</item>
+        <item name="android:statusBarColor">@color/vox_surface</item>
+    </style>
+</resources>
