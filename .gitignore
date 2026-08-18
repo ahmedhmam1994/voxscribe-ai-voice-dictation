@@ -10,3 +10,6 @@ build/
 dist/
 installer_output/
 transcript_*.txt
+
+.vercel
+.env*
