@@ -129,31 +129,35 @@ meaningfully diff in git, so they're a one-time manual step instead:
    "previous releases" — the API this project uses is version-stable within
    the 1.13.x line as of this writing.)
 
-2. **The Whisper `tiny` model (multilingual, not `tiny.en`)**, from the same
-   repo's [`asr-models` release](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models):
-   download `sherpa-onnx-whisper-tiny.tar.bz2`, extract it, and copy three
+2. **The Whisper `base` model (multilingual)**, from the same repo's
+   [`asr-models` release](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models):
+   download `sherpa-onnx-whisper-base.tar.bz2`, extract it, and copy three
    files into `app/src/main/assets/whisper/`:
-   - `tiny-encoder.int8.onnx` (~12MB)
-   - `tiny-decoder.int8.onnx` (~90MB)
-   - `tiny-tokens.txt`
+   - `base-encoder.int8.onnx` (~29MB)
+   - `base-decoder.int8.onnx` (~131MB)
+   - `base-tokens.txt`
 
-   (`~103MB` added to the app via bundled assets — small next to the
-   desktop app's own model download, and it means the APK is fully
-   self-contained with no first-run download step, unlike the desktop app.
-   A first-run downloader instead of bundling is a reasonable future
-   simplification if the APK size becomes a concern, but bundling is the
-   simpler and more reliable starting point given this can't be test-built
-   here.)
+   (`~160MB` added to the app via bundled assets. A first-run downloader
+   instead of bundling is a reasonable future simplification if the APK
+   size becomes a concern, but bundling is the simpler and more reliable
+   starting point given this can't be test-built here.)
 
-   **Why multilingual, not `tiny.en`:** started with the English-only
-   `tiny.en` variant (more accurate on English specifically), but real
-   on-device testing (2026-08-18) showed it fails badly on non-English
-   speech — Whisper doesn't error out on the wrong language, it force-fits
-   the nearest-sounding English phrase, producing fluent-looking nonsense.
-   Switched to the multilingual `tiny` model with `language = ""` in
-   `WhisperEngine.kt`, which sherpa-onnx's decoder treats as "auto-detect
-   the spoken language" (confirmed by reading
-   `offline-whisper-greedy-search-decoder.cc`'s source, not assumed).
+   **Model-size history, both found via real on-device testing (2026-08-18):**
+   - Started with `tiny.en` (English-only, ~103MB) — fails badly on any
+     non-English speech: Whisper doesn't error on the wrong language, it
+     force-fits the nearest-sounding English phrase, producing
+     fluent-looking nonsense instead of a clear failure.
+   - Switched to multilingual `tiny` (~103MB) with `language = ""` in
+     `WhisperEngine.kt` (sherpa-onnx's decoder treats empty as "auto-detect
+     the spoken language," confirmed by reading
+     `offline-whisper-greedy-search-decoder.cc`'s source, not assumed) —
+     fixed the wrong-language failure, but `tiny`-sized Whisper turned out
+     too small to handle Arabic dialects/accents, only reliably understanding
+     Modern Standard Arabic (الفصحى).
+   - Landed on multilingual `base` (~160MB) for meaningfully better
+     accent/dialect robustness at a still-practical size/speed. `small`
+     (multilingual, ~600MB archive) would likely be better still but is
+     impractical to bundle/run at IME latency on typical phone hardware.
 
 ### Automatic fallback
 
