@@ -19,8 +19,16 @@ import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
  * android/VoxScribeAndroid/.gitignore and README-ANDROID.md's "Milestone 2:
  * getting the pieces" -- both are binaries nobody can meaningfully diff):
  *   1. app/libs/sherpa-onnx-1.13.6.aar
- *   2. app/src/main/assets/whisper/{tiny.en-encoder.int8.onnx,
- *      tiny.en-decoder.int8.onnx, tiny.en-tokens.txt}
+ *   2. app/src/main/assets/whisper/{tiny-encoder.int8.onnx,
+ *      tiny-decoder.int8.onnx, tiny-tokens.txt}
+ *
+ * Uses the multilingual `tiny` model (not `tiny.en`) with language="" --
+ * sherpa-onnx's decoder treats an empty language as "auto-detect" (falls
+ * through to OfflineWhisperModel::DetectLanguage internally) rather than
+ * requiring the caller to know the spoken language in advance. Confirmed by
+ * reading sherpa-onnx's own offline-whisper-greedy-search-decoder.cc source,
+ * not assumed. Tradeoff versus tiny.en: somewhat less accurate on English
+ * specifically, in exchange for supporting ~90 other languages.
  *
  * If either is missing, [isAvailable] returns false and
  * VoxScribeInputMethodService falls back to Milestone 1's SpeechRecognizer
@@ -38,9 +46,9 @@ import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
 object WhisperEngine {
     private const val TAG = "WhisperEngine"
     private const val ASSET_DIR = "whisper"
-    private const val ENCODER = "tiny.en-encoder.int8.onnx"
-    private const val DECODER = "tiny.en-decoder.int8.onnx"
-    private const val TOKENS = "tiny.en-tokens.txt"
+    private const val ENCODER = "tiny-encoder.int8.onnx"
+    private const val DECODER = "tiny-decoder.int8.onnx"
+    private const val TOKENS = "tiny-tokens.txt"
 
     /** sherpa-onnx's FeatureConfig/OfflineStream both expect 16kHz audio. */
     const val SAMPLE_RATE = 16000
@@ -108,7 +116,7 @@ object WhisperEngine {
                     whisper = OfflineWhisperModelConfig(
                         encoder = "$ASSET_DIR/$ENCODER",
                         decoder = "$ASSET_DIR/$DECODER",
-                        language = "en",
+                        language = "", // empty = auto-detect spoken language
                         task = "transcribe",
                     ),
                     tokens = "$ASSET_DIR/$TOKENS",

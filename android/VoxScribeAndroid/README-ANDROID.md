@@ -129,21 +129,31 @@ meaningfully diff in git, so they're a one-time manual step instead:
    "previous releases" — the API this project uses is version-stable within
    the 1.13.x line as of this writing.)
 
-2. **The Whisper `tiny.en` model**, from the same repo's
-   [`asr-models` release](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models):
-   download `sherpa-onnx-whisper-tiny.en.tar.bz2`, extract it, and copy
-   three files into `app/src/main/assets/whisper/`:
-   - `tiny.en-encoder.int8.onnx` (~12MB)
-   - `tiny.en-decoder.int8.onnx` (~105MB)
-   - `tiny.en-tokens.txt`
+2. **The Whisper `tiny` model (multilingual, not `tiny.en`)**, from the same
+   repo's [`asr-models` release](https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models):
+   download `sherpa-onnx-whisper-tiny.tar.bz2`, extract it, and copy three
+   files into `app/src/main/assets/whisper/`:
+   - `tiny-encoder.int8.onnx` (~12MB)
+   - `tiny-decoder.int8.onnx` (~90MB)
+   - `tiny-tokens.txt`
 
-   (`~117MB` added to the app via bundled assets — small next to the
+   (`~103MB` added to the app via bundled assets — small next to the
    desktop app's own model download, and it means the APK is fully
    self-contained with no first-run download step, unlike the desktop app.
    A first-run downloader instead of bundling is a reasonable future
    simplification if the APK size becomes a concern, but bundling is the
    simpler and more reliable starting point given this can't be test-built
    here.)
+
+   **Why multilingual, not `tiny.en`:** started with the English-only
+   `tiny.en` variant (more accurate on English specifically), but real
+   on-device testing (2026-08-18) showed it fails badly on non-English
+   speech — Whisper doesn't error out on the wrong language, it force-fits
+   the nearest-sounding English phrase, producing fluent-looking nonsense.
+   Switched to the multilingual `tiny` model with `language = ""` in
+   `WhisperEngine.kt`, which sherpa-onnx's decoder treats as "auto-detect
+   the spoken language" (confirmed by reading
+   `offline-whisper-greedy-search-decoder.cc`'s source, not assumed).
 
 ### Automatic fallback
 
@@ -200,10 +210,10 @@ process — see the Milestone 2 section above), so this is now just:
   language pack, `SpeechRecognizer` may return an error or silently use an
   online fallback — check `status_error` on screen and see the Milestone 1
   tradeoff note above.
-- The bundled Whisper model is `tiny.en` — **English only**. Swapping to the
-  multilingual `sherpa-onnx-whisper-tiny.tar.bz2` model (same source, same
-  integration code) is straightforward if needed, at some accuracy cost on
-  English specifically.
+- The bundled Whisper model is the multilingual `tiny` variant with
+  auto language-detection, not `tiny.en` — trades a little English-specific
+  accuracy for actually working on non-English speech (real problem found
+  via on-device testing, see the Milestone 2 section above).
 - Some OEM Android skins (Samsung, Xiaomi, etc.) restrict third-party
   keyboards more aggressively — you may need to explicitly allow "full
   access" for the keyboard in system settings the first time.
