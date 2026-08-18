@@ -1,0 +1,19 @@
+# Standard Android/Gradle build output -- none of this belongs in git.
+.gradle/
+build/
+*.iml
+.idea/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Binary artifacts this project depends on but that this repo doesn't ship:
+# a native AAR (with .so libraries per ABI) and a ~117MB Whisper tiny.en
+# model, both fetched by hand per README-ANDROID.md's Milestone 2 section.
+# Committing these would bloat the repo with binaries nobody can diff.
+# (Deliberately excludes only the binaries, not the two placeholder READMEs
+# in these folders, so the expected location stays documented in git.)
+app/libs/*.aar
+app/src/main/assets/whisper/*.onnx
+app/src/main/assets/whisper/*.txt

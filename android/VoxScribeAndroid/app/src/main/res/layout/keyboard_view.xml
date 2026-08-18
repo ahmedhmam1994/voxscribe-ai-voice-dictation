@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#1E1E1E"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:paddingBottom="6dp" />
+
+    <Button
+        android:id="@+id/mic_button"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:text="@string/mic_button_idle"
+        android:textSize="16sp"
+        android:backgroundTint="#4C6EF5" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/switch_keyboard_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/key_switch" />
+
+        <Button
+            android:id="@+id/space_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="@string/key_space" />
+
+        <Button
+            android:id="@+id/backspace_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/key_backspace" />
+
+        <Button
+            android:id="@+id/enter_button"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/key_enter" />
+
+    </LinearLayout>
+</LinearLayout>

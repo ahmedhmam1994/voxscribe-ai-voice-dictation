@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Lets us check whether an offline recognizer language pack is installed. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+
+        <!-- Small launcher activity: lets the user open the app to grant the
+             mic permission and jump to system settings to enable the keyboard.
+             VoxScribe otherwise has no "main window" -- same spirit as the
+             desktop app, which is tray-first with no required main window. -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Transparent helper activity used only to pop the RECORD_AUDIO
+             runtime permission dialog. A Service (which is what the IME is)
+             cannot request runtime permissions directly, so the IME launches
+             this, it asks, and finishes itself. -->
+        <activity
+            android:name=".PermissionActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- The actual keyboard / input method. -->
+        <service
+            android:name=".VoxScribeInputMethodService"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/method" />
+        </service>
+
+    </application>
+</manifest>
