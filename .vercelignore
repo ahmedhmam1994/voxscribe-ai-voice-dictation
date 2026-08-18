@@ -1,0 +1,11 @@
+venv/
+dist/
+build/
+installer_output/
+core/models/
+android/
+VoxScribeAndroid.zip
+graphify-out/
+.impeccable/
+.agents/
+.git/
