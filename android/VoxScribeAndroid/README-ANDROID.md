@@ -83,13 +83,22 @@ practical shape as the desktop app's faster-whisper: local model, no
 per-request network call, no dependency on the phone's own voice-typing
 settings.
 
-**IMPORTANT — not build-verified.** This was written by cross-referencing
-sherpa-onnx's actual published Kotlin API source and its official Android
-demo apps on GitHub (not guessed API calls), but there is no Android SDK or
-emulator available in the environment this was written in, so it has never
-actually been compiled or run. Budget time for the first build to surface
-something small (an import, a Gradle wiring detail, an ABI issue) — this is
-a strong starting point, not a proven one.
+**Confirmed working on real hardware** (2026-08-18, a Xiaomi/MIUI phone) —
+built, installed, switched to the keyboard, and transcribed real speech via
+the bundled Whisper path. Two real bugs surfaced getting from "compiles" to
+"actually works," both fixed:
+- The Kotlin Gradle plugin was pinned at a version far behind what Android
+  Studio auto-upgraded AGP to on first sync, which is a known cause of
+  Kotlin daemon compilation failures — bumped `org.jetbrains.kotlin.android`
+  in the root `build.gradle.kts` (Android Studio's own sync then moved it
+  further on its own, which is fine).
+- A real runtime crash: `MaterialButton` threw at inflate time inside
+  `onCreateInputView()`. An `InputMethodService` doesn't reliably inherit
+  the app's manifest theme the way an `Activity` does, so Material3
+  components had no theme to resolve against on-device. Fixed by explicitly
+  wrapping the inflater context with `Theme.VoxScribe` via
+  `ContextThemeWrapper` in `VoxScribeInputMethodService.kt` instead of
+  relying on inheritance.
 
 ### Getting the pieces (two binary downloads this repo doesn't ship)
 
@@ -138,53 +147,47 @@ leaving the IME stuck.
 ## Getting this running (step by step)
 
 You'll need [Android Studio](https://developer.android.com/studio) installed
-(free). This project intentionally does **not** ship a Gradle wrapper —
-hand-crafting one blind risks a version mismatch that's confusing to debug
-as a first Android project. Instead:
+(free). A real Gradle wrapper is committed in this repo (Android Studio
+generated it on first import, auto-upgrading AGP/Kotlin versions in the
+process — see the Milestone 2 section above), so this is now just:
 
-1. Open Android Studio → **New Project** → **Empty Views Activity** →
-   language **Kotlin**, package name `com.voxscribe.android`, minimum SDK
-   API 26. Let it finish its initial Gradle sync (this generates a correct,
-   working wrapper for your installed Android Studio version).
-2. Close that project. In a file explorer, copy the contents of this
-   `VoxScribeAndroid/app/src/main/` folder (kotlin/, res/, AndroidManifest.xml)
-   **over** the same folder in the project Android Studio just created,
-   replacing its defaults.
-3. Open the new project's `app/build.gradle.kts` and merge in the
-   `dependencies { ... }` block from this project's `app/build.gradle.kts`
-   (add the `androidx.appcompat` line and the `implementation(files("libs/..."))`
-   line if the wizard didn't already include equivalents).
-4. **If you want Milestone 2's bundled Whisper** (recommended — otherwise
-   you'll be on the Milestone 1 fallback the whole time): follow "Getting
-   the pieces" above first — download the AAR into `app/libs/` and the three
-   model files into `app/src/main/assets/whisper/` — before syncing Gradle.
-   Skipping this is fine too; the app still runs, just on the fallback path.
-5. Sync Gradle again (Android Studio will prompt you, or **File > Sync
-   Project with Gradle Files**). If you added the AAR, this is the step
-   most likely to surface a version/API mismatch — see the "not
-   build-verified" note above.
-6. Plug in your phone (with USB debugging enabled — Settings > About phone >
+1. **Get Milestone 2's two binary downloads in place first** (recommended —
+   otherwise you'll be on the Milestone 1 fallback): follow "Getting the
+   pieces" above — download the AAR into `app/libs/` and the three model
+   files into `app/src/main/assets/whisper/`. Skipping this is fine too; the
+   app still runs, just on the fallback path.
+2. Open Android Studio → **Open** → select this `VoxScribeAndroid` folder.
+   Let the initial Gradle sync finish (first sync can take a few minutes —
+   it's downloading dependency jars).
+3. Plug in your phone (with USB debugging enabled — Settings > About phone >
    tap "Build number" 7 times to unlock Developer options, then enable USB
    debugging) or start an emulator, and hit **Run**.
-7. On first launch you'll land on the setup screen: grant the microphone
+   - **MIUI/Xiaomi note:** if you get `INSTALL_FAILED_USER_RESTRICTED:
+     Installation via USB is disabled`, either enable "Install via USB" under
+     Developer options (may require a signed-in Mi account), or switch to
+     wireless (Wi-Fi) ADB debugging instead — that sidesteps the USB-specific
+     restriction entirely.
+4. On first launch you'll land on the setup screen: grant the microphone
    permission, enable "VoxScribe" in the system keyboard list, then switch to
    it from any text field's keyboard-switcher icon.
-8. Tap into any text field (Messages, Notes, a browser search box), switch
+5. Tap into any text field (Messages, Notes, a browser search box), switch
    keyboards to VoxScribe, hold the mic button, talk, release — the cleaned
    transcript should appear. Check the status text: "Ready (offline Whisper)"
    confirms Milestone 2 loaded; "Ready (online recognizer)" means it's on
    the Milestone 1 fallback.
 
-## Known rough edges to expect on a first run
+## Known rough edges
 
 - If Milestone 2's AAR/model setup has any mismatch, `WhisperEngine` is
-  designed to fail closed to the Milestone 1 fallback rather than crash —
-  but since this hasn't been build-tested, treat "it silently stayed on the
-  fallback path" as a real possibility to debug, not just a hypothetical.
+  designed to fail closed to the Milestone 1 fallback rather than crash.
 - On the Milestone 1 fallback: if your phone doesn't have the offline
   language pack, `SpeechRecognizer` may return an error or silently use an
   online fallback — check `status_error` on screen and see the Milestone 1
   tradeoff note above.
+- The bundled Whisper model is `tiny.en` — **English only**. Swapping to the
+  multilingual `sherpa-onnx-whisper-tiny.tar.bz2` model (same source, same
+  integration code) is straightforward if needed, at some accuracy cost on
+  English specifically.
 - Some OEM Android skins (Samsung, Xiaomi, etc.) restrict third-party
   keyboards more aggressively — you may need to explicitly allow "full
   access" for the keyboard in system settings the first time.
