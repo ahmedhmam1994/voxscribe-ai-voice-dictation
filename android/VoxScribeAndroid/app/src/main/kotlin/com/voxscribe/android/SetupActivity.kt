@@ -5,12 +5,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
-import android.view.View
-import android.widget.Button
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.material.textview.MaterialTextView
 
 /**
  * The app's only "real" screen. VoxScribe has no main window it needs during
@@ -24,54 +22,47 @@ import androidx.core.content.ContextCompat
 class SetupActivity : AppCompatActivity() {
 
     private val recordAudioRequestCode = 2001
+    private lateinit var statusText: MaterialTextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_setup)
 
-        val statusText = TextView(this).apply {
-            textSize = 16f
-            setPadding(48, 96, 48, 24)
-        }
-        val grantPermButton = Button(this).apply { text = "1. Grant microphone permission" }
-        val enableKeyboardButton = Button(this).apply { text = "2. Enable VoxScribe keyboard" }
-        val pickKeyboardButton = Button(this).apply { text = "3. Switch to VoxScribe keyboard" }
-
-        val layout = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(48, 48, 48, 48)
-            addView(statusText)
-            addView(grantPermButton)
-            addView(enableKeyboardButton)
-            addView(pickKeyboardButton)
-        }
-        setContentView(layout)
-
-        fun refreshStatus() {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                this, Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-            statusText.text = buildString {
-                append("Mic permission: ")
-                append(if (hasPermission) "granted ✓" else "not granted")
-                append("\n\nAfter step 2, go to Settings and turn on \"VoxScribe\" as an ")
-                append("input method. Then in step 3 (or from any text field's keyboard ")
-                append("switcher), pick VoxScribe and hold the mic button to dictate.")
-            }
-        }
+        statusText = findViewById(R.id.status_text)
         refreshStatus()
 
-        grantPermButton.setOnClickListener {
+        findViewById<android.view.View>(R.id.grant_perm_button).setOnClickListener {
             ActivityCompat.requestPermissions(
                 this, arrayOf(Manifest.permission.RECORD_AUDIO), recordAudioRequestCode
             )
         }
-        enableKeyboardButton.setOnClickListener {
+        findViewById<android.view.View>(R.id.enable_keyboard_button).setOnClickListener {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
         }
-        pickKeyboardButton.setOnClickListener {
+        findViewById<android.view.View>(R.id.pick_keyboard_button).setOnClickListener {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.showInputMethodPicker()
         }
+    }
+
+    private fun refreshStatus() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        statusText.text = buildString {
+            append("Mic permission: ")
+            append(if (hasPermission) "granted ✓" else "not granted")
+            append("\n\nAfter step 2, go to Settings and turn on \"VoxScribe\" as an ")
+            append("input method. Then in step 3 (or from any text field's keyboard ")
+            append("switcher), pick VoxScribe and hold the mic button to dictate.")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Catches the user coming back from the system input-method settings
+        // screen (step 2), not just the permission-request callback below.
+        refreshStatus()
     }
 
     override fun onRequestPermissionsResult(
@@ -80,6 +71,6 @@ class SetupActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        recreate()
+        refreshStatus()
     }
 }

@@ -2,6 +2,11 @@
 <resources>
     <string name="app_name">VoxScribe</string>
 
+    <string name="setup_subtitle">Two quick one-time steps, then hold the mic button anywhere to dictate.</string>
+    <string name="setup_step1">Grant microphone permission</string>
+    <string name="setup_step2">Enable VoxScribe keyboard</string>
+    <string name="setup_step3">Switch to VoxScribe keyboard</string>
+
     <string name="mic_button_idle">Hold to talk</string>
     <string name="mic_button_recording">Recording… release to stop</string>
 
