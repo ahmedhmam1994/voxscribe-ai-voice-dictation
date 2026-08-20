@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — VoxScribe</title>
+<meta name="description" content="VoxScribe privacy policy: what data the Windows app and Android keyboard collect, and what they don't.">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #a996ff;
+    --cyan: #22d3ee;
+    --magenta: #e879f9;
+    --amber: #f0a54a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  h1 { font-size: 32px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .updated { color: var(--text-faint); font-size: 13px; margin: 0 0 40px; }
+  h2 { font-size: 20px; font-weight: 700; margin: 40px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
+  ul { padding-left: 20px; }
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .card.note { border-color: rgba(240,165,74,0.25); background: rgba(240,165,74,0.06); }
+  .card.note strong { color: var(--amber); }
+  code { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 1px 6px; font-size: 13px; }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: 2026-08-20 &middot; applies to VoxScribe for Windows and VoxScribe for Android</p>
+
+  <p>VoxScribe does not collect, store, or transmit your data to any server that we operate. There is no VoxScribe backend — the apps run entirely on your own device. This page explains exactly what each version does with your microphone audio and what, if anything, leaves your device.</p>
+
+  <h2>VoxScribe for Windows</h2>
+  <ul>
+    <li><strong>Microphone audio</strong> is captured only while you hold the F9 hotkey (or press Start Recording), transcribed on your own CPU using a local Whisper model, and then discarded. It is never uploaded anywhere.</li>
+    <li><strong>Transcribed text</strong> is typed directly into whichever application has focus, and optionally saved to a <code>.txt</code> file only if you click Save Transcript. VoxScribe does not send this text anywhere.</li>
+    <li><strong>Internet access</strong> is used exactly once: downloading the Whisper speech-recognition model from Hugging Face on first launch. After that, transcription works fully offline.</li>
+    <li>VoxScribe collects no analytics, telemetry, crash reports, or usage data.</li>
+  </ul>
+
+  <h2>VoxScribe for Android</h2>
+  <p>VoxScribe for Android is a custom keyboard (an Input Method Editor). Because a keyboard can see everything you type, and because it requests microphone access, we're documenting this more precisely than the desktop app above.</p>
+  <ul>
+    <li><strong>Microphone audio</strong> is recorded only while you hold the keyboard's mic button.</li>
+    <li>If the <strong>bundled on-device Whisper model</strong> is installed and selected, transcription happens entirely on your phone; audio never leaves the device.</li>
+    <li>If Whisper isn't available (not installed, or you've turned off "prefer offline" in Settings), VoxScribe falls back to <strong>Android's built-in speech recognizer</strong> (<code>SpeechRecognizer</code> with <code>EXTRA_PREFER_OFFLINE</code>). On most devices this runs on-device once Google's offline language pack is installed — but if that pack isn't present, this fallback sends audio to Google's speech-recognition service to get a transcript back, the same as any app using Android's standard voice-typing API. This is Google's processing, governed by Google's own privacy policy, not ours — VoxScribe does not operate or see this traffic.</li>
+    <li><strong>Typed text</strong> is inserted directly into whatever field you're focused in, the same as any keyboard. VoxScribe itself does not log, store, or transmit what you type.</li>
+    <li><strong>Settings</strong> (offline-preference toggle, fallback language, cleanup toggles) are stored locally on-device via Android's SharedPreferences and never leave your phone.</li>
+    <li>The <code>INTERNET</code> permission is used only to check whether Google's offline speech pack is installed, and, in the fallback case above, by Android's own recognizer — VoxScribe's own code makes no network calls of its own after the app is installed.</li>
+    <li>VoxScribe collects no analytics, telemetry, crash reports, or usage data.</li>
+  </ul>
+
+  <div class="card note">
+    <strong>To get fully offline behavior on Android:</strong> either ensure the bundled Whisper model is installed and selected, or install Google's offline speech recognition language pack (Settings &gt; System &gt; Languages &amp; input &gt; On-screen keyboard &gt; Google voice typing &gt; Offline speech recognition) so the fallback path never needs the network either.
+  </div>
+
+  <h2>Data sharing and third parties</h2>
+  <p>VoxScribe does not sell, share, or monetize any data, because it does not collect any to begin with. The only third-party processing possible is the Android fallback recognizer described above, and only when the on-device Whisper path isn't in use.</p>
+
+  <h2>Permissions</h2>
+  <ul>
+    <li><strong>Microphone</strong> — required to capture your voice for transcription. Requested at first use, not on install.</li>
+    <li><strong>Internet</strong> (Android only) — used for the offline-pack check and Google's fallback recognizer described above.</li>
+  </ul>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, the "Last updated" date above will change and the update will be visible in this project's public GitHub history.</p>
+
+  <h2>Contact</h2>
+  <p>VoxScribe is open source. Questions, issues, or concerns: open an issue on <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">GitHub</a>.</p>
+</div>
+</body>
+</html>

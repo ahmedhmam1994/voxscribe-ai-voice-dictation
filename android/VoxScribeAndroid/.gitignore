@@ -17,3 +17,10 @@ captures/
 app/libs/*.aar
 app/src/main/assets/whisper/*.onnx
 app/src/main/assets/whisper/*.txt
+
+# Release signing: the actual keystore and its passwords must never be
+# committed. keystore.properties holds the passwords/alias read by
+# build.gradle.kts; release.keystore is the key itself.
+keystore.properties
+*.keystore
+*.jks
