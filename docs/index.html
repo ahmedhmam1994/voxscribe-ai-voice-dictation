@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VoxScribe — Free Voice Dictation for Windows</title>
 <meta name="description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="VoxScribe — Free Voice Dictation for Windows">
+<meta property="og:description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VoxScribe — Free Voice Dictation for Windows">
+<meta name="twitter:description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 <style>
   :root {
     --bg-window: #06060f;
@@ -31,7 +53,7 @@
     padding: 0;
     background: var(--bg-window);
     color: var(--text-primary);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     scroll-behavior: smooth;
     overflow-x: hidden;
   }
@@ -118,6 +140,20 @@
   @keyframes wave-pulse {
     0%, 100% { transform: scaleY(1); }
     50% { transform: scaleY(0.65); }
+  }
+
+  /* SCROLL REVEAL: cards/steps fade+lift in as they enter the viewport.
+     Elements start visible (no [data-reveal] styling) until JS confirms
+     IntersectionObserver support and reduced-motion isn't requested, so
+     content never depends on JS running to be seen. */
+  @media (prefers-reduced-motion: no-preference) {
+    .js-reveal [data-reveal] {
+      opacity: 0; transform: translateY(18px);
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+    .js-reveal [data-reveal].revealed {
+      opacity: 1; transform: translateY(0);
+    }
   }
 
   a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-toggle:focus-visible {
@@ -389,28 +425,28 @@
       <p>Built to feel invisible: it stays out of your way until you need it.</p>
     </div>
     <div class="grid">
-      <div class="card">
+      <div class="card" data-reveal style="transition-delay: 0ms;">
         <div class="icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12.5" r="2.4" fill="currentColor"/></svg>
         </div>
         <h3>Hold-to-talk hotkey</h3>
         <p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p>
       </div>
-      <div class="card">
+      <div class="card" data-reveal style="transition-delay: 80ms;">
         <div class="icon cyan">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <h3>Types directly, not clipboard</h3>
         <p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p>
       </div>
-      <div class="card">
+      <div class="card" data-reveal style="transition-delay: 160ms;">
         <div class="icon magenta">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
         </div>
         <h3>100% local transcription</h3>
         <p>Speech-to-text runs on your own CPU via faster-whisper. Your voice audio never leaves your computer.</p>
       </div>
-      <div class="card">
+      <div class="card" data-reveal style="transition-delay: 240ms;">
         <div class="icon green">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </div>
@@ -429,19 +465,19 @@
       <p>Three steps, nothing to configure first.</p>
     </div>
     <div class="steps">
-      <div class="step">
+      <div class="step" data-reveal style="transition-delay: 0ms;">
         <div class="num num-keycap"><kbd class="keycap">F9</kbd></div>
         <h3>Hold F9</h3>
         <p>Anywhere on Windows: a text editor, a browser, a chat app.</p>
       </div>
-      <div class="step">
+      <div class="step" data-reveal style="transition-delay: 100ms;">
         <div class="num">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
         </div>
         <h3>Speak</h3>
         <p>Talk naturally. VoxScribe captures your mic in the background.</p>
       </div>
-      <div class="step">
+      <div class="step" data-reveal style="transition-delay: 200ms;">
         <div class="num">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
@@ -571,6 +607,21 @@
       navToggle.setAttribute('aria-expanded', 'false');
     });
   });
+
+  if ('IntersectionObserver' in window) {
+    document.documentElement.classList.add('js-reveal');
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('[data-reveal]').forEach(function (el) {
+      observer.observe(el);
+    });
+  }
 </script>
 
 </body>
