@@ -105,13 +105,15 @@ def make_og_image() -> QPixmap:
     painter.setPen(QColor("#f3f3fb"))
     font = QFont("Segoe UI", 34, QFont.Bold)
     painter.setFont(font)
-    painter.drawText(QRectF(90 + badge_size + 24, 90, 500, badge_size), Qt.AlignVCenter | Qt.AlignLeft, "VoxScribe")
+    wordmark_rect = QRectF(90 + badge_size + 24, 90, 500, badge_size)
+    painter.drawText(wordmark_rect, Qt.AlignVCenter | Qt.AlignLeft, "VoxScribe")
 
     # Headline
     headline_font = QFont("Segoe UI", 54, QFont.Bold)
     painter.setFont(headline_font)
     painter.setPen(QColor("#f3f3fb"))
-    painter.drawText(QRectF(90, 270, 1020, 130), Qt.AlignLeft | Qt.TextWordWrap, "Talk anywhere on Windows.")
+    headline_rect = QRectF(90, 270, 1020, 130)
+    painter.drawText(headline_rect, Qt.AlignLeft | Qt.TextWordWrap, "Talk anywhere on Windows.")
 
     grad_text = QLinearGradient(QPointF(90, 0), QPointF(700, 0))
     grad_text.setColorAt(0.0, QColor(ACCENT_HOVER))
@@ -146,7 +148,8 @@ def main() -> None:
     make_favicon(256).save(str(out_dir / "favicon.ico"), "ICO")
     make_og_image().save(str(out_dir / "og-image.png"), "PNG")
 
-    print(f"Saved favicon-32.png, favicon-16.png, apple-touch-icon.png, favicon.ico, og-image.png to {out_dir}")
+    print(f"Saved favicon-32.png, favicon-16.png, apple-touch-icon.png, favicon.ico, "
+          f"og-image.png to {out_dir}")
 
 
 if __name__ == "__main__":

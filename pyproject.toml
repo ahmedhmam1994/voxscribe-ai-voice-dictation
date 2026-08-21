@@ -1,0 +1,28 @@
+[tool.ruff]
+line-length = 100
+extend-exclude = [
+    "venv",
+    "dist",
+    "build",
+    "installer_output",
+    "graphify-out",
+    ".agents",
+    ".claude",
+    "android",
+    # Throwaway manual/visual test scripts (see CLAUDE.md) -- not part of
+    # the shipped app, not held to the same lint bar as app/core/tests.
+    "test_*.py",
+]
+
+[tool.ruff.lint]
+# Deliberately narrow: real-bug-catching rules (pyflakes, pycodestyle
+# errors, import sorting) rather than ruff's full default/preview rule set,
+# so CI lint failures mean something broke, not that a style preference
+# shifted. Existing `# noqa: ANN001` etc. comments in this codebase predate
+# this config and target rules not selected here -- left as documentation
+# of intent rather than churned for a lint config they were never written
+# against.
+select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

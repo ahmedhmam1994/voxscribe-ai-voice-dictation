@@ -8,7 +8,7 @@ VoxScribe: a Windows desktop voice-to-text dictation app (Python + PySide6). Hol
 
 ## Commands
 
-All commands run from the project root with the venv activated (`venv\Scripts\python.exe` on Windows; no separate lint/test tooling is configured).
+All commands run from the project root with the venv activated (`venv\Scripts\python.exe` on Windows).
 
 ```
 venv\Scripts\python.exe main.py                          # run the app
@@ -16,9 +16,15 @@ venv\Scripts\python.exe -m PyInstaller --noconfirm --clean VoxScribe.spec   # bu
 "C:\Users\<user>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer.iss  # build the installer -> installer_output\VoxScribe-Setup.exe (requires the exe already built)
 venv\Scripts\python.exe scripts\generate_icon.py          # regenerate app\icon.ico
 venv\Scripts\python.exe scripts\download_vad_model.py     # re-download core\models\silero_vad.onnx if missing
+
+venv\Scripts\pip install -r requirements-dev.txt          # install pytest + ruff on top of runtime deps
+venv\Scripts\python.exe -m pytest tests/ -v                # run the real automated test suite (core/cleanup.py, core/updater.py, core/audio_capture.py, core/crash_reporter.py)
+venv\Scripts\python.exe -m ruff check .                    # lint (config in pyproject.toml; excludes the throwaway test_*.py scripts below)
 ```
 
-There is no automated test suite. Verification happens through the standalone `test_*.py` scripts at the project root (throwaway manual/visual test tools, not part of the shipped app) and by running the real app.
+CI (`.github/workflows/ci.yml`) runs lint + tests + a PyInstaller build-check on every push/PR to `main`, on `windows-latest` (this app is Windows-specific, so a Linux runner wouldn't exercise the real import graph).
+
+Automated tests live in `tests/` (pytest) and cover the pure-logic modules: `core/cleanup.py`, `core/updater.py`'s version comparison, `core/audio_capture.py`'s resampling, and `core/crash_reporter.py`. They deliberately don't cover the Qt/audio/Whisper integration itself. The standalone `test_*.py` scripts at the project root are a separate, older thing — throwaway manual/visual test tools, not part of the shipped app and not run in CI — kept for hands-on debugging (mic levels, VAD tuning) rather than as regression tests.
 
 ## Architecture
 

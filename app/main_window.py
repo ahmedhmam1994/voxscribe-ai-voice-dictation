@@ -9,13 +9,15 @@ pattern proven out in test_ptt_visual.py.
 
 from __future__ import annotations
 
+import os
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 
 import keyboard
 import numpy as np
 import sounddevice as sd
-from PySide6.QtCore import QObject, QThread, QTimer, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.floating_indicator import FloatingIndicator
+from app.version import __version__
 from core.audio_capture import (
     SAMPLE_RATE,
     _default_input_device,
@@ -39,10 +42,13 @@ from core.audio_capture import (
     resample_to_16k,
 )
 from core.cleanup import clean_transcript
+from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.transcribe import Transcriber
+from core.updater import UpdateCheckThread, UpdateInfo
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 GLOBAL_HOTKEY = "f9"
+UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
 
 # -- visual palette --------------------------------------------------------
 # A cohesive dark theme (near-black surfaces, soft violet accent) rather than
@@ -370,6 +376,24 @@ class MainWindow(QMainWindow):
 
         self._setup_tray_icon()
 
+        self._update_checker: UpdateCheckThread | None = None
+        self._pending_update_url: str | None = None
+        # Silent on startup -- only surfaces a tray balloon if an update is
+        # actually found. "Check for Updates..." in the tray menu re-runs
+        # this with manual=True to also report "up to date"/failure.
+        self._start_update_check(manual=False)
+
+        # VoxScribe starts hidden to the tray and is meant to be left
+        # running indefinitely -- without this, someone who never quits
+        # the app would only ever get the startup check, once, and then
+        # nothing for however long they leave it open. Re-checks weekly
+        # for as long as the process stays alive (still not a substitute
+        # for actually launching the app after a long-closed period).
+        self._update_timer = QTimer(self)
+        self._update_timer.setInterval(UPDATE_CHECK_INTERVAL_MS)
+        self._update_timer.timeout.connect(lambda: self._start_update_check(manual=False))
+        self._update_timer.start()
+
         # No tray to fall back on and the hotkey didn't register either --
         # the app would otherwise start invisible with no way for the user
         # to discover it's running or why F9 doesn't work. Show the window
@@ -394,12 +418,21 @@ class MainWindow(QMainWindow):
         show_action.triggered.connect(self._show_and_raise)
         menu.addAction(show_action)
 
+        check_updates_action = QAction("Check for Updates...", self)
+        check_updates_action.triggered.connect(lambda: self._start_update_check(manual=True))
+        menu.addAction(check_updates_action)
+
+        logs_action = QAction("Open Logs Folder", self)
+        logs_action.triggered.connect(self._open_logs_folder)
+        menu.addAction(logs_action)
+
         quit_action = QAction("Quit", self)
         quit_action.triggered.connect(self._quit_app)
         menu.addAction(quit_action)
 
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.activated.connect(self._on_tray_activated)
+        self.tray_icon.messageClicked.connect(self._on_tray_message_clicked)
         self.tray_icon.show()
 
         # The app now starts hidden (no window pops up on launch), so this
@@ -444,6 +477,55 @@ class MainWindow(QMainWindow):
         else:
             # No tray available on this system -- fall back to a real quit.
             self._quit_app()
+
+    # -- updates ------------------------------------------------------
+
+    def _start_update_check(self, *, manual: bool) -> None:
+        if self._update_checker is not None and self._update_checker.isRunning():
+            return
+        self._update_checker = UpdateCheckThread()
+        self._update_checker.found.connect(lambda info: self._on_update_found(info))
+        self._update_checker.none_found.connect(lambda: self._on_update_none_found(manual))
+        self._update_checker.failed.connect(lambda msg: self._on_update_check_failed(msg, manual))
+        self._update_checker.start()
+
+    def _on_update_found(self, info: UpdateInfo) -> None:
+        self._pending_update_url = info.url
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe update available",
+                f"Version {info.version} is available (you're on {__version__}). "
+                "Click this notification to open the download page.",
+                QSystemTrayIcon.MessageIcon.Information,
+                8000,
+            )
+
+    def _on_update_none_found(self, manual: bool) -> None:
+        if manual and self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"You're up to date (v{__version__}).",
+                QSystemTrayIcon.MessageIcon.Information,
+                4000,
+            )
+
+    def _on_update_check_failed(self, message: str, manual: bool) -> None:
+        if manual and self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"Couldn't check for updates: {message}",
+                QSystemTrayIcon.MessageIcon.Warning,
+                5000,
+            )
+
+    def _on_tray_message_clicked(self) -> None:
+        if self._pending_update_url:
+            webbrowser.open(self._pending_update_url)
+            self._pending_update_url = None
+
+    def _open_logs_folder(self) -> None:
+        CRASH_LOG_DIR.mkdir(parents=True, exist_ok=True)
+        os.startfile(str(CRASH_LOG_DIR))  # noqa: S606 -- Windows-only app
 
     def _quit_app(self) -> None:
         try:

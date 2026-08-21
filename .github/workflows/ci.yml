@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    # Windows-only app: sounddevice's WASAPI query, os.startfile, and the
+    # keyboard library's global-hook path are all Windows-specific, so a
+    # Linux runner wouldn't actually exercise the real import graph.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Test (pytest)
+        run: pytest tests/ -v
+
+  build-check:
+    # Confirms the PyInstaller spec still produces a real .exe -- this is
+    # the check that would have caught, e.g., VoxScribe.spec silently
+    # missing a newly-added import. Doesn't run the built app (no display
+    # on a CI runner, and the Whisper model isn't bundled -- see
+    # CLAUDE.md), just verifies the build itself succeeds.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build with PyInstaller
+        run: python -m PyInstaller --noconfirm --clean VoxScribe.spec
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist\VoxScribe\VoxScribe.exe")) {
+            Write-Error "Build did not produce dist\VoxScribe\VoxScribe.exe"
+            exit 1
+          }
+          Write-Host "Build OK: dist\VoxScribe\VoxScribe.exe"

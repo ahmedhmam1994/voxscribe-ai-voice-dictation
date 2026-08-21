@@ -49,6 +49,10 @@ venv\Scripts\python.exe main.py
 
 See [CLAUDE.md](CLAUDE.md) for architecture notes and build/packaging commands (PyInstaller + Inno Setup).
 
+## Code signing
+
+The installer is currently unsigned, so Windows SmartScreen shows an "unknown publisher" warning on first run. To remove it, get a code-signing certificate — either a traditional OV/EV certificate from a CA (SSL.com, Sectigo, ~$70–400/yr), or [Microsoft Trusted Signing](https://learn.microsoft.com/en-us/azure/trusted-signing/) via Azure (usage-based, no hardware token required, cheaper for a solo project). Then run `scripts\sign_release.ps1` after building — see that script's header comment for exact usage.
+
 ## License
 
 [MIT](LICENSE)

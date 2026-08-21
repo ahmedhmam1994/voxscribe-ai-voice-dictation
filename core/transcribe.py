@@ -13,8 +13,6 @@ Two pieces live here:
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-
 import numpy as np
 from faster_whisper import WhisperModel
 
