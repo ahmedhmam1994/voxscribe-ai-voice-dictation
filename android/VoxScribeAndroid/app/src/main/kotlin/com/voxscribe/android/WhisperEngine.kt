@@ -138,11 +138,12 @@ object WhisperEngine {
             recognizer = OfflineRecognizer(context.assets, config)
             available = true
             Log.i(TAG, "Whisper (sherpa-onnx) recognizer loaded from bundled assets.")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             // A real device/library mismatch (wrong AAR version, corrupt model
-            // file, unsupported ABI) surfaces here as an exception from the
-            // native layer -- fail closed to the fallback path rather than
-            // leaving the IME stuck in a broken state.
+            // file, unsupported ABI) surfaces here as an UnsatisfiedLinkError
+            // from the native layer, not a checked Exception -- catching only
+            // Exception let it crash the app instead of failing closed to the
+            // fallback path.
             Log.e(TAG, "Failed to load bundled Whisper model, falling back to SpeechRecognizer", e)
             loadError = e.message ?: e.javaClass.simpleName
             recognizer = null
