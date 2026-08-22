@@ -13,3 +13,8 @@ transcript_*.txt
 
 .vercel
 .env*
+
+# Regenerable tool output -- not source, shouldn't be tracked or risk
+# accidental staging.
+graphify-out/
+.impeccable/critique-evidence/
