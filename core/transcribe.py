@@ -58,8 +58,27 @@ class Transcriber:
     ):
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+    ) -> str:
         """Transcribe a float32 mono buffer at 16kHz, return the text.
+
+        `language`: an ISO 639-1 code (e.g. "en", "es", "ar") to force a
+        specific spoken language, or None to let Whisper auto-detect which
+        language is being spoken. Defaults to "en" so any caller that
+        doesn't pass one explicitly keeps this class's original behavior.
+        `DEFAULT_MODEL_SIZE` ("small", not "small.en") is already the
+        multilingual model -- this was always just an unexposed capability,
+        not something that needs a different/bigger model downloaded.
+
+        `initial_prompt`: optional prior-context text (see
+        core/settings.py's custom_vocabulary_prompt()) that biases the
+        decoder toward specific words/names it's given without instructing
+        it to transcribe that text itself -- the local equivalent of Wispr
+        Flow's custom dictionary.
 
         Returns an empty string if no speech is recognized.
         """
@@ -74,7 +93,8 @@ class Transcriber:
 
         segments, _info = self.model.transcribe(
             audio,
-            language="en",
+            language=language,
+            initial_prompt=initial_prompt,
             # Let faster-whisper's own bundled VAD trim leading/trailing
             # silence within the clip -- useful now that recording is
             # manually started/stopped (push-to-talk) rather than gated by

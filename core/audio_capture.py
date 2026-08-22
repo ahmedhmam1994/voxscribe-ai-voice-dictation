@@ -37,6 +37,42 @@ def _default_input_device() -> int | None:
     return wasapi_default if wasapi_default != -1 else None
 
 
+def list_input_devices() -> list[tuple[int, str]]:
+    """Real input-capable devices, as (device_index, display_name) pairs.
+
+    Used to populate the microphone picker in Settings. Filters to devices
+    that actually support input (max_input_channels > 0) -- sounddevice's
+    device list includes output-only devices too. The host API name is
+    appended to the label since the same physical device often appears
+    multiple times under different APIs (MME, WASAPI, DirectSound), and
+    they're not interchangeable -- see _default_input_device()'s docstring
+    on why WASAPI specifically is preferred for the auto-detected default.
+    """
+    hostapis = sd.query_hostapis()
+    devices = []
+    for idx, info in enumerate(sd.query_devices()):
+        if info["max_input_channels"] <= 0:
+            continue
+        hostapi_name = hostapis[info["hostapi"]]["name"]
+        devices.append((idx, f"{info['name']} ({hostapi_name})"))
+    return devices
+
+
+def resolve_input_device(preferred: int | None) -> int | None:
+    """The device to actually record with: the user's chosen device if it's
+    still present, otherwise falls back to auto-detection -- handles a
+    previously-selected device (e.g. a Bluetooth headset) being disconnected
+    or unplugged since it was chosen, rather than raising or silently
+    recording from nothing."""
+    if preferred is not None:
+        try:
+            if sd.query_devices(preferred)["max_input_channels"] > 0:
+                return preferred
+        except Exception:  # noqa: BLE001
+            pass
+    return _default_input_device()
+
+
 def resample_to_16k(audio: np.ndarray, source_rate: int) -> np.ndarray:
     """Linearly resample a 1-D float32 buffer from `source_rate` to 16kHz.
 

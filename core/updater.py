@@ -1,11 +1,14 @@
 """Update checking against GitHub Releases.
 
-Deliberately does NOT auto-download/auto-install (overwriting a running
-.exe and handling elevation is a lot of real risk for a hobby-scale app) --
-just "a newer version exists, here's the link", surfaced via the tray.
-Uses stdlib urllib rather than adding a `requests` dependency, since
-VoxScribe.spec already goes out of its way to keep the packaged bundle
-small (see the v1.3 packaging fix in the project history).
+Still deliberately does NOT auto-*install* -- overwriting a running .exe and
+handling elevation is real risk for a hobby-scale app, and Inno Setup's own
+installer already handles that safely when run normally. What this does add:
+one-click *download* of the installer asset straight to Downloads (skipping
+the browser), so running it is one click away instead of several -- the
+user still explicitly launches the installer themselves, same as if they'd
+downloaded it by hand. Uses stdlib urllib rather than adding a `requests`
+dependency, since VoxScribe.spec already goes out of its way to keep the
+packaged bundle small (see the v1.3 packaging fix in the project history).
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ import json
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 
@@ -53,6 +57,11 @@ def is_newer(latest_tag: str, current: str = __version__) -> bool:
 class UpdateInfo:
     version: str
     url: str
+    # None if the release has no .exe asset attached (shouldn't normally
+    # happen for this project, but the release page link still works either
+    # way) -- callers must check before offering a one-click download.
+    asset_url: str | None = None
+    asset_name: str | None = None
 
 
 class UpdateCheckThread(QThread):
@@ -73,7 +82,42 @@ class UpdateCheckThread(QThread):
 
         tag = data.get("tag_name", "")
         html_url = data.get("html_url") or RELEASES_PAGE_URL
+        asset_url = None
+        asset_name = None
+        for asset in data.get("assets", []):
+            name = asset.get("name", "")
+            if name.lower().endswith(".exe"):
+                asset_url = asset.get("browser_download_url")
+                asset_name = name
+                break
         if tag and is_newer(tag):
-            self.found.emit(UpdateInfo(version=tag, url=html_url))
+            self.found.emit(
+                UpdateInfo(version=tag, url=html_url, asset_url=asset_url, asset_name=asset_name)
+            )
         else:
             self.none_found.emit()
+
+
+class UpdateDownloadThread(QThread):
+    """Downloads the installer asset to the user's Downloads folder.
+    Running it afterward is a separate, explicit user action (see
+    MainWindow._on_tray_message_clicked) -- this thread never launches
+    anything itself."""
+
+    done = Signal(str)  # local file path
+    failed = Signal(str)
+
+    def __init__(self, asset_url: str, asset_name: str) -> None:
+        super().__init__()
+        self.asset_url = asset_url
+        self.asset_name = asset_name
+
+    def run(self) -> None:
+        dest = Path.home() / "Downloads" / self.asset_name
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            urllib.request.urlretrieve(self.asset_url, dest)  # noqa: S310 -- github release asset
+        except (urllib.error.URLError, OSError, ValueError) as exc:
+            self.failed.emit(str(exc))
+            return
+        self.done.emit(str(dest))

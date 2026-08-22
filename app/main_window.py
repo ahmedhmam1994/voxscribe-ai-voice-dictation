@@ -10,7 +10,9 @@ pattern proven out in test_ptt_visual.py.
 from __future__ import annotations
 
 import os
+import threading
 import webbrowser
+import winsound
 from datetime import datetime
 from pathlib import Path
 
@@ -32,6 +34,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -39,9 +42,11 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMenu,
     QPushButton,
+    QScrollArea,
     QSystemTrayIcon,
     QTextEdit,
     QVBoxLayout,
@@ -53,14 +58,16 @@ from app.version import __version__
 from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
-    _default_input_device,
     device_native_samplerate,
+    list_input_devices,
     resample_to_16k,
+    resolve_input_device,
 )
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
+from core.focused_window import foreground_process_name
 from core.transcribe import Transcriber
-from core.updater import UpdateCheckThread, UpdateInfo
+from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
@@ -166,6 +173,29 @@ def _icon_clear(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
     painter.drawRoundedRect(body, s * 0.05, s * 0.05)
     painter.drawLine(int(s * 0.42), int(s * 0.40), int(s * 0.42), int(s * 0.74))
     painter.drawLine(int(s * 0.58), int(s * 0.40), int(s * 0.58), int(s * 0.74))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_settings(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    rows_and_knobs = ((0.30, 0.62), (0.52, 0.36), (0.74, 0.56))
+    for y, _knob_x in rows_and_knobs:
+        painter.drawLine(int(s * 0.10), int(s * y), int(s * 0.90), int(s * y))
+    painter.setBrush(QColor(color))
+    for y, knob_x in rows_and_knobs:
+        painter.drawEllipse(QRectF(s * knob_x - s * 0.08, s * y - s * 0.08, s * 0.16, s * 0.16))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_globe(size: int = 13, color: str = TEXT_MUTED) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    painter.drawEllipse(QRectF(s * 0.08, s * 0.08, s * 0.84, s * 0.84))
+    painter.drawLine(int(s * 0.08), int(s * 0.5), int(s * 0.92), int(s * 0.5))
+    painter.drawEllipse(QRectF(s * 0.32, s * 0.08, s * 0.36, s * 0.84))
     painter.end()
     return QIcon(pixmap)
 
@@ -345,6 +375,34 @@ QPushButton#secondaryButton:disabled {{
     border: 1px solid {BORDER_SOFT};
 }}
 
+QPushButton#languageBadge {{
+    background: {BG_CARD};
+    color: {TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid {BORDER};
+    border-radius: 15px;
+    padding: 5px 12px 5px 10px;
+}}
+QPushButton#languageBadge:hover {{
+    background: {BG_CARD_HOVER};
+    border: 1px solid {ACCENT};
+    color: {TEXT_PRIMARY};
+}}
+
+QPushButton#iconOnlyButton {{
+    background: {BG_CARD};
+    border: 1px solid {BORDER};
+    border-radius: 17px;
+}}
+QPushButton#iconOnlyButton:hover {{
+    background: {BG_CARD_HOVER};
+    border: 1px solid {ACCENT};
+}}
+QPushButton#iconOnlyButton:pressed {{
+    background: {BORDER};
+}}
+
 QPushButton#primaryOutlineButton {{
     background: transparent;
     color: {ACCENT};
@@ -420,6 +478,151 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
 }}
 """
 
+SETTINGS_DIALOG_STYLESHEET = f"""
+QDialog {{
+    background: {BG_WINDOW};
+}}
+QLabel {{
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+}}
+QLabel#settingsSectionLabel {{
+    color: {TEXT_MUTED};
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}}
+QComboBox {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 6px 10px;
+}}
+QComboBox:hover {{
+    border: 1px solid {ACCENT};
+}}
+QComboBox QAbstractItemView {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    outline: none;
+    selection-background-color: {ACCENT};
+    selection-color: #ffffff;
+}}
+QCheckBox {{
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+    spacing: 8px;
+}}
+QCheckBox::indicator {{
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid {BORDER};
+    background: {BG_CARD};
+}}
+QCheckBox::indicator:checked {{
+    background: {ACCENT};
+    border: 1px solid {ACCENT};
+}}
+QLineEdit {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+}}
+QLineEdit:focus {{
+    border: 1px solid {ACCENT};
+}}
+QLabel#settingsHint {{
+    color: {TEXT_FAINT};
+    font-size: 11px;
+}}
+QDialogButtonBox QPushButton {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 7px 16px;
+    min-width: 70px;
+}}
+QDialogButtonBox QPushButton:hover {{
+    background: {BG_CARD_HOVER};
+    border: 1px solid {ACCENT};
+}}
+QScrollArea {{
+    border: none;
+    background: transparent;
+}}
+QScrollBar:vertical {{
+    background: transparent;
+    width: 10px;
+    margin: 2px;
+}}
+QScrollBar::handle:vertical {{
+    background: {BORDER};
+    border-radius: 4px;
+    min-height: 24px;
+}}
+QScrollBar::handle:vertical:hover {{
+    background: {TEXT_FAINT};
+}}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+    height: 0px;
+}}
+"""
+
+TRAY_MENU_STYLESHEET = f"""
+QMenu {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 6px;
+}}
+QMenu::item {{
+    padding: 7px 24px 7px 12px;
+    border-radius: 6px;
+}}
+QMenu::item:selected {{
+    background: {ACCENT};
+    color: #ffffff;
+}}
+QMenu::separator {{
+    height: 1px;
+    background: {BORDER};
+    margin: 6px 4px;
+}}
+"""
+
+
+def _play_tone(frequency: int, duration_ms: int) -> None:
+    """Fires winsound.Beep() on a short-lived background thread so a start/
+    stop sound cue (Settings -> Play a sound) can't block the Qt event loop
+    for its duration -- Beep() is a blocking call. Best-effort: some
+    systems/sandboxes have no audio device, so failures are swallowed
+    rather than surfaced as an error over a cosmetic feature."""
+    def _beep() -> None:
+        try:
+            winsound.Beep(frequency, duration_ms)
+        except OSError:
+            pass
+
+    threading.Thread(target=_beep, daemon=True).start()
+
+
+def _play_start_sound() -> None:
+    if hotkey_settings.get_sound_enabled():
+        _play_tone(880, 90)
+
+
+def _play_stop_sound() -> None:
+    if hotkey_settings.get_sound_enabled():
+        _play_tone(440, 90)
+
 
 class ModelLoaderThread(QThread):
     done = Signal(object)
@@ -427,7 +630,12 @@ class ModelLoaderThread(QThread):
 
     def run(self) -> None:
         try:
-            transcriber = Transcriber()
+            # Settings -> Whisper Model Size: takes effect on the next
+            # launch (this thread only runs at startup), not live mid-
+            # session -- switching sizes may need to download a different
+            # model file, which shouldn't happen silently while the app is
+            # already running.
+            transcriber = Transcriber(model_size=hotkey_settings.get_model_size())
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
             return
@@ -438,14 +646,24 @@ class TranscribeThread(QThread):
     done = Signal(str)
     failed = Signal(str)
 
-    def __init__(self, transcriber: Transcriber, audio: np.ndarray) -> None:
+    def __init__(
+        self,
+        transcriber: Transcriber,
+        audio: np.ndarray,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+    ) -> None:
         super().__init__()
         self.transcriber = transcriber
         self.audio = audio
+        self.language = language
+        self.initial_prompt = initial_prompt
 
     def run(self) -> None:
         try:
-            text = self.transcriber.transcribe(self.audio)
+            text = self.transcriber.transcribe(
+                self.audio, language=self.language, initial_prompt=self.initial_prompt
+            )
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
             return
@@ -501,6 +719,27 @@ class MainWindow(QMainWindow):
         self.status_pill = StatusPill()
         status_row.addWidget(self.status_pill)
         status_row.addStretch(1)
+
+        self.language_badge = QPushButton()
+        self.language_badge.setObjectName("languageBadge")
+        self.language_badge.setIcon(_icon_globe(13, TEXT_MUTED))
+        self.language_badge.setIconSize(QSize(13, 13))
+        self.language_badge.setCursor(Qt.PointingHandCursor)
+        self.language_badge.setToolTip("Dictation language -- click to change")
+        self.language_badge.clicked.connect(self._open_settings_dialog)
+        self._refresh_language_badge()
+        status_row.addWidget(self.language_badge)
+
+        self.settings_button = QPushButton()
+        self.settings_button.setObjectName("iconOnlyButton")
+        self.settings_button.setIcon(_icon_settings(18, TEXT_MUTED))
+        self.settings_button.setIconSize(QSize(18, 18))
+        self.settings_button.setFixedSize(34, 34)
+        self.settings_button.setCursor(Qt.PointingHandCursor)
+        self.settings_button.setToolTip("Settings")
+        self.settings_button.clicked.connect(self._open_settings_dialog)
+        status_row.addWidget(self.settings_button)
+
         layout.addLayout(status_row)
 
         # Icons drawn once and reused (see _icon_* helpers above) rather
@@ -650,7 +889,9 @@ class MainWindow(QMainWindow):
         self._setup_tray_icon()
 
         self._update_checker: UpdateCheckThread | None = None
-        self._pending_update_url: str | None = None
+        self._update_downloader: UpdateDownloadThread | None = None
+        self._pending_update_info: UpdateInfo | None = None
+        self._downloaded_installer_path: str | None = None
         # Silent on startup -- only surfaces a tray balloon if an update is
         # actually found. "Check for Updates..." in the tray menu re-runs
         # this with manual=True to also report "up to date"/failure.
@@ -679,7 +920,7 @@ class MainWindow(QMainWindow):
     def _register_global_hotkey(self) -> None:
         """(Re)registers the global hold-to-talk hotkey as self._hotkey.
         Safe to call again after changing the hotkey (see
-        _open_hotkey_dialog) -- unhooks the previous registration first."""
+        _open_settings_dialog) -- unhooks the previous registration first."""
         for hook in (self._hotkey_press_hook, self._hotkey_release_hook):
             if hook is not None:
                 try:
@@ -707,6 +948,17 @@ class MainWindow(QMainWindow):
 
         self._update_hotkey_hint()
 
+    def _refresh_language_badge(self) -> None:
+        """Keeps the dictation-language badge (top-right, next to the
+        settings gear) in sync with the persisted setting -- so the current
+        language is visible at a glance in the main window itself, not only
+        inside the Settings dialog."""
+        code = hotkey_settings.get_language()
+        name = next(
+            (n for c, n in hotkey_settings.AVAILABLE_LANGUAGES if c == code), "Auto-detect"
+        )
+        self.language_badge.setText(name)
+
     def _update_hotkey_hint(self) -> None:
         if self._hotkey_registration_error:
             # No room for the icon/badge layout here -- collapse to one
@@ -732,38 +984,292 @@ class MainWindow(QMainWindow):
         self._hotkey_hint_suffix.style().unpolish(self._hotkey_hint_suffix)
         self._hotkey_hint_suffix.style().polish(self._hotkey_hint_suffix)
 
-    def _open_hotkey_dialog(self) -> None:
-        dialog = QDialog(self)
-        dialog.setWindowTitle("Change Hotkey")
-        layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("Hold-to-talk key:"))
-
+    @staticmethod
+    def _new_settings_combo() -> QComboBox:
+        """A QComboBox wouldn't otherwise shrink below its longest item's
+        unwrapped text width (confirmed via measurement: one combo alone
+        demanded 439px), which forced the whole Settings dialog wider than
+        its fixed width and produced an unwanted horizontal scrollbar. The
+        adjust policy below caps how much the closed box's *own* width
+        counts toward its size hint -- the dropdown popup still shows full,
+        untruncated item text regardless."""
         combo = QComboBox()
+        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMinimumContentsLength(20)
+        combo.setMinimumHeight(36)
+        return combo
+
+    def _open_settings_dialog(self) -> None:
+        """The app's Settings window, scrollable since it now covers a real
+        set of options: hotkey + talk mode, microphone, dictation language
+        + Whisper model size, custom vocabulary, filler-word cleanup and
+        recording-sound toggles, a disabled-apps list, usage statistics,
+        and "start with Windows". Reachable from the in-window gear button
+        and the tray menu's "Settings..." entry -- previously only a bare
+        hotkey combo box existed, with no other options exposed anywhere
+        in the app."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("VoxScribe Settings")
+        dialog.setStyleSheet(SETTINGS_DIALOG_STYLESHEET)
+        # Fixed, not just minimum, width: with this many sections now (some
+        # with long hint text), Qt's own layout sizing otherwise overrides a
+        # plain resize() and widens the dialog to fit the longest unwrapped
+        # label, which triggers an unwanted horizontal scrollbar inside the
+        # QScrollArea below -- confirmed via an actual screenshot, not
+        # assumed.
+        dialog.setFixedWidth(420)
+        dialog.resize(420, 600)
+
+        outer_layout = QVBoxLayout(dialog)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        outer_layout.addWidget(scroll, stretch=1)
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(24, 24, 24, 12)
+        layout.setSpacing(16)
+        scroll.setWidget(content)
+
+        hotkey_label = QLabel("HOLD-TO-TALK HOTKEY")
+        hotkey_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(hotkey_label)
+
+        combo = self._new_settings_combo()
         for key in hotkey_settings.AVAILABLE_HOTKEYS:
             combo.addItem(key.upper(), key)
         combo.setCurrentIndex(hotkey_settings.AVAILABLE_HOTKEYS.index(self._hotkey))
         layout.addWidget(combo)
 
+        talk_mode_combo = self._new_settings_combo()
+        for mode, label in hotkey_settings.AVAILABLE_TALK_MODES:
+            talk_mode_combo.addItem(label, mode)
+        current_talk_mode = hotkey_settings.get_talk_mode()
+        for i in range(talk_mode_combo.count()):
+            if talk_mode_combo.itemData(i) == current_talk_mode:
+                talk_mode_combo.setCurrentIndex(i)
+                break
+        layout.addWidget(talk_mode_combo)
+
+        mic_label = QLabel("MICROPHONE")
+        mic_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(mic_label)
+
+        mic_combo = self._new_settings_combo()
+        mic_combo.addItem("Auto-detect (recommended)", None)
+        for idx, name in list_input_devices():
+            mic_combo.addItem(name, idx)
+        current_device = hotkey_settings.get_input_device()
+        for i in range(mic_combo.count()):
+            if mic_combo.itemData(i) == current_device:
+                mic_combo.setCurrentIndex(i)
+                break
+        layout.addWidget(mic_combo)
+
+        language_label = QLabel("DICTATION LANGUAGE")
+        language_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(language_label)
+
+        language_combo = self._new_settings_combo()
+        for code, name in hotkey_settings.AVAILABLE_LANGUAGES:
+            language_combo.addItem(name, code)
+        current_language = hotkey_settings.get_language()
+        for i in range(language_combo.count()):
+            if language_combo.itemData(i) == current_language:
+                language_combo.setCurrentIndex(i)
+                break
+        layout.addWidget(language_combo)
+
+        model_label = QLabel("WHISPER MODEL SIZE")
+        model_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(model_label)
+
+        model_combo = self._new_settings_combo()
+        for size, label in hotkey_settings.AVAILABLE_MODEL_SIZES:
+            model_combo.addItem(label, size)
+        current_model_size = hotkey_settings.get_model_size()
+        for i in range(model_combo.count()):
+            if model_combo.itemData(i) == current_model_size:
+                model_combo.setCurrentIndex(i)
+                break
+        layout.addWidget(model_combo)
+
+        model_hint = QLabel(
+            "Takes effect after restarting VoxScribe. Switching to a size not "
+            "already downloaded needs internet on next launch."
+        )
+        model_hint.setObjectName("settingsHint")
+        model_hint.setWordWrap(True)
+        layout.addWidget(model_hint)
+
+        vocab_label = QLabel("CUSTOM VOCABULARY")
+        vocab_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(vocab_label)
+
+        vocab_edit = QLineEdit()
+        vocab_edit.setPlaceholderText("e.g. VoxScribe, Ahmed, faster-whisper")
+        vocab_edit.setText(", ".join(hotkey_settings.get_custom_vocabulary()))
+        vocab_edit.setMinimumHeight(36)
+        layout.addWidget(vocab_edit)
+
+        vocab_hint = QLabel(
+            "Names, acronyms, or terms Whisper tends to mishear — comma-separated. "
+            "Nudges recognition toward them; doesn't guarantee a match."
+        )
+        vocab_hint.setObjectName("settingsHint")
+        vocab_hint.setWordWrap(True)
+        layout.addWidget(vocab_hint)
+
+        cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
+        cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
+        layout.addWidget(cleanup_checkbox)
+
+        sound_checkbox = QCheckBox("Play a sound when recording starts/stops")
+        sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
+        layout.addWidget(sound_checkbox)
+
+        excluded_label = QLabel("DISABLED APPS")
+        excluded_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(excluded_label)
+
+        excluded_edit = QLineEdit()
+        excluded_edit.setPlaceholderText("e.g. keepass.exe, bitwarden.exe")
+        excluded_edit.setText(", ".join(hotkey_settings.get_excluded_apps()))
+        excluded_edit.setMinimumHeight(36)
+        layout.addWidget(excluded_edit)
+
+        excluded_hint = QLabel(
+            "VoxScribe won't record while one of these apps is focused — comma-"
+            "separated executable names, e.g. a password manager."
+        )
+        excluded_hint.setObjectName("settingsHint")
+        excluded_hint.setWordWrap(True)
+        layout.addWidget(excluded_hint)
+
+        stats_label = QLabel("STATISTICS")
+        stats_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(stats_label)
+
+        sessions, words = hotkey_settings.get_stats()
+        stats_value = QLabel(
+            f"{sessions:,} dictation{'s' if sessions != 1 else ''} · {words:,} words"
+        )
+        stats_value.setObjectName("settingsHint")
+        layout.addWidget(stats_value)
+
+        startup_label = QLabel("STARTUP")
+        startup_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(startup_label)
+
+        auto_start_checkbox = QCheckBox("Start VoxScribe automatically when Windows starts")
+        auto_start_checkbox.setChecked(hotkey_settings.get_auto_start())
+        layout.addWidget(auto_start_checkbox)
+
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
-        layout.addWidget(buttons)
+        button_row = QHBoxLayout()
+        button_row.setContentsMargins(24, 8, 24, 16)
+        button_row.addWidget(buttons)
+        outer_layout.addLayout(button_row)
 
         if dialog.exec() != QDialog.Accepted:
             return
 
+        changes = []
+
         new_key = combo.currentData()
-        if new_key == self._hotkey:
-            return
-        self._hotkey = new_key
-        hotkey_settings.set_hotkey(new_key)
-        self._register_global_hotkey()
-        if self.tray_icon is not None:
+        if new_key != self._hotkey:
+            self._hotkey = new_key
+            hotkey_settings.set_hotkey(new_key)
+            self._register_global_hotkey()
+            changes.append(f"Hotkey changed to {new_key.upper()}.")
+
+        new_talk_mode = talk_mode_combo.currentData()
+        if new_talk_mode != current_talk_mode:
+            hotkey_settings.set_talk_mode(new_talk_mode)
+            changes.append(f"Talk mode set to: {talk_mode_combo.currentText()}")
+
+        new_device = mic_combo.currentData()
+        if new_device != current_device:
+            hotkey_settings.set_input_device(new_device)
+            changes.append(
+                "Microphone set to auto-detect."
+                if new_device is None
+                else f"Microphone set to {mic_combo.currentText()}."
+            )
+
+        new_language = language_combo.currentData()
+        if new_language != current_language:
+            hotkey_settings.set_language(new_language)
+            self._refresh_language_badge()
+            changes.append(f"Dictation language set to {language_combo.currentText()}.")
+
+        new_model_size = model_combo.currentData()
+        if new_model_size != current_model_size:
+            hotkey_settings.set_model_size(new_model_size)
+            changes.append(
+                f"Whisper model set to {model_combo.currentText()} "
+                "(takes effect after restart)."
+            )
+
+        new_vocabulary = [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
+        if new_vocabulary != hotkey_settings.get_custom_vocabulary():
+            hotkey_settings.set_custom_vocabulary(new_vocabulary)
+            changes.append(
+                f"Custom vocabulary updated ({len(new_vocabulary)} term"
+                f"{'s' if len(new_vocabulary) != 1 else ''})."
+                if new_vocabulary
+                else "Custom vocabulary cleared."
+            )
+
+        new_cleanup_enabled = cleanup_checkbox.isChecked()
+        if new_cleanup_enabled != hotkey_settings.get_cleanup_enabled():
+            hotkey_settings.set_cleanup_enabled(new_cleanup_enabled)
+            changes.append(
+                "Filler-word cleanup enabled."
+                if new_cleanup_enabled
+                else "Filler-word cleanup disabled."
+            )
+
+        new_sound_enabled = sound_checkbox.isChecked()
+        if new_sound_enabled != hotkey_settings.get_sound_enabled():
+            hotkey_settings.set_sound_enabled(new_sound_enabled)
+            changes.append(
+                "Recording sounds enabled." if new_sound_enabled else "Recording sounds disabled."
+            )
+
+        new_excluded_apps = [a.strip() for a in excluded_edit.text().split(",") if a.strip()]
+        if [a.lower() for a in new_excluded_apps] != hotkey_settings.get_excluded_apps():
+            hotkey_settings.set_excluded_apps(new_excluded_apps)
+            changes.append(
+                f"Disabled apps updated ({len(new_excluded_apps)})."
+                if new_excluded_apps
+                else "Disabled apps list cleared."
+            )
+
+        new_auto_start = auto_start_checkbox.isChecked()
+        if new_auto_start != hotkey_settings.get_auto_start():
+            try:
+                hotkey_settings.set_auto_start(new_auto_start)
+                changes.append(
+                    "VoxScribe will now start with Windows."
+                    if new_auto_start
+                    else "VoxScribe will no longer start with Windows."
+                )
+            except OSError as exc:
+                changes.append(f"Couldn't update the startup setting: {exc}")
+
+        if changes and self.tray_icon is not None:
             self.tray_icon.showMessage(
                 "VoxScribe",
-                f"Hotkey changed to {new_key.upper()}.",
+                " ".join(changes),
                 QSystemTrayIcon.MessageIcon.Information,
-                3000,
+                4000,
             )
 
     # -- system tray ------------------------------------------------------
@@ -779,13 +1285,14 @@ class MainWindow(QMainWindow):
         self.tray_icon.setToolTip("VoxScribe")
 
         menu = QMenu()
+        menu.setStyleSheet(TRAY_MENU_STYLESHEET)
         show_action = QAction("Show Window", self)
         show_action.triggered.connect(self._show_and_raise)
         menu.addAction(show_action)
 
-        change_hotkey_action = QAction("Change Hotkey...", self)
-        change_hotkey_action.triggered.connect(self._open_hotkey_dialog)
-        menu.addAction(change_hotkey_action)
+        settings_action = QAction("Settings...", self)
+        settings_action.triggered.connect(self._open_settings_dialog)
+        menu.addAction(settings_action)
 
         check_updates_action = QAction("Check for Updates...", self)
         check_updates_action.triggered.connect(lambda: self._start_update_check(manual=True))
@@ -859,8 +1366,22 @@ class MainWindow(QMainWindow):
         self._update_checker.start()
 
     def _on_update_found(self, info: UpdateInfo) -> None:
-        self._pending_update_url = info.url
-        if self.tray_icon is not None:
+        self._pending_update_info = info
+        self._downloaded_installer_path = None
+        if self.tray_icon is None:
+            return
+        if info.asset_url:
+            self.tray_icon.showMessage(
+                "VoxScribe update available",
+                f"Version {info.version} is available (you're on {__version__}). "
+                "Click this notification to download the installer.",
+                QSystemTrayIcon.MessageIcon.Information,
+                8000,
+            )
+        else:
+            # No .exe asset found on the release (shouldn't normally
+            # happen) -- fall back to the release page link, same as
+            # before one-click download existed.
             self.tray_icon.showMessage(
                 "VoxScribe update available",
                 f"Version {info.version} is available (you're on {__version__}). "
@@ -888,9 +1409,65 @@ class MainWindow(QMainWindow):
             )
 
     def _on_tray_message_clicked(self) -> None:
-        if self._pending_update_url:
-            webbrowser.open(self._pending_update_url)
-            self._pending_update_url = None
+        # Three possible states, checked in order: a downloaded installer
+        # ready to run, a download in progress (ignore the click), or an
+        # update just found (start the download, or fall back to the
+        # browser if the release has no .exe asset).
+        if self._downloaded_installer_path:
+            os.startfile(self._downloaded_installer_path)  # noqa: S606 -- Windows-only app
+            self._downloaded_installer_path = None
+            self._pending_update_info = None
+            return
+
+        if self._update_downloader is not None and self._update_downloader.isRunning():
+            return
+
+        info = self._pending_update_info
+        if info is None:
+            return
+
+        if not info.asset_url or not info.asset_name:
+            webbrowser.open(info.url)
+            self._pending_update_info = None
+            return
+
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                "Downloading the update...",
+                QSystemTrayIcon.MessageIcon.Information,
+                4000,
+            )
+        self._update_downloader = UpdateDownloadThread(info.asset_url, info.asset_name)
+        self._update_downloader.done.connect(self._on_update_downloaded)
+        self._update_downloader.failed.connect(self._on_update_download_failed)
+        self._update_downloader.start()
+
+    def _on_update_downloaded(self, path: str) -> None:
+        self._downloaded_installer_path = path
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe update downloaded",
+                "Click this notification to run the installer.",
+                QSystemTrayIcon.MessageIcon.Information,
+                8000,
+            )
+
+    def _on_update_download_failed(self, message: str) -> None:
+        # Fall back to the release page rather than leaving the user stuck --
+        # the next click opens it in the browser instead of retrying.
+        info = self._pending_update_info
+        self._pending_update_info = (
+            UpdateInfo(version=info.version, url=info.url) if info else None
+        )
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"Couldn't download the update: {message}. "
+                "Click this notification to open the download page instead.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                6000,
+            )
 
     def _open_logs_folder(self) -> None:
         CRASH_LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -1023,19 +1600,42 @@ class MainWindow(QMainWindow):
             self._indicator.show_status("not_ready")
             QTimer.singleShot(1500, self._indicator.hide_indicator)
             return
+        if hotkey_settings.get_talk_mode() == "toggle":
+            # Toggle mode: a press either starts or stops -- release (below)
+            # does nothing. Still only stops a recording the hotkey itself
+            # started, same guard as hold mode, so the hotkey can't steal
+            # control from a recording the on-screen button started.
+            if self.stream is not None and self._hotkey_active_session:
+                self._hotkey_active_session = False
+                self._stop_recording()
+            elif self.stream is None and not transcribing:
+                self._hotkey_active_session = True
+                self._start_recording()
+            return
+
         if self.stream is None and not transcribing:
             self._hotkey_active_session = True
             self._start_recording()
 
     def _handle_hotkey_release(self) -> None:
         self._hotkey_key_down = False
+        if hotkey_settings.get_talk_mode() == "toggle":
+            return
         if self._hotkey_active_session and self.stream is not None:
             self._hotkey_active_session = False
             self._stop_recording()
 
     def _start_recording(self) -> None:
+        excluded_process = foreground_process_name()
+        if excluded_process and excluded_process in hotkey_settings.get_excluded_apps():
+            self._hotkey_active_session = False
+            self._set_status(f"Dictation disabled for {excluded_process}", "error")
+            return
+
         self._chunks = []
-        device = _default_input_device()
+        # Falls back to auto-detection if the user's chosen device (Settings
+        # -> Microphone) has been unplugged/disconnected since it was picked.
+        device = resolve_input_device(hotkey_settings.get_input_device())
         # Record at the device's own native rate rather than forcing 16kHz --
         # some devices/drivers (e.g. a laptop's internal mic falling back to
         # when a Bluetooth headset isn't connected) reject a forced 16kHz
@@ -1063,11 +1663,13 @@ class MainWindow(QMainWindow):
         self._set_record_button_recording(True)
         self._set_status("Recording...", "recording")
         self._indicator.show_status("recording")
+        _play_start_sound()
 
     def _stop_recording(self) -> None:
         self.stream.stop()
         self.stream.close()
         self.stream = None
+        _play_stop_sound()
 
         self.record_button.setEnabled(False)
         self.record_button.setText("Start Recording")
@@ -1079,18 +1681,25 @@ class MainWindow(QMainWindow):
         audio = resample_to_16k(audio, self._record_rate)
         self._chunks = []
 
-        self._worker = TranscribeThread(self.transcriber, audio)
+        self._worker = TranscribeThread(
+            self.transcriber,
+            audio,
+            hotkey_settings.get_language(),
+            hotkey_settings.custom_vocabulary_prompt(),
+        )
         self._worker.done.connect(self._on_transcribed)
         self._worker.failed.connect(self._on_transcribe_failed)
         self._worker.start()
 
     def _on_transcribed(self, text: str) -> None:
-        text = clean_transcript(text) if text else text
+        if text and hotkey_settings.get_cleanup_enabled():
+            text = clean_transcript(text)
         self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
         self._indicator.hide_indicator()
 
         if text:
+            hotkey_settings.record_dictation(len(text.split()))
             # Simulate typing directly into whatever window currently has
             # focus (not necessarily this app -- that's the point of the
             # global hotkey). This deliberately does NOT touch the
