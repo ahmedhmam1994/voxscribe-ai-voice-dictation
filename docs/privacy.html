@@ -51,7 +51,7 @@
 <div class="wrap">
   <a class="back" href="index.html">&larr; Back to VoxScribe</a>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: 2026-08-20 &middot; applies to VoxScribe for Windows and VoxScribe for Android</p>
+  <p class="updated">Last updated: 2026-08-22 &middot; applies to VoxScribe for Windows and VoxScribe for Android</p>
 
   <p>VoxScribe does not collect, store, or transmit your data to any server that we operate. There is no VoxScribe backend — the apps run entirely on your own device. This page explains exactly what each version does with your microphone audio and what, if anything, leaves your device.</p>
 
@@ -60,7 +60,8 @@
     <li><strong>Microphone audio</strong> is captured only while you hold the F9 hotkey (or press Start Recording), transcribed on your own CPU using a local Whisper model, and then discarded. It is never uploaded anywhere.</li>
     <li><strong>Transcribed text</strong> is typed directly into whichever application has focus, and optionally saved to a <code>.txt</code> file only if you click Save Transcript. VoxScribe does not send this text anywhere.</li>
     <li><strong>Internet access</strong> is used exactly once: downloading the Whisper speech-recognition model from Hugging Face on first launch. After that, transcription works fully offline.</li>
-    <li>VoxScribe collects no analytics, telemetry, crash reports, or usage data.</li>
+    <li>If the app crashes, a log is written to a folder on your own machine (<code>%LOCALAPPDATA%\VoxScribe\logs\</code>) so it can be diagnosed if you choose to share it. This never happens automatically — nothing is uploaded or sent anywhere on your behalf.</li>
+    <li>VoxScribe collects no analytics, telemetry, or usage data, and sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
   </ul>
 
   <h2>VoxScribe for Android</h2>
@@ -72,7 +73,17 @@
     <li><strong>Typed text</strong> is inserted directly into whatever field you're focused in, the same as any keyboard. VoxScribe itself does not log, store, or transmit what you type.</li>
     <li><strong>Settings</strong> (offline-preference toggle, fallback language, cleanup toggles) are stored locally on-device via Android's SharedPreferences and never leave your phone.</li>
     <li>The <code>INTERNET</code> permission is used only to check whether Google's offline speech pack is installed, and, in the fallback case above, by Android's own recognizer — VoxScribe's own code makes no network calls of its own after the app is installed.</li>
-    <li>VoxScribe collects no analytics, telemetry, crash reports, or usage data.</li>
+    <li>If the app crashes, a log is written to a folder on your own phone (<code>Android/data/com.voxscribe.android/files/crash_logs/</code>, readable with any file manager) so it can be diagnosed if you choose to share it. This never happens automatically — nothing is uploaded or sent anywhere on your behalf.</li>
+    <li>VoxScribe collects no analytics, telemetry, or usage data, and sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
+  </ul>
+
+  <h2>VoxScribe for Android — floating-bubble mode</h2>
+  <p>Alongside the keyboard, VoxScribe offers an optional floating bubble: a small button you can drag anywhere on screen that dictates directly into whatever app you're using, without switching keyboards. This mode needs two additional permissions beyond the keyboard's, both of which we document precisely here since they're more sensitive than a typical app permission.</p>
+  <ul>
+    <li><strong>Display over other apps</strong> (<code>SYSTEM_ALERT_WINDOW</code>) — lets the floating bubble itself be drawn on top of whatever app you're in. VoxScribe uses this only to show the bubble; it does not use this permission to see or capture anything else on your screen.</li>
+    <li><strong>Accessibility Service</strong> — this is the permission that lets the bubble insert dictated text directly into the app you're using, instead of requiring you to switch to the VoxScribe keyboard first. Concretely, VoxScribe's accessibility service only ever does two things: it keeps track of which text field is currently focused (so it knows where dictated text should go), and, when you finish dictating, it inserts that text into that one field. It does not read, log, record, or transmit the content of your screen, other text fields, or anything you type manually with your own keyboard, and it takes no action at all except in direct response to you holding the bubble and dictating.</li>
+    <li><strong>Clipboard, as a fallback only</strong> — a small number of text fields (mainly some WebViews) don't support VoxScribe's normal direct-insert method. For those specific fields, VoxScribe briefly places the dictated text on the clipboard, triggers a paste, and then restores whatever was previously on your clipboard half a second later. VoxScribe does not read your clipboard's existing contents at any point, and does not use the clipboard at all for fields where direct insertion works.</li>
+    <li>Enabling floating-bubble mode is entirely optional and separate from enabling the keyboard — you can use either, both, or neither.</li>
   </ul>
 
   <div class="card note">
@@ -86,6 +97,8 @@
   <ul>
     <li><strong>Microphone</strong> — required to capture your voice for transcription. Requested at first use, not on install.</li>
     <li><strong>Internet</strong> (Android only) — used for the offline-pack check and Google's fallback recognizer described above.</li>
+    <li><strong>Display over other apps</strong> (Android, floating-bubble mode only) — draws the floating dictation bubble. Optional; only needed if you enable this mode.</li>
+    <li><strong>Accessibility Service</strong> (Android, floating-bubble mode only) — lets the bubble insert dictated text into the field you're focused in. Optional; only needed if you enable this mode. See the floating-bubble section above for exactly what it does and doesn't do.</li>
   </ul>
 
   <h2>Changes to this policy</h2>
