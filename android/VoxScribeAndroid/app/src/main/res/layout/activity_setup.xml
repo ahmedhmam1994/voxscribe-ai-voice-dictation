@@ -113,5 +113,74 @@
             app:iconTint="@color/vox_on_surface_muted"
             android:textColor="@color/vox_on_surface_muted" />
 
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="4dp"
+            android:text="@string/setup_bubble_section_label"
+            android:textColor="@color/vox_on_surface_muted"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/setup_bubble_section_subtitle"
+            android:textColor="@color/vox_on_surface_muted"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/grant_overlay_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/setup_grant_overlay"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/vox_surface_container_high"
+            android:textColor="@color/vox_on_surface" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/enable_accessibility_button"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/setup_enable_accessibility"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/vox_surface_container_high"
+            android:textColor="@color/vox_on_surface" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="12dp"
+            android:text="@string/setup_enable_accessibility_hint"
+            android:textColor="@color/vox_on_surface_muted"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/start_bubble_button"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/setup_start_bubble"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            app:icon="@drawable/ic_mic"
+            app:iconGravity="textStart"
+            app:iconPadding="10dp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/vox_primary"
+            android:textColor="@color/vox_on_primary"
+            app:iconTint="@color/vox_on_primary" />
+
     </LinearLayout>
 </ScrollView>

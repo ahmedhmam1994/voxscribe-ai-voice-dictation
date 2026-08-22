@@ -46,4 +46,31 @@
     <string name="status_error">Error (%1$d) — try again</string>
 
     <string name="key_space">space</string>
+
+    <!-- Shown by Android in Settings > Accessibility next to the service
+         toggle, and reviewed by Play Store: must stay precise and
+         truthful about exactly what this does and nothing more. -->
+    <string name="accessibility_service_description">Lets VoxScribe\'s floating bubble (an alternative to switching keyboards) detect which text field is focused and insert your dictated text into it directly. VoxScribe does not read, log, or transmit anything else you type.</string>
+
+    <string name="desc_bubble_idle">VoxScribe floating bubble. Drag to move, hold to talk.</string>
+    <string name="desc_bubble_recording">Recording, release to stop</string>
+    <string name="desc_bubble_transcribing">Transcribing…</string>
+
+    <string name="bubble_notification_channel_name">Floating bubble</string>
+    <string name="bubble_notification_channel_desc">Shown while VoxScribe\'s floating dictation bubble is active</string>
+    <string name="bubble_notification_title">VoxScribe bubble is active</string>
+    <string name="bubble_notification_text">Hold the bubble anywhere to dictate</string>
+    <string name="bubble_insert_failed_clipboard_fallback">Couldn\'t insert directly — copied to clipboard instead</string>
+
+    <string name="setup_bubble_section_label">FLOATING BUBBLE MODE</string>
+    <string name="setup_bubble_section_subtitle">An alternative to switching keyboards: a small bubble floats over any app. Hold it to talk, release to insert the text right where you\'re typing.</string>
+    <string name="setup_grant_overlay">1. Grant overlay permission</string>
+    <string name="setup_grant_overlay_done">1. Overlay permission ✓</string>
+    <string name="setup_enable_accessibility">2. Enable accessibility service</string>
+    <string name="setup_enable_accessibility_done">2. Accessibility service ✓</string>
+    <string name="setup_enable_accessibility_hint">Opens Accessibility settings — find and turn on \"VoxScribe\" in the list.</string>
+    <string name="setup_start_bubble">3. Start floating bubble</string>
+    <string name="setup_stop_bubble">3. Stop floating bubble</string>
+    <string name="bubble_missing_permissions">Grant overlay + accessibility permissions first (steps 1 and 2 above)</string>
+    <string name="bubble_status_running">Bubble is active — drag it anywhere, hold to talk.</string>
 </resources>

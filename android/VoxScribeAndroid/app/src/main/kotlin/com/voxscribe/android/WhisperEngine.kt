@@ -95,6 +95,13 @@ object WhisperEngine {
         }
     }
 
+    /**
+     * Synchronized: BubbleService now warms this up on a background thread
+     * at service start, which can otherwise race a fast bubble press that
+     * triggers the same lazy-init path from DictationEngine on the main
+     * thread.
+     */
+    @Synchronized
     private fun ensureInitialized(context: Context) {
         if (checkedAvailability) return
         checkedAvailability = true

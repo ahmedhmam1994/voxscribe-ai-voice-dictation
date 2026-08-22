@@ -3,15 +3,6 @@ package com.voxscribe.android
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.inputmethodservice.InputMethodService
-import android.media.AudioFormat
-import android.media.AudioRecord
-import android.media.MediaRecorder
-import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -20,9 +11,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
-import java.io.ByteArrayOutputStream
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 /**
  * VoxScribe's Android equivalent of the desktop app's hold-to-talk flow.
@@ -39,27 +27,16 @@ import java.nio.ByteOrder
  * whatever text field is currently focused -- the same practical result as
  * the desktop app, using the mechanism Android actually provides for it.
  *
- * Two transcription paths, chosen automatically per recording:
- *   - MILESTONE 2 (preferred): [WhisperEngine], a bundled on-device Whisper
- *     model via sherpa-onnx -- the real match to faster-whisper on desktop,
- *     no dependency on device settings. Used whenever the model assets it
- *     needs are present (see WhisperEngine's doc comment).
- *   - MILESTONE 1 (fallback): Android's built-in SpeechRecognizer with
- *     EXTRA_PREFER_OFFLINE=true. Used automatically whenever the bundled
- *     Whisper model isn't available yet, so the keyboard still works before
- *     (or without) doing Milestone 2's manual asset setup.
+ * The actual recording/transcription pipeline lives in [DictationEngine]
+ * (shared with BubbleService's floating-bubble mode, Phase 4) -- see its
+ * doc comment for the two transcription paths it chooses between.
  */
-class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
+class VoxScribeInputMethodService : InputMethodService() {
 
-    private var speechRecognizer: SpeechRecognizer? = null
-    private var audioRecord: AudioRecord? = null
-    private var captureThread: Thread? = null
-    @Volatile private var capturing = false
-    private var usingWhisper = false
+    private var engine: DictationEngine? = null
     private var isRecording = false
     private lateinit var statusText: TextView
     private lateinit var micButton: MaterialButton
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreateInputView(): View {
         // An InputMethodService doesn't reliably inherit the app's manifest
@@ -170,6 +147,12 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
     }
 
+    private fun commitDictatedText(text: String) {
+        if (text.isBlank()) return
+        val suffix = if (SettingsStore.trailingSpaceEnabled(this)) " " else ""
+        currentInputConnection?.commitText(text + suffix, 1)
+    }
+
     private fun startListening() {
         if (isRecording) return
         if (!hasRecordAudioPermission()) {
@@ -182,20 +165,19 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         micButton.text = getString(R.string.mic_button_recording)
         setMicRecordingVisual(recording = true)
 
-        if (SettingsStore.preferWhisper(this) && WhisperEngine.isAvailable(this)) {
-            startWhisperCapture()
-        } else {
-            startFallbackRecognizer()
-        }
-    }
-
-    private fun cleanupIfEnabled(text: String): String =
-        if (SettingsStore.cleanupEnabled(this)) TranscriptCleanup.clean(text) else text
-
-    private fun commitDictatedText(text: String) {
-        if (text.isBlank()) return
-        val suffix = if (SettingsStore.trailingSpaceEnabled(this)) " " else ""
-        currentInputConnection?.commitText(text + suffix, 1)
+        engine = DictationEngine(
+            context = this,
+            onResult = { text ->
+                commitDictatedText(text)
+                statusText.text = readyStatusText()
+            },
+            onFailure = { message ->
+                statusText.text = message
+                isRecording = false
+                micButton.text = getString(R.string.mic_button_idle)
+                setMicRecordingVisual(recording = false)
+            },
+        ).also { it.startListening() }
     }
 
     private fun stopListening() {
@@ -204,139 +186,12 @@ class VoxScribeInputMethodService : InputMethodService(), RecognitionListener {
         micButton.text = getString(R.string.mic_button_idle)
         setMicRecordingVisual(recording = false)
         statusText.text = getString(R.string.status_transcribing)
-
-        if (usingWhisper) {
-            // The capture thread notices `capturing = false`, stops/releases
-            // the AudioRecord, transcribes, and posts the result back to the
-            // main thread itself -- nothing more to do here.
-            capturing = false
-        } else {
-            speechRecognizer?.stopListening()
-        }
+        engine?.stopListening()
     }
-
-    // --- Milestone 2: bundled Whisper via sherpa-onnx -----------------------------------
-
-    private fun startWhisperCapture() {
-        usingWhisper = true
-
-        val minBuf = AudioRecord.getMinBufferSize(
-            WhisperEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
-        )
-        val bufSize = if (minBuf > 0) minBuf else WhisperEngine.SAMPLE_RATE * 2
-
-        val record = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            WhisperEngine.SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufSize
-        )
-        if (record.state != AudioRecord.STATE_INITIALIZED) {
-            record.release()
-            usingWhisper = false
-            statusText.text = getString(R.string.status_no_recognizer)
-            isRecording = false
-            micButton.text = getString(R.string.mic_button_idle)
-            setMicRecordingVisual(recording = false)
-            return
-        }
-
-        audioRecord = record
-        capturing = true
-        val pcmBytes = ByteArrayOutputStream()
-        record.startRecording()
-
-        captureThread = Thread {
-            val chunk = ByteArray(bufSize)
-            while (capturing) {
-                val n = record.read(chunk, 0, chunk.size)
-                if (n > 0) pcmBytes.write(chunk, 0, n)
-            }
-            record.stop()
-            record.release()
-
-            val samples = pcm16BytesToFloat(pcmBytes.toByteArray())
-            val cleaned = cleanupIfEnabled(WhisperEngine.transcribe(samples))
-            mainHandler.post {
-                commitDictatedText(cleaned)
-                statusText.text = readyStatusText()
-            }
-        }.also { it.start() }
-    }
-
-    /** Raw little-endian PCM16 bytes (as AudioRecord produces on Android) -> [-1, 1] floats. */
-    private fun pcm16BytesToFloat(bytes: ByteArray): FloatArray {
-        val shorts = ShortArray(bytes.size / 2)
-        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
-        return FloatArray(shorts.size) { shorts[it] / 32768.0f }
-    }
-
-    // --- Milestone 1: Android's built-in SpeechRecognizer (fallback) -------------------
-
-    private fun startFallbackRecognizer() {
-        usingWhisper = false
-
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            statusText.text = getString(R.string.status_no_recognizer)
-            isRecording = false
-            micButton.text = getString(R.string.mic_button_idle)
-            setMicRecordingVisual(recording = false)
-            return
-        }
-
-        speechRecognizer?.destroy()
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).also {
-            it.setRecognitionListener(this)
-        }
-
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            SettingsStore.fallbackLanguage(this@VoxScribeInputMethodService)?.let { lang ->
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
-            }
-        }
-        speechRecognizer?.startListening(intent)
-    }
-
-    // --- RecognitionListener callbacks (Milestone 1 path only) -------------------------
-
-    override fun onResults(results: Bundle?) {
-        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        val raw = matches?.firstOrNull().orEmpty()
-        commitDictatedText(cleanupIfEnabled(raw))
-        statusText.text = readyStatusText()
-    }
-
-    override fun onError(error: Int) {
-        statusText.text = getString(R.string.status_error, error)
-        isRecording = false
-        micButton.text = getString(R.string.mic_button_idle)
-        setMicRecordingVisual(recording = false)
-    }
-
-    override fun onPartialResults(partialResults: Bundle?) {}
-    override fun onReadyForSpeech(params: Bundle?) {}
-    override fun onBeginningOfSpeech() {}
-    override fun onRmsChanged(rmsdB: Float) {}
-    override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {
-        statusText.text = getString(R.string.status_transcribing)
-    }
-    override fun onEvent(eventType: Int, params: Bundle?) {}
 
     override fun onDestroy() {
         super.onDestroy()
-        speechRecognizer?.destroy()
-        speechRecognizer = null
-        capturing = false
-        audioRecord?.let {
-            if (it.state == AudioRecord.STATE_INITIALIZED) it.stop()
-            it.release()
-        }
-        audioRecord = null
+        engine?.destroy()
+        engine = null
     }
 }

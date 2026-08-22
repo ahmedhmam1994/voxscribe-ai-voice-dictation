@@ -4,8 +4,27 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Lets us check whether an offline recognizer language pack is installed. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Floating-bubble mode (alternative to switching keyboards, see
+         VoxScribeAccessibilityService): draws the bubble above other apps.
+         Special permission: not grantable via a normal runtime dialog,
+         the user must enable it via Settings.ACTION_MANAGE_OVERLAY_PERMISSION. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Needed on Android 13+ to actually show BubbleService's persistent
+         foreground-service notification (a runtime prompt, requested in
+         Phase 5's onboarding, not here). The foreground service itself
+         still starts and runs without it either way: this permission
+         only controls whether the notification is visible. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Required alongside foregroundServiceType="microphone" below, since
+         without it Android/MIUI's background-mic restriction silently
+         zeroes out AudioRecord's captured audio for a service that isn't a
+         visible foreground Activity, even though RECORD_AUDIO is granted. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
+        android:name=".VoxScribeApplication"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
@@ -53,6 +72,42 @@
             <meta-data
                 android:name="android.view.im"
                 android:resource="@xml/method" />
+        </service>
+
+        <!-- Floating-bubble mode: an alternative to switching keyboards.
+             Detects the focused text field system-wide and inserts
+             dictated text into it directly, the same approach Wispr Flow
+             uses on Android. Requires BIND_ACCESSIBILITY_SERVICE (a system
+             permission only the OS can grant to a declared service) plus
+             the user separately enabling it in Settings > Accessibility:
+             there is no runtime-dialog path for this, unlike RECORD_AUDIO. -->
+        <service
+            android:name=".VoxScribeAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
+
+        <!-- The floating bubble itself: a WindowManager overlay + a
+             foreground service (required by Android 8+ for any
+             long-running background work, here specifically to keep the
+             overlay window alive). foregroundServiceType="specialUse" is
+             the only category that fits a floating-dictation-button use
+             case; Android 14+ requires both this and the PROPERTY_SPECIAL_USE_FGS_SUBTYPE
+             below to explain why in the Play Store review. -->
+        <service
+            android:name=".BubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse|microphone">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating dictation bubble: an alternative to switching keyboards, lets the user hold the bubble to record and dictate into the focused field." />
         </service>
 
     </application>

@@ -20,4 +20,8 @@
          contradicts "mic is hot"; red is the universal recording convention). -->
     <color name="vox_error">#F0546B</color>
     <color name="vox_on_error">#FFFFFF</color>
+
+    <!-- Transcribing state, matching the desktop app's own status color
+         (app/main_window.py's STATUS_COLORS["transcribing"]). -->
+    <color name="vox_transcribing">#F0A54A</color>
 </resources>

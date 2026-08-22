@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The floating bubble itself: a single circular ImageView, same visual
+  language as the nav brand mark (bg_brand_mark.xml) and the keyboard's own
+  mic button (ic_mic/ic_stop). BubbleService swaps the background tint
+  (violet/red/amber for idle/recording/transcribing) and the icon
+  (ic_mic/ic_stop) in code as the state changes.
+-->
+<!--
+  No static app:tint here on purpose: ic_mic.xml/ic_stop.xml each carry
+  their own contrasting tint (colorOnPrimary/colorOnError) that only makes
+  sense against their matching background color. BubbleService.setState()
+  sets both backgroundTintList and imageTintList together per state so
+  they always stay a matched pair (e.g. white icon on red, not on violet).
+-->
+<androidx.appcompat.widget.AppCompatImageView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bubble_icon"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:background="@drawable/bg_brand_mark"
+    android:backgroundTint="@color/vox_primary"
+    android:contentDescription="@string/desc_bubble_idle"
+    android:elevation="8dp"
+    android:padding="14dp"
+    android:src="@drawable/ic_mic" />

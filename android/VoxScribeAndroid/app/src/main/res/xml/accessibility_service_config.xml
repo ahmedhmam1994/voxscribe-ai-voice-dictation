@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Config for VoxScribeAccessibilityService (floating-bubble mode).
+
+  canRetrieveWindowContent + the two event types below are the minimum
+  needed to know which field is focused (typeViewFocused) and to drop that
+  reference when the user switches app/window (typeWindowStateChanged),
+  see VoxScribeAccessibilityService.kt's insertText(). Deliberately not
+  requesting flagRetrieveInteractiveWindows or broader event types than
+  that, since Play Store review weighs accessibility-service scope against
+  what the description above actually claims to do.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeViewFocused|typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:icon="@drawable/ic_launcher"
+    android:notificationTimeout="100"
+    android:settingsActivity="com.voxscribe.android.SettingsActivity" />
