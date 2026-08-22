@@ -17,11 +17,26 @@ from pathlib import Path
 import keyboard
 import numpy as np
 import sounddevice as sd
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtCore import (
+    QEasingCurve,
+    QObject,
+    QPropertyAnimation,
+    QRectF,
+    QSequentialAnimationGroup,
+    QSize,
+    Qt,
+    QThread,
+    QTimer,
+    Signal,
+)
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -35,6 +50,7 @@ from PySide6.QtWidgets import (
 
 from app.floating_indicator import FloatingIndicator
 from app.version import __version__
+from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
     _default_input_device,
@@ -47,7 +63,6 @@ from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateInfo
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
-GLOBAL_HOTKEY = "f9"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
 
 # -- visual palette --------------------------------------------------------
@@ -69,6 +84,152 @@ ACCENT_PRESSED = "#7566e0"
 ACCENT_DISABLED = "#3a3b4c"
 
 
+# -- hand-drawn vector icons ------------------------------------------------
+# No icon library is wired into this desktop app, and QSS/Qt widgets have no
+# equivalent of a web icon font. Rather than fall back to unicode glyphs
+# (which render inconsistently across Windows font fallback), icons are
+# drawn directly with QPainter at a fixed stroke weight -- a real, if tiny,
+# authored icon set instead of text-only buttons.
+_ICON_STROKE = 1.6
+
+
+def _new_icon_painter(size: int, color: str) -> tuple[QPixmap, QPainter]:
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor(color))
+    pen.setWidthF(_ICON_STROKE)
+    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+    painter.setPen(pen)
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    return pixmap, painter
+
+
+def _icon_mic(size: int = 22, color: str = "#ffffff") -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    body = QRectF(s * 0.37, s * 0.08, s * 0.26, s * 0.42)
+    painter.drawRoundedRect(body, body.width() / 2, body.width() / 2)
+    bracket = QRectF(s * 0.20, s * 0.28, s * 0.60, s * 0.50)
+    painter.drawArc(bracket, 200 * 16, 140 * 16)
+    painter.drawLine(int(s * 0.5), int(s * 0.72), int(s * 0.5), int(s * 0.88))
+    painter.drawLine(int(s * 0.34), int(s * 0.88), int(s * 0.66), int(s * 0.88))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_stop(size: int = 22, color: str = "#ffffff") -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    painter.setBrush(QColor(color))
+    rect = QRectF(s * 0.30, s * 0.30, s * 0.40, s * 0.40)
+    painter.drawRoundedRect(rect, s * 0.06, s * 0.06)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_save(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    painter.drawLine(int(s * 0.5), int(s * 0.14), int(s * 0.5), int(s * 0.62))
+    path = QPainterPath()
+    path.moveTo(s * 0.32, s * 0.44)
+    path.lineTo(s * 0.5, s * 0.64)
+    path.lineTo(s * 0.68, s * 0.44)
+    painter.drawPath(path)
+    painter.drawLine(int(s * 0.18), int(s * 0.82), int(s * 0.82), int(s * 0.82))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_copy(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    back = QRectF(s * 0.16, s * 0.16, s * 0.52, s * 0.52)
+    painter.drawRoundedRect(back, s * 0.08, s * 0.08)
+    front = QRectF(s * 0.34, s * 0.34, s * 0.52, s * 0.52)
+    painter.setPen(QPen(QColor(color), _ICON_STROKE))
+    painter.setBrush(QColor(BG_CARD))
+    painter.drawRoundedRect(front, s * 0.08, s * 0.08)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_clear(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    painter.drawLine(int(s * 0.22), int(s * 0.30), int(s * 0.78), int(s * 0.30))
+    painter.drawLine(int(s * 0.40), int(s * 0.18), int(s * 0.60), int(s * 0.18))
+    body = QRectF(s * 0.28, s * 0.30, s * 0.44, s * 0.56)
+    painter.drawRoundedRect(body, s * 0.05, s * 0.05)
+    painter.drawLine(int(s * 0.42), int(s * 0.40), int(s * 0.42), int(s * 0.74))
+    painter.drawLine(int(s * 0.58), int(s * 0.40), int(s * 0.58), int(s * 0.74))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _icon_keyboard(size: int = 14, color: str = TEXT_FAINT) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    body = QRectF(s * 0.08, s * 0.24, s * 0.84, s * 0.52)
+    painter.drawRoundedRect(body, s * 0.08, s * 0.08)
+    for cx in (0.24, 0.40, 0.56, 0.72):
+        painter.drawPoint(int(s * cx), int(s * 0.42))
+    painter.drawLine(int(s * 0.24), int(s * 0.60), int(s * 0.76), int(s * 0.60))
+    painter.end()
+    return QIcon(pixmap)
+
+
+class _StatusDot(QWidget):
+    """Small solid-color circle used inside the status pill."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFixedSize(9, 9)
+        self._color = QColor(TEXT_MUTED)
+
+    def set_color(self, hex_color: str) -> None:
+        self._color = QColor(hex_color)
+        self.update()
+
+    def paintEvent(self, event) -> None:  # noqa: N802, ANN001
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(self._color)
+        painter.drawEllipse(self.rect())
+
+
+class StatusPill(QWidget):
+    """Replaces the old plain colored status text with a small badge (dot +
+    label on a card surface) -- gives the app's current state actual visual
+    weight instead of relying on text color alone to carry the meaning."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("statusPill")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 6, 14, 6)
+        layout.setSpacing(8)
+        self._dot = _StatusDot(self)
+        layout.addWidget(self._dot)
+        self._label = QLabel("Loading model...")
+        self._label.setObjectName("statusPillLabel")
+        layout.addWidget(self._label)
+
+    def set_status(self, text: str, kind: str) -> None:
+        color = STATUS_COLORS.get(kind, STATUS_COLORS["ready"])
+        self._dot.set_color(color)
+        self._label.setText(text)
+        self._label.setStyleSheet(f"color: {color}; font-size: 13px; font-weight: 600;")
+
+    def text(self) -> str:
+        return self._label.text()
+
+
 class HotkeyBridge(QObject):
     """Relays the global hotkey (fired on a non-Qt background thread by the
     `keyboard` library) into the Qt event loop via signals. Qt auto-queues
@@ -76,7 +237,7 @@ class HotkeyBridge(QObject):
     the safe way to trigger GUI/audio code from the hotkey callback.
 
     Press/release are separate signals (rather than one toggle signal)
-    because the global hotkey is now hold-to-talk: holding F9 down starts
+    because the global hotkey is now hold-to-talk: holding it down starts
     recording, releasing it stops and transcribes."""
 
     press_requested = Signal()
@@ -90,11 +251,6 @@ STATUS_COLORS = {
     "error": "#f0546b",  # red
 }
 
-STATUS_LABEL_STYLE = (
-    "font-size: 14px; font-weight: 600; letter-spacing: 0.2px; "
-    "padding: 2px 0px; color: {color};"
-)
-
 MAIN_STYLESHEET = f"""
 QMainWindow, QWidget#centralWidget {{
     background: {BG_WINDOW};
@@ -106,15 +262,39 @@ QWidget {{
     color: {TEXT_PRIMARY};
 }}
 
+QWidget#statusPill {{
+    background: {BG_CARD};
+    border: 1px solid {BORDER_SOFT};
+    border-radius: 15px;
+}}
+QLabel#statusPillLabel {{
+    font-size: 13px;
+    font-weight: 600;
+}}
+
 QLabel#transcriptCaption {{
     font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.6px;
     color: {TEXT_MUTED};
 }}
 
 QLabel#hotkeyHint {{
     font-size: 11px;
     color: {TEXT_FAINT};
+}}
+QLabel#hotkeyHintError {{
+    font-size: 11px;
+    color: #f0546b;
+}}
+QLabel#keyBadge {{
+    font-size: 11px;
+    font-weight: 700;
+    color: {TEXT_PRIMARY};
+    background: {BG_CARD};
+    border: 1px solid {BORDER};
+    border-radius: 4px;
+    padding: 1px 6px;
 }}
 
 QPushButton#recordButton {{
@@ -165,6 +345,49 @@ QPushButton#secondaryButton:disabled {{
     border: 1px solid {BORDER_SOFT};
 }}
 
+QPushButton#primaryOutlineButton {{
+    background: transparent;
+    color: {ACCENT};
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid {ACCENT};
+    border-radius: 9px;
+    padding: 8px 14px;
+}}
+QPushButton#primaryOutlineButton:hover {{
+    background: rgba(139, 124, 246, 0.14);
+}}
+QPushButton#primaryOutlineButton:pressed {{
+    background: rgba(139, 124, 246, 0.24);
+}}
+QPushButton#primaryOutlineButton:disabled {{
+    color: {TEXT_FAINT};
+    border: 1px solid {BORDER_SOFT};
+}}
+
+QPushButton#ghostButton {{
+    background: transparent;
+    color: {TEXT_MUTED};
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    padding: 8px 14px;
+}}
+QPushButton#ghostButton:hover {{
+    color: #f0546b;
+    background: rgba(240, 84, 107, 0.10);
+    border: 1px solid rgba(240, 84, 107, 0.35);
+}}
+QPushButton#ghostButton:pressed {{
+    background: rgba(240, 84, 107, 0.18);
+}}
+QPushButton#ghostButton:disabled {{
+    color: {TEXT_FAINT};
+    background: transparent;
+    border: 1px solid transparent;
+}}
+
 QTextEdit#transcriptArea {{
     background: {BG_CARD};
     border: 1px solid {BORDER};
@@ -174,6 +397,9 @@ QTextEdit#transcriptArea {{
     line-height: 1.4;
     selection-background-color: {ACCENT};
     selection-color: #ffffff;
+}}
+QTextEdit#transcriptArea[hasContent="false"] {{
+    border: 1px dashed {BORDER_SOFT};
 }}
 
 QScrollBar:vertical {{
@@ -244,14 +470,16 @@ class MainWindow(QMainWindow):
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
 
-        # Hold-to-talk state for the F9 global hotkey:
-        # - _f9_key_down tracks the *physical* key state so repeated
+        # Hold-to-talk state for the global hotkey (configurable -- see
+        # core/settings.py -- F9 by default):
+        # - _hotkey_key_down tracks the *physical* key state so repeated
         #   "press" events fired by key-repeat (common while holding a key
         #   down, depending on OS/driver) don't re-trigger start_recording.
         # - _hotkey_active_session tracks whether the *current* recording
         #   was started by the hotkey (vs. the on-screen button), so
-        #   releasing F9 only stops a recording it actually started.
-        self._f9_key_down = False
+        #   releasing the hotkey only stops a recording it actually started.
+        self._hotkey = hotkey_settings.get_hotkey()
+        self._hotkey_key_down = False
         self._hotkey_active_session = False
 
         # Small floating "recording/transcribing" pill -- see
@@ -269,30 +497,62 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(20, 20, 20, 18)
         layout.setSpacing(14)
 
-        self.status_label = QLabel("Loading model...")
-        self.status_label.setObjectName("statusLabel")
-        self.status_label.setStyleSheet(
-            STATUS_LABEL_STYLE.format(color=STATUS_COLORS["loading"])
-        )
-        layout.addWidget(self.status_label)
+        status_row = QHBoxLayout()
+        self.status_pill = StatusPill()
+        status_row.addWidget(self.status_pill)
+        status_row.addStretch(1)
+        layout.addLayout(status_row)
+
+        # Icons drawn once and reused (see _icon_* helpers above) rather
+        # than regenerated per state change.
+        self._mic_icon = _icon_mic(22, "#ffffff")
+        self._stop_icon = _icon_stop(22, "#ffffff")
 
         self.record_button = QPushButton("Start Recording")
         self.record_button.setObjectName("recordButton")
         self.record_button.setProperty("recording", False)
         self.record_button.setEnabled(False)
-        self.record_button.setMinimumHeight(48)
+        self.record_button.setMinimumHeight(52)
         self.record_button.setCursor(Qt.PointingHandCursor)
+        self.record_button.setIcon(self._mic_icon)
+        self.record_button.setIconSize(QSize(20, 20))
         self.record_button.clicked.connect(self.toggle_recording)
         layout.addWidget(self.record_button)
+
+        # Soft glow beneath the record button -- violet at rest, shifting to
+        # green and pulsing while actively recording -- so the primary
+        # action reads as elevated/"live" rather than a flat rectangle.
+        self._record_shadow = QGraphicsDropShadowEffect(self.record_button)
+        self._record_shadow.setOffset(0, 6)
+        self._record_shadow.setBlurRadius(24)
+        self._record_shadow.setColor(QColor(139, 124, 246, 110))
+        self.record_button.setGraphicsEffect(self._record_shadow)
+
+        grow = QPropertyAnimation(self._record_shadow, b"blurRadius", self)
+        grow.setDuration(700)
+        grow.setStartValue(22)
+        grow.setEndValue(42)
+        grow.setEasingCurve(QEasingCurve.InOutSine)
+        shrink = QPropertyAnimation(self._record_shadow, b"blurRadius", self)
+        shrink.setDuration(700)
+        shrink.setStartValue(42)
+        shrink.setEndValue(22)
+        shrink.setEasingCurve(QEasingCurve.InOutSine)
+        self._record_pulse = QSequentialAnimationGroup(self)
+        self._record_pulse.addAnimation(grow)
+        self._record_pulse.addAnimation(shrink)
+        self._record_pulse.setLoopCount(-1)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(10)
 
         self.save_button = QPushButton("Save Transcript")
-        self.save_button.setObjectName("secondaryButton")
+        self.save_button.setObjectName("primaryOutlineButton")
         self.save_button.setEnabled(False)
         self.save_button.setMinimumHeight(38)
         self.save_button.setCursor(Qt.PointingHandCursor)
+        self.save_button.setIcon(_icon_save(16, ACCENT))
+        self.save_button.setIconSize(QSize(15, 15))
         self.save_button.clicked.connect(self.save_transcript)
         button_row.addWidget(self.save_button)
 
@@ -301,14 +561,18 @@ class MainWindow(QMainWindow):
         self.copy_button.setEnabled(False)
         self.copy_button.setMinimumHeight(38)
         self.copy_button.setCursor(Qt.PointingHandCursor)
+        self.copy_button.setIcon(_icon_copy(16, TEXT_PRIMARY))
+        self.copy_button.setIconSize(QSize(15, 15))
         self.copy_button.clicked.connect(self.copy_transcript)
         button_row.addWidget(self.copy_button)
 
         self.clear_button = QPushButton("Clear")
-        self.clear_button.setObjectName("secondaryButton")
+        self.clear_button.setObjectName("ghostButton")
         self.clear_button.setEnabled(False)
         self.clear_button.setMinimumHeight(38)
         self.clear_button.setCursor(Qt.PointingHandCursor)
+        self.clear_button.setIcon(_icon_clear(16, TEXT_MUTED))
+        self.clear_button.setIconSize(QSize(15, 15))
         self.clear_button.clicked.connect(self.clear_transcript)
         button_row.addWidget(self.clear_button)
 
@@ -320,6 +584,7 @@ class MainWindow(QMainWindow):
 
         self.transcript_area = QTextEdit()
         self.transcript_area.setObjectName("transcriptArea")
+        self.transcript_area.setProperty("hasContent", False)
         self.transcript_area.setReadOnly(True)
         self.transcript_area.setFrameShape(QTextEdit.NoFrame)
         self.transcript_area.setPlaceholderText(
@@ -328,6 +593,14 @@ class MainWindow(QMainWindow):
         )
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
+
+        # Subtle card elevation so the transcript reads as a surface sitting
+        # above the window background, matching the record button's glow.
+        transcript_shadow = QGraphicsDropShadowEffect(self.transcript_area)
+        transcript_shadow.setOffset(0, 2)
+        transcript_shadow.setBlurRadius(22)
+        transcript_shadow.setColor(QColor(0, 0, 0, 90))
+        self.transcript_area.setGraphicsEffect(transcript_shadow)
 
         self.setCentralWidget(central)
 
@@ -343,36 +616,36 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge = HotkeyBridge()
         self._hotkey_bridge.press_requested.connect(self._handle_hotkey_press)
         self._hotkey_bridge.release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_press_hook = None
+        self._hotkey_release_hook = None
         self._hotkey_registration_error: str | None = None
-        try:
-            keyboard.on_press_key(
-                GLOBAL_HOTKEY, lambda e: self._hotkey_bridge.press_requested.emit()
-            )
-            keyboard.on_release_key(
-                GLOBAL_HOTKEY, lambda e: self._hotkey_bridge.release_requested.emit()
-            )
-            self._hotkey_hint = QLabel(
-                f"Tip: hold {GLOBAL_HOTKEY.upper()} anywhere to talk — release to stop. "
-                "The text will be typed directly into whatever you're focused on."
-            )
-            self._hotkey_hint.setObjectName("hotkeyHint")
-            self._hotkey_hint.setWordWrap(True)
-            self.centralWidget().layout().addWidget(self._hotkey_hint)
-        except Exception as exc:  # noqa: BLE001
-            # Global hooks can fail without admin rights on some systems;
-            # the app still works fine via the on-screen button, but the
-            # user needs to actually be told F9 won't work -- silently
-            # swallowing this left them with no clue why dictating into
-            # other apps never did anything.
-            self._hotkey_registration_error = str(exc)
-            self._hotkey_hint = QLabel(
-                f"Global {GLOBAL_HOTKEY.upper()} hotkey unavailable "
-                f"({exc}). Use the Start/Stop button below instead."
-            )
-            self._hotkey_hint.setObjectName("hotkeyHint")
-            self._hotkey_hint.setWordWrap(True)
-            self._hotkey_hint.setStyleSheet("color: #f0546b;")
-            self.centralWidget().layout().addWidget(self._hotkey_hint)
+
+        # Hotkey hint row: icon + "Hold [KEY] anywhere..." with the key
+        # itself rendered as a small badge, so the hold-to-talk hotkey (the
+        # app's primary interaction) is more visible than plain muted text.
+        hint_row = QHBoxLayout()
+        hint_row.setSpacing(6)
+        hint_row.setContentsMargins(2, 2, 2, 0)
+
+        self._hotkey_hint_icon = QLabel()
+        self._hotkey_hint_icon.setPixmap(_icon_keyboard(14, TEXT_FAINT).pixmap(14, 14))
+        hint_row.addWidget(self._hotkey_hint_icon)
+
+        self._hotkey_hint_prefix = QLabel("Hold")
+        self._hotkey_hint_prefix.setObjectName("hotkeyHint")
+        hint_row.addWidget(self._hotkey_hint_prefix)
+
+        self._hotkey_badge = QLabel()
+        self._hotkey_badge.setObjectName("keyBadge")
+        hint_row.addWidget(self._hotkey_badge)
+
+        self._hotkey_hint_suffix = QLabel()
+        self._hotkey_hint_suffix.setObjectName("hotkeyHint")
+        self._hotkey_hint_suffix.setWordWrap(True)
+        hint_row.addWidget(self._hotkey_hint_suffix, stretch=1)
+
+        self.centralWidget().layout().addLayout(hint_row)
+        self._register_global_hotkey()
 
         self._setup_tray_icon()
 
@@ -396,15 +669,107 @@ class MainWindow(QMainWindow):
 
         # No tray to fall back on and the hotkey didn't register either --
         # the app would otherwise start invisible with no way for the user
-        # to discover it's running or why F9 doesn't work. Show the window
+        # to discover it's running or why the hotkey doesn't work. Show the window
         # so the warning label above is actually seen.
         if self._hotkey_registration_error and self.tray_icon is None:
             self._show_and_raise()
 
+    # -- hotkey registration ------------------------------------------------
+
+    def _register_global_hotkey(self) -> None:
+        """(Re)registers the global hold-to-talk hotkey as self._hotkey.
+        Safe to call again after changing the hotkey (see
+        _open_hotkey_dialog) -- unhooks the previous registration first."""
+        for hook in (self._hotkey_press_hook, self._hotkey_release_hook):
+            if hook is not None:
+                try:
+                    keyboard.unhook(hook)
+                except (KeyError, ValueError):
+                    pass
+        self._hotkey_press_hook = None
+        self._hotkey_release_hook = None
+        self._hotkey_registration_error = None
+
+        try:
+            self._hotkey_press_hook = keyboard.on_press_key(
+                self._hotkey, lambda e: self._hotkey_bridge.press_requested.emit()
+            )
+            self._hotkey_release_hook = keyboard.on_release_key(
+                self._hotkey, lambda e: self._hotkey_bridge.release_requested.emit()
+            )
+        except Exception as exc:  # noqa: BLE001
+            # Global hooks can fail without admin rights on some systems;
+            # the app still works fine via the on-screen button, but the
+            # user needs to actually be told the hotkey won't work --
+            # silently swallowing this left them with no clue why
+            # dictating into other apps never did anything.
+            self._hotkey_registration_error = str(exc)
+
+        self._update_hotkey_hint()
+
+    def _update_hotkey_hint(self) -> None:
+        if self._hotkey_registration_error:
+            # No room for the icon/badge layout here -- collapse to one
+            # full-width error line instead.
+            self._hotkey_hint_icon.hide()
+            self._hotkey_hint_prefix.hide()
+            self._hotkey_badge.hide()
+            self._hotkey_hint_suffix.setObjectName("hotkeyHintError")
+            self._hotkey_hint_suffix.setText(
+                f"Global {self._hotkey.upper()} hotkey unavailable "
+                f"({self._hotkey_registration_error}). Use the Start/Stop button above instead."
+            )
+        else:
+            self._hotkey_hint_icon.show()
+            self._hotkey_hint_prefix.show()
+            self._hotkey_badge.show()
+            self._hotkey_badge.setText(self._hotkey.upper())
+            self._hotkey_hint_suffix.setObjectName("hotkeyHint")
+            self._hotkey_hint_suffix.setText(
+                "anywhere to talk — release to stop. Text is typed directly "
+                "into whatever you're focused on."
+            )
+        self._hotkey_hint_suffix.style().unpolish(self._hotkey_hint_suffix)
+        self._hotkey_hint_suffix.style().polish(self._hotkey_hint_suffix)
+
+    def _open_hotkey_dialog(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Change Hotkey")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(QLabel("Hold-to-talk key:"))
+
+        combo = QComboBox()
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            combo.addItem(key.upper(), key)
+        combo.setCurrentIndex(hotkey_settings.AVAILABLE_HOTKEYS.index(self._hotkey))
+        layout.addWidget(combo)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        new_key = combo.currentData()
+        if new_key == self._hotkey:
+            return
+        self._hotkey = new_key
+        hotkey_settings.set_hotkey(new_key)
+        self._register_global_hotkey()
+        if self.tray_icon is not None:
+            self.tray_icon.showMessage(
+                "VoxScribe",
+                f"Hotkey changed to {new_key.upper()}.",
+                QSystemTrayIcon.MessageIcon.Information,
+                3000,
+            )
+
     # -- system tray ------------------------------------------------------
 
     def _setup_tray_icon(self) -> None:
-        """Adds a tray icon so the app can keep running (F9 + indicator
+        """Adds a tray icon so the app can keep running (hotkey + indicator
         still work) after the main window is closed/hidden."""
         if not ICON_PATH.exists() or not QSystemTrayIcon.isSystemTrayAvailable():
             self.tray_icon = None
@@ -417,6 +782,10 @@ class MainWindow(QMainWindow):
         show_action = QAction("Show Window", self)
         show_action.triggered.connect(self._show_and_raise)
         menu.addAction(show_action)
+
+        change_hotkey_action = QAction("Change Hotkey...", self)
+        change_hotkey_action.triggered.connect(self._open_hotkey_dialog)
+        menu.addAction(change_hotkey_action)
 
         check_updates_action = QAction("Check for Updates...", self)
         check_updates_action.triggered.connect(lambda: self._start_update_check(manual=True))
@@ -442,7 +811,7 @@ class MainWindow(QMainWindow):
         if self._hotkey_registration_error:
             self.tray_icon.showMessage(
                 "VoxScribe",
-                f"Couldn't register the {GLOBAL_HOTKEY.upper()} hotkey (often needs "
+                f"Couldn't register the {self._hotkey.upper()} hotkey (often needs "
                 "admin rights). Open VoxScribe and use the Start/Stop button instead.",
                 QSystemTrayIcon.MessageIcon.Warning,
                 6000,
@@ -450,7 +819,7 @@ class MainWindow(QMainWindow):
         else:
             self.tray_icon.showMessage(
                 "VoxScribe",
-                f"Running in the background. Hold {GLOBAL_HOTKEY.upper()} anywhere to dictate.",
+                f"Running in the background. Hold {self._hotkey.upper()} anywhere to dictate.",
                 QSystemTrayIcon.MessageIcon.Information,
                 4000,
             )
@@ -469,7 +838,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:  # noqa: N802, ANN001
         """Closing the window (the X button) minimizes to tray instead of
-        quitting -- F9 and the floating indicator keep working in the
+        quitting -- the hotkey and the floating indicator keep working in the
         background. Use the tray menu's "Quit" to actually exit."""
         if getattr(self, "tray_icon", None) is not None:
             event.ignore()
@@ -540,24 +909,38 @@ class MainWindow(QMainWindow):
     # -- status helpers -----------------------------------------------
 
     def _set_status(self, text: str, kind: str) -> None:
-        color = STATUS_COLORS.get(kind, STATUS_COLORS["ready"])
-        self.status_label.setText(text)
-        self.status_label.setStyleSheet(STATUS_LABEL_STYLE.format(color=color))
+        self.status_pill.set_status(text, kind)
 
     def _set_record_button_recording(self, is_recording: bool) -> None:
         """Flips the record button's `recording` dynamic property, which the
         QSS in MAIN_STYLESHEET uses to swap it from accent-violet (idle) to
         green (actively recording) -- a clear at-a-glance state cue on top
-        of the button's own text change."""
+        of the button's own text/icon change. Also swaps the mic/stop icon
+        and switches the button's glow from violet to green, pulsing while
+        the recording is live so the primary action visibly reads as "on".
+        """
         self.record_button.setProperty("recording", is_recording)
         self.record_button.style().unpolish(self.record_button)
         self.record_button.style().polish(self.record_button)
+        self.record_button.setIcon(self._stop_icon if is_recording else self._mic_icon)
+
+        if is_recording:
+            self._record_shadow.setColor(QColor(62, 207, 142, 130))
+            self._record_pulse.start()
+        else:
+            self._record_pulse.stop()
+            self._record_shadow.setColor(QColor(139, 124, 246, 110))
+            self._record_shadow.setBlurRadius(24)
 
     def _update_save_button(self) -> None:
         has_text = bool(self.transcript_area.toPlainText().strip())
         self.save_button.setEnabled(has_text)
         self.copy_button.setEnabled(has_text)
         self.clear_button.setEnabled(has_text)
+
+        self.transcript_area.setProperty("hasContent", has_text)
+        self.transcript_area.style().unpolish(self.transcript_area)
+        self.transcript_area.style().polish(self.transcript_area)
 
     # -- save to file -----------------------------------------------------
 
@@ -615,12 +998,12 @@ class MainWindow(QMainWindow):
     # -- hold-to-talk hotkey handlers ------------------------------------
 
     def _handle_hotkey_press(self) -> None:
-        if self._f9_key_down:
+        if self._hotkey_key_down:
             # Key-repeat guard: holding a key down can fire repeated
             # "press" events on some systems -- ignore all but the first
             # until a release is seen.
             return
-        self._f9_key_down = True
+        self._hotkey_key_down = True
         # Guard against starting a new recording while the previous one is
         # still transcribing on a background TranscribeThread: the on-screen
         # button is disabled during that window (see _stop_recording), but
@@ -645,7 +1028,7 @@ class MainWindow(QMainWindow):
             self._start_recording()
 
     def _handle_hotkey_release(self) -> None:
-        self._f9_key_down = False
+        self._hotkey_key_down = False
         if self._hotkey_active_session and self.stream is not None:
             self._hotkey_active_session = False
             self._stop_recording()
