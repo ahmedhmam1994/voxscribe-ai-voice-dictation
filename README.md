@@ -6,7 +6,7 @@ Modeled after Wispr Flow, but free and privacy-first: your voice audio is never 
 
 ## Features
 
-- **Hold-to-talk hotkey (F9)** — works system-wide, in any app
+- **Hold-to-talk hotkey (F9 by default, changeable)** — works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
 - **Direct typing into the focused window** — not clipboard/paste, so it never overwrites what you've copied
 - **100% local transcription** — powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU; your audio never leaves your machine
 - **Rule-based text cleanup** — strips filler words ("um", "uh", "like", "you know") without calling any paid AI API
@@ -29,9 +29,9 @@ The installer does not require admin rights (per-user install). On first launch,
 
 ## How it works
 
-1. Hold **F9**
+1. Hold **F9** (or your chosen hotkey — see the tray menu's "Change Hotkey...")
 2. Speak
-3. Release **F9** — the transcribed, cleaned-up text is typed into whatever app you're focused in
+3. Release the hotkey — the transcribed, cleaned-up text is typed into whatever app you're focused in
 
 ## Privacy
 
