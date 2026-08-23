@@ -18,3 +18,9 @@ transcript_*.txt
 # accidental staging.
 graphify-out/
 .impeccable/critique-evidence/
+
+# Pro-license signing private key (core/license.py). NEVER commit this --
+# it's the only thing that can issue valid license keys. Losing it means
+# every already-sold key stays valid but no new ones can ever be issued;
+# leaking it means anyone can forge a valid key.
+license_signing_key.raw

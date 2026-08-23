@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QPushButton,
     QScrollArea,
+    QStackedWidget,
     QSystemTrayIcon,
     QTextEdit,
     QVBoxLayout,
@@ -55,6 +56,8 @@ from PySide6.QtWidgets import (
 
 from app.floating_indicator import FloatingIndicator
 from app.version import __version__
+from core import history, snippets
+from core import license as hotkey_license
 from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
@@ -212,6 +215,18 @@ def _icon_keyboard(size: int = 14, color: str = TEXT_FAINT) -> QIcon:
     return QIcon(pixmap)
 
 
+def _icon_insights(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
+    pixmap, painter = _new_icon_painter(size, color)
+    s = size
+    bars = ((0.20, 0.45), (0.46, 0.25), (0.72, 0.60))
+    for x, h in bars:
+        rect = QRectF(s * x, s * (0.86 - h), s * 0.18, s * h)
+        painter.drawRoundedRect(rect, s * 0.03, s * 0.03)
+    painter.drawLine(int(s * 0.10), int(s * 0.86), int(s * 0.90), int(s * 0.86))
+    painter.end()
+    return QIcon(pixmap)
+
+
 class _StatusDot(QWidget):
     """Small solid-color circle used inside the status pill."""
 
@@ -283,7 +298,7 @@ STATUS_COLORS = {
 
 MAIN_STYLESHEET = f"""
 QMainWindow, QWidget#centralWidget {{
-    background: {BG_WINDOW};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14151d, stop:1 #0e0f14);
 }}
 
 QWidget {{
@@ -293,7 +308,7 @@ QWidget {{
 }}
 
 QWidget#statusPill {{
-    background: {BG_CARD};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1f212c, stop:1 #1a1c26);
     border: 1px solid {BORDER_SOFT};
     border-radius: 15px;
 }}
@@ -328,7 +343,7 @@ QLabel#keyBadge {{
 }}
 
 QPushButton#recordButton {{
-    background: {ACCENT};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #9686f8, stop:1 #7566e0);
     color: #ffffff;
     font-size: 15px;
     font-weight: 700;
@@ -337,20 +352,20 @@ QPushButton#recordButton {{
     padding: 10px 16px;
 }}
 QPushButton#recordButton:hover {{
-    background: {ACCENT_HOVER};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #a89cf9, stop:1 #8574ea);
 }}
 QPushButton#recordButton:pressed {{
-    background: {ACCENT_PRESSED};
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #8574ea, stop:1 #6a5cd0);
 }}
 QPushButton#recordButton:disabled {{
     background: {ACCENT_DISABLED};
     color: {TEXT_FAINT};
 }}
 QPushButton#recordButton[recording="true"] {{
-    background: #34b57a;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #3ecf8e, stop:1 #269e69);
 }}
 QPushButton#recordButton[recording="true"]:hover {{
-    background: #3ecf8e;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4ee0a0, stop:1 #34b57a);
 }}
 
 QPushButton#secondaryButton {{
@@ -359,7 +374,7 @@ QPushButton#secondaryButton {{
     font-size: 13px;
     font-weight: 600;
     border: 1px solid {BORDER};
-    border-radius: 9px;
+    border-radius: 12px;
     padding: 8px 14px;
 }}
 QPushButton#secondaryButton:hover {{
@@ -409,7 +424,7 @@ QPushButton#primaryOutlineButton {{
     font-size: 13px;
     font-weight: 700;
     border: 1px solid {ACCENT};
-    border-radius: 9px;
+    border-radius: 12px;
     padding: 8px 14px;
 }}
 QPushButton#primaryOutlineButton:hover {{
@@ -429,7 +444,7 @@ QPushButton#ghostButton {{
     font-size: 13px;
     font-weight: 600;
     border: 1px solid transparent;
-    border-radius: 9px;
+    border-radius: 12px;
     padding: 8px 14px;
 }}
 QPushButton#ghostButton:hover {{
@@ -447,7 +462,7 @@ QPushButton#ghostButton:disabled {{
 }}
 
 QTextEdit#transcriptArea {{
-    background: {BG_CARD};
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1d1f2a, stop:1 #181a23);
     border: 1px solid {BORDER};
     border-radius: 10px;
     padding: 12px;
@@ -457,7 +472,7 @@ QTextEdit#transcriptArea {{
     selection-color: #ffffff;
 }}
 QTextEdit#transcriptArea[hasContent="false"] {{
-    border: 1px dashed {BORDER_SOFT};
+    border: 1px solid {BORDER_SOFT};
 }}
 
 QScrollBar:vertical {{
@@ -475,6 +490,104 @@ QScrollBar::handle:vertical:hover {{
 }}
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
     height: 0px;
+}}
+
+QWidget#accentStrip {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #6f5ff0, stop:0.5 {ACCENT}, stop:1 #c48cf2);
+}}
+
+QWidget#sidebar {{
+    background: {BG_WINDOW};
+    border-right: 1px solid {BORDER_SOFT};
+}}
+QLabel#wordmark {{
+    color: {TEXT_PRIMARY};
+    font-size: 16px;
+    font-weight: 700;
+    padding-left: 6px;
+}}
+QPushButton#sidebarNavButton {{
+    background: transparent;
+    color: {TEXT_MUTED};
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 9px;
+    padding: 8px 10px;
+}}
+QPushButton#sidebarNavButton:hover {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+}}
+QPushButton#sidebarNavButton:checked {{
+    background: rgba(139, 124, 246, 0.16);
+    color: {TEXT_PRIMARY};
+}}
+
+QWidget#heroBanner {{
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #372f66, stop:0.55 #5d4bb0, stop:1 #7c5cc9);
+    border-radius: 14px;
+}}
+QLabel#heroTitle {{
+    color: #ffffff;
+    font-size: 17px;
+    font-weight: 700;
+}}
+QLabel#heroSubtitle {{
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+}}
+
+QScrollArea#historyScroll {{
+    background: transparent;
+    border: none;
+}}
+QScrollArea#historyScroll QWidget {{
+    background: transparent;
+}}
+QWidget#historyItem {{
+    background: transparent;
+    border-radius: 8px;
+}}
+QWidget#historyItem:hover {{
+    background: {BG_CARD};
+}}
+QLabel#historyTime {{
+    color: {TEXT_FAINT};
+    font-size: 11px;
+}}
+QLabel#historyText {{
+    color: {TEXT_MUTED};
+    font-size: 12px;
+}}
+QLabel#historyEmpty {{
+    color: {TEXT_FAINT};
+    font-size: 12px;
+    padding: 8px;
+}}
+
+QLabel#pageTitle {{
+    color: {TEXT_PRIMARY};
+    font-size: 20px;
+    font-weight: 700;
+}}
+QWidget#statCard {{
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1f212c, stop:1 #1a1c26);
+    border: 1px solid {BORDER_SOFT};
+    border-radius: 14px;
+}}
+QLabel#statCardValue {{
+    color: {TEXT_PRIMARY};
+    font-size: 26px;
+    font-weight: 700;
+}}
+QLabel#statCardLabel {{
+    color: {TEXT_MUTED};
+    font-size: 12px;
+    font-weight: 600;
 }}
 """
 
@@ -537,6 +650,17 @@ QLineEdit {{
 QLineEdit:focus {{
     border: 1px solid {ACCENT};
 }}
+QTextEdit {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+}}
+QTextEdit:focus {{
+    border: 1px solid {ACCENT};
+}}
 QLabel#settingsHint {{
     color: {TEXT_FAINT};
     font-size: 11px;
@@ -555,6 +679,9 @@ QDialogButtonBox QPushButton:hover {{
 }}
 QScrollArea {{
     border: none;
+    background: transparent;
+}}
+QScrollArea > QWidget > QWidget {{
     background: transparent;
 }}
 QScrollBar:vertical {{
@@ -674,7 +801,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("VoxScribe")
-        self.resize(600, 560)
+        self.resize(960, 620)
+        self.setMinimumSize(760, 520)
         self.setStyleSheet(MAIN_STYLESHEET)
         if ICON_PATH.exists():
             icon = QIcon(str(ICON_PATH))
@@ -685,6 +813,7 @@ class MainWindow(QMainWindow):
         self.stream: sd.InputStream | None = None
         self._chunks: list[np.ndarray] = []
         self._record_rate: int = SAMPLE_RATE
+        self._last_recording_duration: float = 0.0
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
 
@@ -711,9 +840,87 @@ class MainWindow(QMainWindow):
 
         central = QWidget(self)
         central.setObjectName("centralWidget")
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(20, 20, 20, 18)
+        outer_layout = QVBoxLayout(central)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        accent_strip = QWidget()
+        accent_strip.setObjectName("accentStrip")
+        accent_strip.setFixedHeight(3)
+        outer_layout.addWidget(accent_strip)
+
+        body_row = QHBoxLayout()
+        body_row.setContentsMargins(0, 0, 0, 0)
+        body_row.setSpacing(0)
+        outer_layout.addLayout(body_row, stretch=1)
+
+        sidebar = QWidget()
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(184)
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(12, 20, 12, 20)
+        sidebar_layout.setSpacing(4)
+
+        wordmark = QLabel("VoxScribe")
+        wordmark.setObjectName("wordmark")
+        sidebar_layout.addWidget(wordmark)
+        sidebar_layout.addSpacing(20)
+
+        self._pages = QStackedWidget()
+
+        self._nav_buttons: dict[int, QPushButton] = {}
+
+        def _add_nav(label: str, icon: QIcon, page_index: int) -> None:
+            btn = QPushButton(f"  {label}")
+            btn.setObjectName("sidebarNavButton")
+            btn.setIcon(icon)
+            btn.setIconSize(QSize(17, 17))
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCheckable(True)
+            btn.setMinimumHeight(38)
+            btn.clicked.connect(lambda: self._switch_page(page_index))
+            sidebar_layout.addWidget(btn)
+            self._nav_buttons[page_index] = btn
+
+        _add_nav("Dictation", _icon_mic(17, TEXT_MUTED), 0)
+        _add_nav("Insights", _icon_insights(17, TEXT_MUTED), 1)
+
+        sidebar_layout.addStretch(1)
+
+        settings_nav_button = QPushButton("  Settings")
+        settings_nav_button.setObjectName("sidebarNavButton")
+        settings_nav_button.setIcon(_icon_settings(17, TEXT_MUTED))
+        settings_nav_button.setIconSize(QSize(17, 17))
+        settings_nav_button.setCursor(Qt.PointingHandCursor)
+        settings_nav_button.setMinimumHeight(38)
+        settings_nav_button.clicked.connect(self._open_settings_dialog)
+        sidebar_layout.addWidget(settings_nav_button)
+
+        body_row.addWidget(sidebar)
+        body_row.addWidget(self._pages, stretch=1)
+
+        content = QWidget()
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(24, 20, 24, 18)
         layout.setSpacing(14)
+        self._pages.addWidget(content)
+
+        hero = QWidget()
+        hero.setObjectName("heroBanner")
+        hero.setFixedHeight(84)
+        hero_layout = QVBoxLayout(hero)
+        hero_layout.setContentsMargins(20, 14, 20, 14)
+        hero_layout.setSpacing(2)
+        hero_title = QLabel("Hold to talk, anywhere")
+        hero_title.setObjectName("heroTitle")
+        hero_layout.addWidget(hero_title)
+        hero_subtitle = QLabel(
+            "Speak, release, and it's typed straight into whatever you're focused on."
+        )
+        hero_subtitle.setObjectName("heroSubtitle")
+        hero_layout.addWidget(hero_subtitle)
+        hero_layout.addStretch(1)
+        layout.addWidget(hero)
 
         status_row = QHBoxLayout()
         self.status_pill = StatusPill()
@@ -729,16 +936,6 @@ class MainWindow(QMainWindow):
         self.language_badge.clicked.connect(self._open_settings_dialog)
         self._refresh_language_badge()
         status_row.addWidget(self.language_badge)
-
-        self.settings_button = QPushButton()
-        self.settings_button.setObjectName("iconOnlyButton")
-        self.settings_button.setIcon(_icon_settings(18, TEXT_MUTED))
-        self.settings_button.setIconSize(QSize(18, 18))
-        self.settings_button.setFixedSize(34, 34)
-        self.settings_button.setCursor(Qt.PointingHandCursor)
-        self.settings_button.setToolTip("Settings")
-        self.settings_button.clicked.connect(self._open_settings_dialog)
-        status_row.addWidget(self.settings_button)
 
         layout.addLayout(status_row)
 
@@ -833,14 +1030,6 @@ class MainWindow(QMainWindow):
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
 
-        # Subtle card elevation so the transcript reads as a surface sitting
-        # above the window background, matching the record button's glow.
-        transcript_shadow = QGraphicsDropShadowEffect(self.transcript_area)
-        transcript_shadow.setOffset(0, 2)
-        transcript_shadow.setBlurRadius(22)
-        transcript_shadow.setColor(QColor(0, 0, 0, 90))
-        self.transcript_area.setGraphicsEffect(transcript_shadow)
-
         self.setCentralWidget(central)
 
         self._loader = ModelLoaderThread()
@@ -883,7 +1072,29 @@ class MainWindow(QMainWindow):
         self._hotkey_hint_suffix.setWordWrap(True)
         hint_row.addWidget(self._hotkey_hint_suffix, stretch=1)
 
-        self.centralWidget().layout().addLayout(hint_row)
+        layout.addLayout(hint_row)
+
+        history_label = QLabel("TODAY")
+        history_label.setObjectName("transcriptCaption")
+        layout.addWidget(history_label)
+
+        history_scroll = QScrollArea()
+        history_scroll.setObjectName("historyScroll")
+        history_scroll.setWidgetResizable(True)
+        history_scroll.setFrameShape(QScrollArea.NoFrame)
+        history_scroll.setFixedHeight(120)
+        history_content = QWidget()
+        self._history_feed_layout = QVBoxLayout(history_content)
+        self._history_feed_layout.setContentsMargins(0, 0, 0, 0)
+        self._history_feed_layout.setSpacing(0)
+        self._history_feed_layout.addStretch(1)
+        history_scroll.setWidget(history_content)
+        layout.addWidget(history_scroll)
+
+        self._build_insights_page()
+        self._switch_page(0)
+        self._refresh_history_feed()
+
         self._register_global_hotkey()
 
         self._setup_tray_icon()
@@ -1035,6 +1246,65 @@ class MainWindow(QMainWindow):
         layout.setSpacing(16)
         scroll.setWidget(content)
 
+        license_section_label = QLabel("VOXSCRIBE PRO")
+        license_section_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(license_section_label)
+
+        license_status_label = QLabel()
+        license_status_label.setWordWrap(True)
+        license_status_label.setObjectName("settingsHint")
+        layout.addWidget(license_status_label)
+
+        license_key_edit = QLineEdit()
+        license_key_edit.setPlaceholderText("Paste your license key")
+        license_key_edit.setMinimumHeight(36)
+        layout.addWidget(license_key_edit)
+
+        license_button_row = QHBoxLayout()
+        license_button_row.setSpacing(10)
+        license_unlock_button = QPushButton("Unlock")
+        license_unlock_button.setObjectName("secondaryButton")
+        license_unlock_button.setCursor(Qt.PointingHandCursor)
+        license_button_row.addWidget(license_unlock_button)
+        license_remove_button = QPushButton("Remove license")
+        license_remove_button.setObjectName("ghostButton")
+        license_remove_button.setCursor(Qt.PointingHandCursor)
+        license_button_row.addWidget(license_remove_button)
+        layout.addLayout(license_button_row)
+
+        def _refresh_license_ui() -> None:
+            if hotkey_license.is_pro():
+                license_status_label.setText(
+                    "✓ Pro unlocked -- thank you for supporting VoxScribe."
+                )
+                license_key_edit.hide()
+                license_unlock_button.hide()
+                license_remove_button.show()
+            else:
+                license_status_label.setText(
+                    "Free tier. Paste a Pro license key below to unlock Snippets."
+                )
+                license_key_edit.show()
+                license_unlock_button.show()
+                license_remove_button.hide()
+
+        def _try_unlock_license() -> None:
+            if hotkey_license.set_license_key(license_key_edit.text()):
+                license_key_edit.clear()
+                _refresh_license_ui()
+            else:
+                license_status_label.setText(
+                    "That key isn't valid -- check for typos and try again."
+                )
+
+        def _remove_license() -> None:
+            hotkey_license.clear_license_key()
+            _refresh_license_ui()
+
+        license_unlock_button.clicked.connect(_try_unlock_license)
+        license_remove_button.clicked.connect(_remove_license)
+        _refresh_license_ui()
+
         hotkey_label = QLabel("HOLD-TO-TALK HOTKEY")
         hotkey_label.setObjectName("settingsSectionLabel")
         layout.addWidget(hotkey_label)
@@ -1123,6 +1393,41 @@ class MainWindow(QMainWindow):
         vocab_hint.setObjectName("settingsHint")
         vocab_hint.setWordWrap(True)
         layout.addWidget(vocab_hint)
+
+        snippets_label = QLabel("SNIPPETS (PRO)")
+        snippets_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(snippets_label)
+
+        snippets_edit = QTextEdit()
+        snippets_edit.setPlainText(
+            "\n".join(f"{trigger} => {expansion}" for trigger, expansion in snippets.get_snippets())
+        )
+        snippets_edit.setFixedHeight(90)
+        layout.addWidget(snippets_edit)
+
+        snippets_hint = QLabel(
+            "One per line: trigger phrase => text to type instead. Say the "
+            "trigger alone to expand it."
+        )
+        snippets_hint.setObjectName("settingsHint")
+        snippets_hint.setWordWrap(True)
+        layout.addWidget(snippets_hint)
+
+        def _update_snippets_lock_state() -> None:
+            unlocked = hotkey_license.is_pro()
+            snippets_edit.setEnabled(unlocked)
+            snippets_hint.setText(
+                (
+                    "One per line: trigger phrase => text to type instead. Say the "
+                    "trigger alone to expand it."
+                )
+                if unlocked
+                else "Unlock Pro above to set up snippets."
+            )
+
+        _update_snippets_lock_state()
+        license_unlock_button.clicked.connect(_update_snippets_lock_state)
+        license_remove_button.clicked.connect(_update_snippets_lock_state)
 
         cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
         cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
@@ -1226,6 +1531,22 @@ class MainWindow(QMainWindow):
                 if new_vocabulary
                 else "Custom vocabulary cleared."
             )
+
+        if hotkey_license.is_pro():
+            new_snippets = []
+            for line in snippets_edit.toPlainText().splitlines():
+                if "=>" not in line:
+                    continue
+                trigger, _, expansion = line.partition("=>")
+                if trigger.strip():
+                    new_snippets.append((trigger.strip(), expansion.strip()))
+            if new_snippets != snippets.get_snippets():
+                snippets.set_snippets(new_snippets)
+                changes.append(
+                    f"Snippets updated ({len(new_snippets)})."
+                    if new_snippets
+                    else "Snippets cleared."
+                )
 
         new_cleanup_enabled = cleanup_checkbox.isChecked()
         if new_cleanup_enabled != hotkey_settings.get_cleanup_enabled():
@@ -1680,6 +2001,7 @@ class MainWindow(QMainWindow):
         audio = np.concatenate(self._chunks) if self._chunks else np.zeros(0, dtype=np.float32)
         audio = resample_to_16k(audio, self._record_rate)
         self._chunks = []
+        self._last_recording_duration = len(audio) / SAMPLE_RATE
 
         self._worker = TranscribeThread(
             self.transcriber,
@@ -1694,12 +2016,16 @@ class MainWindow(QMainWindow):
     def _on_transcribed(self, text: str) -> None:
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
+        if text and hotkey_license.is_pro():
+            text = snippets.expand_snippet(text)
         self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
         self._indicator.hide_indicator()
 
         if text:
             hotkey_settings.record_dictation(len(text.split()))
+            history.add_entry(text, self._last_recording_duration)
+            self._refresh_history_feed()
             # Simulate typing directly into whatever window currently has
             # focus (not necessarily this app -- that's the point of the
             # global hotkey). This deliberately does NOT touch the
@@ -1708,6 +2034,95 @@ class MainWindow(QMainWindow):
             self._set_status("Typed into active window", "ready")
         else:
             self._set_status("Ready", "ready")
+
+    def _switch_page(self, index: int) -> None:
+        self._pages.setCurrentIndex(index)
+        for i, btn in self._nav_buttons.items():
+            btn.setChecked(i == index)
+        if index == 1:
+            self._refresh_insights()
+
+    def _new_stat_card(self, label_text: str) -> tuple[QLabel, QWidget]:
+        card = QWidget()
+        card.setObjectName("statCard")
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(18, 16, 18, 16)
+        card_layout.setSpacing(4)
+
+        value_label = QLabel("0")
+        value_label.setObjectName("statCardValue")
+        card_layout.addWidget(value_label)
+
+        caption_label = QLabel(label_text)
+        caption_label.setObjectName("statCardLabel")
+        card_layout.addWidget(caption_label)
+
+        return value_label, card
+
+    def _build_insights_page(self) -> None:
+        page = QWidget()
+        page_layout = QVBoxLayout(page)
+        page_layout.setContentsMargins(24, 20, 24, 18)
+        page_layout.setSpacing(16)
+
+        title = QLabel("Insights")
+        title.setObjectName("pageTitle")
+        page_layout.addWidget(title)
+
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(12)
+        self._stat_words_value, words_card = self._new_stat_card("Total words")
+        self._stat_wpm_value, wpm_card = self._new_stat_card("Avg. words/min")
+        self._stat_streak_value, streak_card = self._new_stat_card("Day streak")
+        for card in (words_card, wpm_card, streak_card):
+            cards_row.addWidget(card)
+        page_layout.addLayout(cards_row)
+        page_layout.addStretch(1)
+
+        self._pages.addWidget(page)
+
+    def _refresh_insights(self) -> None:
+        stats = history.compute_stats()
+        self._stat_words_value.setText(f"{stats['total_words']:,}")
+        self._stat_wpm_value.setText(str(stats["wpm"]))
+        self._stat_streak_value.setText(str(stats["streak_days"]))
+
+    def _refresh_history_feed(self) -> None:
+        """Rebuilds the Dictation page's "Today" feed from core/history.py,
+        and refreshes the Insights stat cards alongside it since both derive
+        from the same underlying data."""
+        while self._history_feed_layout.count() > 1:  # keep the trailing stretch
+            item = self._history_feed_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+
+        entries = history.get_today(limit=20)
+        if not entries:
+            empty = QLabel("No dictations yet today.")
+            empty.setObjectName("historyEmpty")
+            self._history_feed_layout.insertWidget(0, empty)
+        else:
+            for entry in entries:
+                row = QWidget()
+                row.setObjectName("historyItem")
+                row_layout = QHBoxLayout(row)
+                row_layout.setContentsMargins(8, 6, 8, 6)
+                row_layout.setSpacing(10)
+
+                time_label = QLabel(entry.local_datetime().strftime("%I:%M %p").lstrip("0"))
+                time_label.setObjectName("historyTime")
+                time_label.setFixedWidth(64)
+                row_layout.addWidget(time_label)
+
+                text_label = QLabel(entry.text)
+                text_label.setObjectName("historyText")
+                text_label.setWordWrap(True)
+                row_layout.addWidget(text_label, stretch=1)
+
+                self._history_feed_layout.insertWidget(self._history_feed_layout.count() - 1, row)
+
+        self._refresh_insights()
 
     def _type_into_focused_window(self, text: str) -> None:
         try:

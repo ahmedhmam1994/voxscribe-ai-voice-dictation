@@ -5,4 +5,4 @@ Read by the update checker (core/updater.py) and the crash reporter
 separately by Inno Setup and must be bumped by hand alongside this.
 """
 
-__version__ = "1.4"
+__version__ = "1.5"
