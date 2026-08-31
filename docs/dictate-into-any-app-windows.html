@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to Dictate Text Into Any Windows App With a Hotkey — VoxScribe</title>
+<meta name="description" content="A global hotkey that turns your voice into typed text in any Windows app — browser, chat, code editor, or document. No cloud upload, no clipboard hijacking, works with any microphone.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/dictate-into-any-app-windows.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to Dictate Text Into Any Windows App With a Hotkey">
+<meta property="og:description" content="Hold a hotkey anywhere on Windows, talk, release — VoxScribe types the transcribed text directly into whatever app has focus.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/dictate-into-any-app-windows.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Dictate Text Into Any Windows App With a Hotkey">
+<meta name="twitter:description" content="Hold a hotkey anywhere on Windows, talk, release — VoxScribe types the transcribed text directly into whatever app has focus.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does Windows have a built-in way to dictate into any app?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Windows has a built-in voice typing shortcut (Win+H) that works in many text fields, but it depends on Microsoft's cloud speech service and isn't a hold-to-talk hotkey. VoxScribe is a separate, third-party app that runs speech recognition locally and works the same way in every app that accepts typed input." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does VoxScribe type the text instead of pasting it?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Pasting from the clipboard would overwrite whatever you had previously copied. VoxScribe simulates real keystrokes instead, so your clipboard is never touched." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I change the hotkey?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes, from a curated list of function keys and rarely-used keys, chosen from the tray menu. A normal typing key isn't offered, since a global hotkey on a letter key would interfere with typing that key everywhere else." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #a996ff;
+    --cyan: #22d3ee;
+    --green: #34d399;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(139,124,246,0.1); border: 1px solid rgba(139,124,246,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+  .keycap {
+    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
+    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
+    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
+    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>How to Dictate Text Into Any Windows App With a Hotkey</h1>
+  <p class="subhead">Windows' built-in dictation (<span class="keycap">Win</span>+<span class="keycap">H</span>) works in a lot of places, but it's cloud-based and toggle-driven. Here's a hold-to-talk alternative that works the same way in every app — and runs entirely offline.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html">See the full feature list</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; works with any microphone</p>
+
+  <h2>The idea: hold a key, talk, release</h2>
+  <p>Rather than a toggle you turn on and off, VoxScribe uses <strong>hold-to-talk</strong>: hold <span class="keycap">F9</span> anywhere on the system, speak, and let go. The transcribed text is typed directly into whatever field currently has focus — a browser address bar, a chat window, a code editor, a document, anything that accepts normal keyboard input.</p>
+  <ol>
+    <li>Hold <span class="keycap">F9</span> — a small floating pill appears showing "Recording"</li>
+    <li>Speak naturally</li>
+    <li>Release the key — the pill switches to "Transcribing," then the text appears where your cursor is</li>
+  </ol>
+
+  <h2>Why it types instead of pastes</h2>
+  <p>A common shortcut for "voice to text into any app" is to transcribe, copy the result to the clipboard, and let the user paste it manually. That's simple to build, but it silently overwrites whatever was already on your clipboard. VoxScribe instead simulates real keystrokes directly into the focused field, so your clipboard is left exactly as you had it.</p>
+
+  <div class="card">
+    <strong>Works with rich-text and web-based inputs too:</strong> keystrokes are typed with a small per-character delay, which matters for JavaScript-driven text boxes (chat widgets, web editors) that can scramble character order if input arrives faster than they can process it.
+  </div>
+
+  <h2>Works with whatever microphone you have</h2>
+  <p>VoxScribe auto-detects your system's default input device — including Bluetooth headsets — and records at that device's native sample rate rather than assuming a fixed one, then converts it for the speech model afterward. That avoids a common class of bug where forcing an unsupported sample rate on a given driver just crashes the recording.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Does Windows have a built-in way to dictate into any app?</h3>
+    <p>Windows has a built-in voice typing shortcut (Win+H) that works in many text fields, but it depends on Microsoft's cloud speech service and isn't a hold-to-talk hotkey. VoxScribe is a separate, third-party app that runs speech recognition locally and works the same way in every app that accepts typed input.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Why does VoxScribe type the text instead of pasting it?</h3>
+    <p>Pasting from the clipboard would overwrite whatever you had previously copied. VoxScribe simulates real keystrokes instead, so your clipboard is never touched.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Can I change the hotkey?</h3>
+    <p>Yes, from a curated list of function keys and rarely-used keys, chosen from the tray menu. A normal typing key isn't offered, since a global hotkey on a letter key would interfere with typing that key everywhere else.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+</div>
+</body>
+</html>

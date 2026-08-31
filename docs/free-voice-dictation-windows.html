@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free, Offline Voice Dictation for Windows (No Subscription) — VoxScribe</title>
+<meta name="description" content="Looking for a free voice dictation app for Windows that doesn't require a subscription or send your audio to the cloud? VoxScribe transcribes locally via Whisper and types directly into any app.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/free-voice-dictation-windows.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Free, Offline Voice Dictation for Windows (No Subscription)">
+<meta property="og:description" content="A free, open-source alternative to subscription cloud dictation tools. Transcribes locally via Whisper, types directly into any Windows app.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/free-voice-dictation-windows.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free, Offline Voice Dictation for Windows (No Subscription)">
+<meta name="twitter:description" content="A free, open-source alternative to subscription cloud dictation tools. Transcribes locally via Whisper, types directly into any Windows app.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is there a truly free voice dictation app for Windows?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. VoxScribe is free and open source (MIT license), with no subscription, paid tier, or account requirement for its core dictation feature. It transcribes speech locally using faster-whisper rather than a paid cloud API." }
+    },
+    {
+      "@type": "Question",
+      "name": "Does free voice dictation software send my audio to the cloud?",
+      "acceptedAnswer": { "@type": "Answer", "text": "It depends on the app. Most subscription dictation tools upload your audio to a cloud API for processing. VoxScribe transcribes entirely on your own CPU using a local Whisper model, so your voice audio never leaves your device." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I dictate into any Windows app, or only specific ones?",
+      "acceptedAnswer": { "@type": "Answer", "text": "VoxScribe types directly into whatever window has focus, using simulated keystrokes rather than a clipboard paste, so it works in any app that accepts normal typed input: browsers, chat apps, code editors, and document editors alike." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent: #8b7cf6;
+    --accent-hover: #a996ff;
+    --cyan: #22d3ee;
+    --magenta: #e879f9;
+    --green: #34d399;
+    --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(139,124,246,0.1); border: 1px solid rgba(139,124,246,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 700; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ul { padding-left: 20px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--text-faint); }
+  td.first { color: var(--text-primary); font-weight: 600; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>Free, Offline Voice Dictation for Windows — No Subscription</h1>
+  <p class="subhead">Most voice-to-text apps for Windows are subscription products that stream your audio to a cloud server. Here's what to actually check before you install one — and a free, open-source option that skips the cloud entirely.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html">See the full feature list</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; no account required</p>
+
+  <h2>What "free" actually means for a dictation app</h2>
+  <p>A lot of apps marketed as free dictation tools are really free trials, or free tiers capped by word count or minutes per month, with the real product gated behind a monthly subscription. Before installing one, it's worth checking three things:</p>
+  <ul>
+    <li><strong>Is transcription actually unlimited</strong>, or capped by usage?</li>
+    <li><strong>Where does your audio get processed</strong> — locally on your machine, or uploaded to a server?</li>
+    <li><strong>Is there a real free tier</strong>, or is "free" just the first week of a paid plan?</li>
+  </ul>
+
+  <h2>Why local (offline) transcription matters</h2>
+  <p>Cloud dictation tools send a recording of your voice to a remote server every time you use them. That's not inherently unsafe, but it does mean your voice data leaves your device, and the app stops working entirely if you lose your internet connection or the vendor's servers have an outage.</p>
+  <p>VoxScribe takes a different approach: it runs <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank" rel="noopener">faster-whisper</a>, an efficient implementation of OpenAI's Whisper speech-recognition model, directly on your own CPU. No account, no API key, no per-minute cost — the only thing that touches the network is a one-time model download on first launch.</p>
+
+  <div class="table-scroll">
+    <table>
+      <tr><th></th><th>VoxScribe</th><th>Typical subscription dictation tools</th></tr>
+      <tr><td class="first">Cost</td><td class="yes">Free, forever</td><td class="no">Monthly subscription</td></tr>
+      <tr><td class="first">Where transcription runs</td><td class="yes">Locally, on your CPU</td><td class="no">Uploaded to a cloud server</td></tr>
+      <tr><td class="first">Works with no internet</td><td class="yes">Yes, after first launch</td><td class="no">No — requires a live connection</td></tr>
+      <tr><td class="first">Usage limits</td><td class="yes">None</td><td class="no">Often capped by plan tier</td></tr>
+      <tr><td class="first">Source code</td><td class="yes">Public, MIT licensed</td><td class="no">Closed source</td></tr>
+    </table>
+  </div>
+
+  <h2>How VoxScribe works</h2>
+  <p>Hold a hotkey (F9 by default) anywhere on Windows, talk, and release — the audio is transcribed on your machine and typed directly into whatever field has focus, whether that's a browser tab, a chat app, an IDE, or a document editor. There's no clipboard step, so whatever you had copied stays untouched.</p>
+
+  <div class="card">
+    <strong>Also useful to know:</strong> filler-word cleanup ("um", "uh", "like") happens with local regex rules, not a cloud AI call — so it costs nothing and doesn't add another network dependency.
+  </div>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Is there a truly free voice dictation app for Windows?</h3>
+    <p>Yes. VoxScribe is free and open source (MIT license), with no subscription, paid tier, or account requirement for its core dictation feature. It transcribes speech locally using faster-whisper rather than a paid cloud API.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does free voice dictation software send my audio to the cloud?</h3>
+    <p>It depends on the app. Most subscription dictation tools upload your audio to a cloud API for processing. VoxScribe transcribes entirely on your own CPU using a local Whisper model, so your voice audio never leaves your device.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Can I dictate into any Windows app, or only specific ones?</h3>
+    <p>VoxScribe types directly into whatever window has focus, using simulated keystrokes rather than a clipboard paste, so it works in any app that accepts normal typed input: browsers, chat apps, code editors, and document editors alike.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+</div>
+</body>
+</html>
