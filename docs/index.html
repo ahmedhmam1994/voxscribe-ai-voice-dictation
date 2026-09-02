@@ -307,6 +307,31 @@
   td.no { color: var(--text-faint); }
   td.first { color: var(--text-primary); font-weight: 600; }
 
+  /* REVIEWS */
+  .reviews-wrap { max-width: 640px; margin: 0 auto; }
+  .review-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 40px;
+  }
+  .review-card .quote-mark {
+    font-size: 48px; line-height: 1; font-weight: 800; margin-bottom: 8px;
+    background: var(--gradient-brand); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .review-card blockquote {
+    font-size: 22px; line-height: 1.5; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 28px;
+  }
+  .review-card blockquote .highlight {
+    background: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .review-attribution {
+    display: flex; align-items: center; gap: 10px; padding-top: 20px; border-top: 1px solid var(--border-soft);
+    font-size: 14px;
+  }
+  .review-attribution .bar { width: 24px; height: 2px; background: var(--gradient-brand); flex: none; }
+  .review-attribution strong { color: var(--text-primary); }
+  .review-attribution span { color: var(--text-muted); }
+  .review-source { text-align: center; margin: 16px 0 0; font-size: 13px; color: var(--text-faint); }
+
   /* PRO WAITLIST */
   .waitlist-card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
@@ -381,6 +406,7 @@
       <a href="#features">Features</a>
       <a href="#how">How it works</a>
       <a href="#compare">Compare</a>
+      <a href="#reviews">Reviews</a>
       <a href="#pro-waitlist">Pro</a>
       <a href="#faq">FAQ</a>
       <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
@@ -546,6 +572,28 @@
           <td class="no">No</td>
         </tr>
       </table>
+    </div>
+  </div>
+</section>
+
+<section id="reviews">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Reviews</span>
+      <h2>What people are saying</h2>
+      <p>Real feedback from people who've actually tried it.</p>
+    </div>
+    <div class="reviews-wrap" data-reveal>
+      <div class="review-card">
+        <div class="quote-mark">&ldquo;</div>
+        <blockquote>I&rsquo;ve used Dragon Medical, Dragon One, Dictation Daddy, VoiceTypr&hellip; I&rsquo;m <span class="highlight">proud to say I&rsquo;ve tried yours and I do like it.</span></blockquote>
+        <div class="review-attribution">
+          <span class="bar"></span>
+          <strong>Nurse</strong>
+          <span>&middot; 10+ years dictating</span>
+        </div>
+      </div>
+      <p class="review-source">Shared in a Reddit comment</p>
     </div>
   </div>
 </section>
