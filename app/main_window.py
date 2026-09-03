@@ -778,7 +778,15 @@ class ModelLoaderThread(QThread):
             # session -- switching sizes may need to download a different
             # model file, which shouldn't happen silently while the app is
             # already running.
-            transcriber = Transcriber(model_size=hotkey_settings.get_model_size())
+            model_size = hotkey_settings.get_model_size()
+            if model_size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
+                # Defense-in-depth: the Settings UI already disables these
+                # entries when not Pro, but a size could still be sitting
+                # in QSettings from when a license was active (e.g. it was
+                # since removed) -- fall back rather than loading a model
+                # the user isn't licensed for.
+                model_size = hotkey_settings.DEFAULT_MODEL_SIZE
+            transcriber = Transcriber(model_size=model_size)
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
             return
@@ -1512,6 +1520,22 @@ class MainWindow(QMainWindow):
         model_hint.setWordWrap(True)
         layout.addWidget(model_hint)
 
+        def _update_model_lock_state() -> None:
+            unlocked = hotkey_license.is_pro()
+            item_model = model_combo.model()
+            for i in range(model_combo.count()):
+                if model_combo.itemData(i) in hotkey_settings.PRO_MODEL_SIZES:
+                    item_model.item(i).setEnabled(unlocked)
+            model_hint.setText(
+                "Takes effect after restarting VoxScribe. Switching to a size not "
+                "already downloaded needs internet on next launch."
+                + ("" if unlocked else " Medium/Large require Pro.")
+            )
+
+        _update_model_lock_state()
+        license_unlock_button.clicked.connect(_update_model_lock_state)
+        license_remove_button.clicked.connect(_update_model_lock_state)
+
         vocab_label = QLabel("CUSTOM VOCABULARY")
         vocab_label.setObjectName("settingsSectionLabel")
         layout.addWidget(vocab_label)
@@ -1543,7 +1567,8 @@ class MainWindow(QMainWindow):
 
         snippets_hint = QLabel(
             "One per line: trigger phrase => text to type instead. Say the "
-            "trigger alone to expand it."
+            "trigger alone to expand it. Expansions can include {date}, "
+            "{time}, or {clipboard} -- filled in live each time."
         )
         snippets_hint.setObjectName("settingsHint")
         snippets_hint.setWordWrap(True)
@@ -1555,7 +1580,8 @@ class MainWindow(QMainWindow):
             snippets_hint.setText(
                 (
                     "One per line: trigger phrase => text to type instead. Say the "
-                    "trigger alone to expand it."
+                    "trigger alone to expand it. Expansions can include {date}, "
+                    "{time}, or {clipboard} -- filled in live each time."
                 )
                 if unlocked
                 else "Unlock Pro above to set up snippets."
@@ -1651,6 +1677,8 @@ class MainWindow(QMainWindow):
             changes.append(f"Dictation language set to {language_combo.currentText()}.")
 
         new_model_size = model_combo.currentData()
+        if new_model_size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
+            new_model_size = current_model_size
         if new_model_size != current_model_size:
             hotkey_settings.set_model_size(new_model_size)
             changes.append(

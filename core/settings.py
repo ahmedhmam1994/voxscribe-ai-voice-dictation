@@ -249,7 +249,16 @@ AVAILABLE_MODEL_SIZES = [
     ("tiny", "Tiny -- fastest, least accurate (~75MB)"),
     ("base", "Base -- fast (~145MB)"),
     ("small", "Small -- recommended (~500MB)"),
+    ("medium", "Medium -- more accurate (~1.5GB) (Pro)"),
+    ("large", "Large -- most accurate (~3GB) (Pro)"),
 ]
+
+# Larger models are gated behind a Pro license (see core/license.py) --
+# free tier stays on tiny/base/small. Enforced both in the Settings UI
+# (main_window.py disables these combo entries when not Pro) and as a
+# defense-in-depth fallback in ModelLoaderThread, in case a size got
+# persisted while Pro was active and the license was later removed.
+PRO_MODEL_SIZES = {"medium", "large"}
 
 _AVAILABLE_MODEL_SIZE_CODES = {code for code, _ in AVAILABLE_MODEL_SIZES}
 
