@@ -37,10 +37,10 @@
     --text-primary: #f3f3fb;
     --text-muted: #9797ac;
     --text-faint: #5c5c72;
-    --accent: #8b7cf6;
-    --accent-hover: #a996ff;
-    --accent-pressed: #7566e0;
-    --cyan: #22d3ee;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-pressed: #059669;
+    --cyan: #5eead4;
     --green: #34d399;
     --red: #f0546b;
     --amber: #f0a54a;
@@ -65,7 +65,7 @@
   .eyebrow {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 14px; border-radius: 999px;
-    background: rgba(139,124,246,0.1); border: 1px solid rgba(139,124,246,0.25);
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
     color: var(--accent-hover); font-size: 12px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
   }
@@ -86,7 +86,7 @@
      screenshot, not stretch the whole way down. */
   .glow-field { position: absolute; top: 0; left: 0; right: 0; height: 520px; overflow: hidden; pointer-events: none; z-index: 0; }
   .glow-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.28; }
-  .glow-blob.purple { width: 420px; height: 420px; background: var(--accent); top: -140px; left: -80px; }
+  .glow-blob.brand { width: 420px; height: 420px; background: var(--accent); top: -140px; left: -80px; }
   @media (prefers-reduced-motion: no-preference) {
     .glow-blob { animation: drift 16s ease-in-out infinite alternate; }
   }
@@ -157,7 +157,7 @@
     text-decoration: none; border: 1px solid transparent; cursor: pointer;
     transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
   }
-  .btn-primary { background: var(--gradient-brand); color: #060612; box-shadow: 0 8px 24px -8px rgba(139,124,246,0.55); }
+  .btn-primary { background: var(--gradient-brand); color: #060612; box-shadow: 0 8px 24px -8px rgba(16,185,129,0.55); }
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(34,211,238,0.5); }
   .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
   .btn-secondary:hover { background: var(--bg-card-hover); }
@@ -226,7 +226,7 @@
   }
   .card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.16); }
   .card .icon {
-    width: 40px; height: 40px; border-radius: 10px; background: rgba(139,124,246,0.12);
+    width: 40px; height: 40px; border-radius: 10px; background: rgba(16,185,129,0.12);
     display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--accent-hover);
   }
   .card .icon svg { width: 20px; height: 20px; }
@@ -409,7 +409,7 @@
 
 <header class="hero">
   <div class="glow-field">
-    <div class="glow-blob purple"></div>
+    <div class="glow-blob brand"></div>
   </div>
   <div class="wrap">
     <span class="eyebrow">
