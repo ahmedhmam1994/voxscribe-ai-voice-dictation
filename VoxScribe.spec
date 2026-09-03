@@ -87,7 +87,13 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # UPX packing tripped Windows Defender's heuristics (flagged the exe as
+    # Trojan:Win32/Bearfoos.A!ml and silently quarantined it post-install --
+    # a well-documented false-positive pattern for UPX-packed PyInstaller
+    # builds, since real malware also uses UPX to evade detection). Not
+    # worth the smaller installer size for an app that hooks the keyboard,
+    # which already reads as suspicious to AV heuristics on its own.
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -101,7 +107,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='VoxScribe',
 )
