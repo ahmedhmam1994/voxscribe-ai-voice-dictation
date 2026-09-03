@@ -206,8 +206,13 @@
     .split-head { grid-template-columns: 1fr; gap: 24px; }
   }
 
-  /* FEATURES GRID */
-  .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px; }
+  /* FEATURES GRID: wider wrap + 4-across row breaks out of the standard
+     1040px-centered-column width every other section uses. */
+  .wrap.wide { max-width: 1240px; }
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 20px; }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
   .card {
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px;
   }
@@ -411,7 +416,7 @@
 </header>
 
 <section id="features">
-  <div class="wrap">
+  <div class="wrap wide">
     <div class="section-head">
       <span class="eyebrow">Features</span>
       <h2>Everything you need, nothing you don't</h2>
