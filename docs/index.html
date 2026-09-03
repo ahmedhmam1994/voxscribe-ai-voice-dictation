@@ -337,21 +337,7 @@
     background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
     padding: 36px; text-align: center; max-width: 560px; margin: 0 auto;
   }
-  .waitlist-form { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
-  .waitlist-form input[type="email"] {
-    flex: 1 1 260px; min-width: 0; padding: 13px 16px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--bg-window); color: var(--text-primary);
-    font-size: 15px; font-family: inherit;
-  }
-  .waitlist-form input[type="email"]::placeholder { color: var(--text-faint); }
-  .waitlist-form input[type="email"]:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
-  .waitlist-form button {
-    flex: 0 0 auto; padding: 13px 22px; border-radius: 10px; font-size: 15px; font-weight: 600;
-    border: none; cursor: pointer; background: var(--gradient-brand); color: #060612;
-  }
-  .waitlist-status { margin-top: 14px; font-size: 14px; min-height: 20px; }
-  .waitlist-status.ok { color: var(--green); }
-  .waitlist-status.err { color: var(--red); }
+  .waitlist-card .btn { margin-top: 4px; }
 
   /* INSTALL STEPS */
   .install-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }
@@ -601,18 +587,16 @@
 <section id="pro-waitlist">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Coming soon</span>
-      <h2>VoxScribe Pro</h2>
-      <p>Snippets (say a trigger phrase, get an expansion typed) and more, unlocked with an offline license key — no account, no subscription. Get notified when it's ready to buy.</p>
+      <span class="eyebrow">VoxScribe Pro</span>
+      <h2>Unlock Snippets &amp; higher accuracy</h2>
+      <p>Snippets (say a trigger phrase, get an expansion typed — now with live {date}/{time}/{clipboard} variables) and Medium/Large Whisper models for higher accuracy. One-time purchase, offline license key — no account, no subscription.</p>
     </div>
     <div class="waitlist-card">
-      <form class="waitlist-form" id="waitlist-form" action="https://formspree.io/f/xoeqeaqr" method="POST">
-        <label for="waitlist-email" class="visually-hidden" style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);">Email address</label>
-        <input type="email" id="waitlist-email" name="email" placeholder="you@example.com" required>
-        <button type="submit">Notify me</button>
-      </form>
-      <p class="waitlist-status" id="waitlist-status" role="status"></p>
-      <p class="fine-print">No spam — one email when Pro launches, and nothing else.</p>
+      <a class="btn btn-primary" href="https://hmamster3.gumroad.com/l/tbsfom">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v13M12 16l-5-5M12 16l5-5M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Get VoxScribe Pro — $14
+      </a>
+      <p class="fine-print">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
     </div>
   </div>
 </section>
@@ -699,34 +683,6 @@
     a.addEventListener('click', function () {
       navLinks.classList.remove('open');
       navToggle.setAttribute('aria-expanded', 'false');
-    });
-  });
-
-  var waitlistForm = document.getElementById('waitlist-form');
-  var waitlistStatus = document.getElementById('waitlist-status');
-  waitlistForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var submitBtn = waitlistForm.querySelector('button');
-    submitBtn.disabled = true;
-    waitlistStatus.textContent = '';
-    waitlistStatus.className = 'waitlist-status';
-    fetch(waitlistForm.action, {
-      method: 'POST',
-      body: new FormData(waitlistForm),
-      headers: { 'Accept': 'application/json' }
-    }).then(function (res) {
-      if (res.ok) {
-        waitlistStatus.textContent = "You're on the list — we'll email you when Pro launches.";
-        waitlistStatus.className = 'waitlist-status ok';
-        waitlistForm.reset();
-      } else {
-        throw new Error('bad response');
-      }
-    }).catch(function () {
-      waitlistStatus.textContent = 'Something went wrong — please try again in a moment.';
-      waitlistStatus.className = 'waitlist-status err';
-    }).finally(function () {
-      submitBtn.disabled = false;
     });
   });
 
