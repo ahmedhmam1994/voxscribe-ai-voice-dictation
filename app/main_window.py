@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QProgressBar,
     QPushButton,
     QScrollArea,
     QStackedWidget,
@@ -63,6 +64,7 @@ from core.audio_capture import (
     SAMPLE_RATE,
     device_native_samplerate,
     list_input_devices,
+    peak_levels,
     resample_to_16k,
     resolve_input_device,
 )
@@ -665,6 +667,20 @@ QLabel#settingsHint {{
     color: {TEXT_FAINT};
     font-size: 11px;
 }}
+QProgressBar#micLevelMeter {{
+    background: {BG_CARD};
+    border: 1px solid {BORDER};
+    border-radius: 6px;
+    height: 10px;
+    text-align: center;
+}}
+QProgressBar#micLevelMeter::chunk {{
+    background: {ACCENT};
+    border-radius: 6px;
+}}
+QProgressBar#micLevelMeter[clipping="true"]::chunk {{
+    background: #f0546b;
+}}
 QDialogButtonBox QPushButton {{
     background: {BG_CARD};
     color: {TEXT_PRIMARY};
@@ -767,6 +783,33 @@ class ModelLoaderThread(QThread):
             self.failed.emit(str(exc))
             return
         self.done.emit(transcriber)
+
+
+class MicTestThread(QThread):
+    """Streams live peak-amplitude levels from a mic for the Settings
+    "Test microphone" calibration check. Runs peak_levels() on a background
+    thread so the level meter can update without blocking the dialog's UI
+    thread, and stops cleanly via stop() rather than being killed."""
+
+    level = Signal(float)
+    failed = Signal(str)
+
+    def __init__(self, device: int | None) -> None:
+        super().__init__()
+        self.device = device
+        self._stop = False
+
+    def stop(self) -> None:
+        self._stop = True
+
+    def run(self) -> None:
+        try:
+            for peak in peak_levels(self.device):
+                if self._stop:
+                    return
+                self.level.emit(peak)
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(str(exc))
 
 
 class TranscribeThread(QThread):
@@ -1339,6 +1382,99 @@ class MainWindow(QMainWindow):
                 mic_combo.setCurrentIndex(i)
                 break
         layout.addWidget(mic_combo)
+
+        mic_test_button = QPushButton("Test microphone")
+        mic_test_button.setObjectName("secondaryButton")
+        mic_test_button.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(mic_test_button)
+
+        mic_level_bar = QProgressBar()
+        mic_level_bar.setObjectName("micLevelMeter")
+        mic_level_bar.setRange(0, 100)
+        mic_level_bar.setTextVisible(False)
+        mic_level_bar.hide()
+        layout.addWidget(mic_level_bar)
+
+        mic_test_status = QLabel("")
+        mic_test_status.setObjectName("settingsHint")
+        mic_test_status.setWordWrap(True)
+        mic_test_status.hide()
+        layout.addWidget(mic_test_status)
+
+        mic_test_state: dict = {"thread": None, "timer": None, "peak_seen": 0.0}
+
+        def _stop_mic_test(final_message: str | None = None) -> None:
+            timer = mic_test_state["timer"]
+            if timer is not None:
+                timer.stop()
+                mic_test_state["timer"] = None
+            thread = mic_test_state["thread"]
+            if thread is not None:
+                thread.stop()
+                thread.wait(1000)
+                mic_test_state["thread"] = None
+            mic_test_button.setText("Test microphone")
+            mic_level_bar.hide()
+            if final_message is not None:
+                mic_test_status.setText(final_message)
+                mic_test_status.show()
+            else:
+                mic_test_status.hide()
+
+        def _on_mic_level(peak: float) -> None:
+            mic_test_state["peak_seen"] = max(mic_test_state["peak_seen"], peak)
+            mic_level_bar.setValue(min(100, int(peak * 100)))
+            clipping = peak >= 0.98
+            mic_level_bar.setProperty("clipping", clipping)
+            mic_level_bar.style().unpolish(mic_level_bar)
+            mic_level_bar.style().polish(mic_level_bar)
+            mic_test_status.setText(
+                "Clipping -- move back from the mic or lower input volume."
+                if clipping
+                else "Listening... talk normally."
+            )
+
+        def _on_mic_test_failed(message: str) -> None:
+            _stop_mic_test(f"Couldn't test this microphone: {message}")
+
+        def _on_mic_test_timeout() -> None:
+            if mic_test_state["peak_seen"] < 0.03:
+                _stop_mic_test(
+                    "No signal detected -- check the selected device and that it isn't muted."
+                )
+            else:
+                _stop_mic_test("Test complete -- levels looked good.")
+
+        def _start_mic_test() -> None:
+            device = resolve_input_device(mic_combo.currentData())
+            mic_test_state["peak_seen"] = 0.0
+            mic_level_bar.setValue(0)
+            mic_level_bar.setProperty("clipping", False)
+            mic_level_bar.show()
+            mic_test_status.setText("Listening... talk normally.")
+            mic_test_status.show()
+            mic_test_button.setText("Stop test")
+
+            thread = MicTestThread(device)
+            thread.level.connect(_on_mic_level)
+            thread.failed.connect(_on_mic_test_failed)
+            thread.start()
+            mic_test_state["thread"] = thread
+
+            timer = QTimer(dialog)
+            timer.setSingleShot(True)
+            timer.timeout.connect(_on_mic_test_timeout)
+            timer.start(5000)
+            mic_test_state["timer"] = timer
+
+        def _toggle_mic_test() -> None:
+            if mic_test_state["thread"] is not None:
+                _stop_mic_test()
+            else:
+                _start_mic_test()
+
+        mic_test_button.clicked.connect(_toggle_mic_test)
+        dialog.finished.connect(lambda _result: _stop_mic_test())
 
         language_label = QLabel("DICTATION LANGUAGE")
         language_label.setObjectName("settingsSectionLabel")

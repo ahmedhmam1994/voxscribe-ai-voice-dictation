@@ -103,6 +103,42 @@ def device_native_samplerate(device: int | None) -> int:
         return SAMPLE_RATE
 
 
+def peak_levels(
+    device: int | None = None,
+    chunk_ms: int = 50,
+) -> Generator[float, None, None]:
+    """Open the given (or auto-detected) microphone and yield the peak
+    absolute amplitude (0.0-1.0) of each successive small chunk, forever.
+
+    Powers the Settings "Test microphone" calibration check -- a live level
+    meter needs small, frequent chunks rather than frames()'s fixed
+    512-sample/16kHz VAD framing, and doesn't need resampling since nothing
+    downstream consumes the raw samples, just their peak amplitude.
+    """
+    if device is None:
+        device = _default_input_device()
+    rate = device_native_samplerate(device)
+    chunk_size = max(1, int(rate * chunk_ms / 1000))
+
+    audio_q: "queue.Queue[np.ndarray]" = queue.Queue()
+
+    def _callback(indata, frame_count, time_info, status):  # noqa: ANN001
+        audio_q.put(indata[:, 0].copy())
+
+    stream = sd.InputStream(
+        samplerate=rate,
+        blocksize=chunk_size,
+        channels=1,
+        dtype="float32",
+        device=device,
+        callback=_callback,
+    )
+    with stream:
+        while True:
+            chunk = audio_q.get()
+            yield float(np.abs(chunk).max()) if len(chunk) else 0.0
+
+
 def frames(
     sample_rate: int = SAMPLE_RATE,
     frame_size: int = FRAME_SIZE,
