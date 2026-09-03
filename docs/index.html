@@ -41,7 +41,6 @@
     --accent-hover: #a996ff;
     --accent-pressed: #7566e0;
     --cyan: #22d3ee;
-    --magenta: #e879f9;
     --green: #34d399;
     --red: #f0546b;
     --amber: #f0a54a;
@@ -189,8 +188,14 @@
   .proof-caption svg { flex: none; color: var(--accent-hover); }
   .tray-note { margin: 20px auto 0; max-width: 560px; font-size: 14px; color: var(--text-muted); }
 
-  /* SECTIONS */
+  /* SECTIONS: 80px is the default rhythm, not a rule -- #pro-waitlist gets
+     extra room since it's the one section asking for money, and #faq gets
+     less since it's reference material at the tail of the page, not a
+     pitch. Uniform spacing on every section regardless of what it's
+     saying is its own quiet template tell. */
   section { padding: 80px 0; border-top: 1px solid var(--border-soft); }
+  #pro-waitlist { padding: 112px 0; }
+  #faq { padding: 64px 0; }
   .section-head { text-align: center; max-width: 620px; margin: 0 auto 48px; }
   .section-head h2 { font-size: 32px; margin: 0 0 12px; font-weight: 800; letter-spacing: -0.01em; }
   .section-head p { color: var(--text-muted); font-size: 16px; line-height: 1.6; margin: 0; }
@@ -224,9 +229,6 @@
     width: 40px; height: 40px; border-radius: 10px; background: rgba(139,124,246,0.12);
     display: flex; align-items: center; justify-content: center; margin-bottom: 16px; color: var(--accent-hover);
   }
-  .card .icon.cyan { background: rgba(34,211,238,0.12); color: var(--cyan); }
-  .card .icon.magenta { background: rgba(232,121,249,0.12); color: var(--magenta); }
-  .card .icon.green { background: rgba(52,211,153,0.12); color: var(--green); }
   .card .icon svg { width: 20px; height: 20px; }
   .card h3 { font-size: 16px; margin: 0 0 8px; }
   .card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; margin: 0; }
@@ -460,21 +462,21 @@
         <p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p>
       </div>
       <div class="card" data-reveal style="transition-delay: 80ms;">
-        <div class="icon cyan">
+        <div class="icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <h3>Types directly, not clipboard</h3>
         <p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p>
       </div>
       <div class="card" data-reveal style="transition-delay: 160ms;">
-        <div class="icon magenta">
+        <div class="icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
         </div>
         <h3>100% local transcription</h3>
         <p>Speech-to-text runs on your own CPU via faster-whisper. Your voice audio never leaves your computer.</p>
       </div>
       <div class="card" data-reveal style="transition-delay: 240ms;">
-        <div class="icon green">
+        <div class="icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
         </div>
         <h3>Free filler-word cleanup</h3>
