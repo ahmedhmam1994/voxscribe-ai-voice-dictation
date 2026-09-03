@@ -259,10 +259,27 @@
   .step .num.num-keycap .keycap { margin: 0; }
   .step h3 { font-size: 16px; margin: 0 0 8px; }
   .step p { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.6; }
+
+  /* TIMELINE: a left-aligned, vertically-connected variant of .steps, used
+     where a horizontal row of centered circles would just repeat the
+     Features section's card-row shape. */
+  .steps.timeline { display: block; max-width: 560px; }
+  .steps.timeline .step {
+    text-align: left; display: flex; gap: 20px; align-items: flex-start;
+    position: relative; padding-bottom: 32px;
+  }
+  .steps.timeline .step:last-child { padding-bottom: 0; }
+  .steps.timeline .step::before {
+    content: ''; position: absolute; left: 21px; top: 44px; bottom: 0; width: 1px;
+    background: var(--border-soft);
+  }
+  .steps.timeline .step:last-child::before { display: none; }
+  .steps.timeline .step .num { margin: 0; flex: none; }
   .how-footnote {
     max-width: 620px; margin: 40px auto 0; text-align: center; font-size: 14px; color: var(--text-faint);
     padding-top: 24px; border-top: 1px solid var(--border-soft);
   }
+  .steps.timeline + .how-footnote { margin-left: 0; text-align: left; }
 
   /* COMPARISON TABLE */
   .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; }
@@ -302,12 +319,20 @@
   .review-attribution span { color: var(--text-muted); }
   .review-source { text-align: center; margin: 16px 0 0; font-size: 13px; color: var(--text-faint); }
 
-  /* PRO WAITLIST */
-  .waitlist-card {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
-    padding: 36px; text-align: center; max-width: 560px; margin: 0 auto;
+  /* PRO: horizontal banner (text left, CTA right) instead of a centered
+     stacked card -- reads distinct from Reviews' centered quote card even
+     though both sit below a left-aligned header. */
+  .pro-banner {
+    display: flex; align-items: center; justify-content: space-between; gap: 32px;
+    background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent-hover);
+    border-radius: 14px; padding: 28px 32px;
   }
-  .waitlist-card .btn { margin-top: 4px; }
+  .pro-banner p { margin: 0; color: var(--text-muted); font-size: 15px; line-height: 1.6; max-width: 560px; }
+  .pro-banner .btn { flex: none; white-space: nowrap; }
+  .pro-fine-print { margin-top: 16px; }
+  @media (max-width: 700px) {
+    .pro-banner { flex-direction: column; align-items: stretch; }
+  }
 
   /* INSTALL STEPS */
   .install-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }
@@ -320,9 +345,13 @@
   .smartscreen-note strong { color: var(--amber); }
 
   /* FAQ */
+  .faq-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 48px; }
   .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
   .faq-item h3 { font-size: 15px; margin: 0 0 8px; }
   .faq-item p { font-size: 14px; color: var(--text-muted); margin: 0; line-height: 1.65; }
+  @media (max-width: 700px) {
+    .faq-grid { grid-template-columns: 1fr; }
+  }
 
   /* FOOTER */
   footer { padding: 48px 0; text-align: center; border-top: 1px solid var(--border-soft); }
@@ -457,12 +486,12 @@
 
 <section id="how">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head left">
       <span class="eyebrow">Simple by design</span>
       <h2>How it works</h2>
       <p>Three steps, nothing to configure first.</p>
     </div>
-    <div class="steps">
+    <div class="steps timeline">
       <div class="step" data-reveal style="transition-delay: 0ms;">
         <div class="num num-keycap"><kbd class="keycap">F9</kbd></div>
         <h3>Hold F9</h3>
@@ -550,24 +579,24 @@
 
 <section id="pro-waitlist">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head left">
       <span class="eyebrow">VoxScribe Pro</span>
       <h2>Unlock Snippets &amp; higher accuracy</h2>
-      <p>Snippets (say a trigger phrase, get an expansion typed — now with live {date}/{time}/{clipboard} variables) and Medium/Large Whisper models for higher accuracy. One-time purchase, offline license key — no account, no subscription.</p>
     </div>
-    <div class="waitlist-card">
+    <div class="pro-banner">
+      <p>Snippets (say a trigger phrase, get an expansion typed — now with live {date}/{time}/{clipboard} variables) and Medium/Large Whisper models for higher accuracy. One-time purchase, offline license key — no account, no subscription.</p>
       <a class="btn btn-primary" href="https://hmamster3.gumroad.com/l/tbsfom">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v13M12 16l-5-5M12 16l5-5M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Get VoxScribe Pro — $14
       </a>
-      <p class="fine-print">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
     </div>
+    <p class="fine-print pro-fine-print">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
   </div>
 </section>
 
 <section id="install">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head left">
       <span class="eyebrow">Get started</span>
       <h2>Install in under a minute</h2>
       <p>No admin rights required.</p>
@@ -588,33 +617,35 @@
 
 <section id="faq">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head left">
       <span class="eyebrow">FAQ</span>
       <h2>Frequently asked questions</h2>
     </div>
-    <div class="faq-item">
-      <h3>Is it really free?</h3>
-      <p>Yes. VoxScribe is open source under the MIT license — no subscription, no paid tiers, no account required.</p>
-    </div>
-    <div class="faq-item">
-      <h3>Does it need an internet connection?</h3>
-      <p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p>
-    </div>
-    <div class="faq-item">
-      <h3>What platforms does it support?</h3>
-      <p>Windows 10 and 11 only, for now.</p>
-    </div>
-    <div class="faq-item">
-      <h3>Does it work with any microphone?</h3>
-      <p>Yes — VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate.</p>
-    </div>
-    <div class="faq-item">
-      <h3>Why does Windows show a security warning when I install it?</h3>
-      <p>See the <a href="#smartscreen">SmartScreen note</a> in the Install section above for exactly what's happening and what to click.</p>
-    </div>
-    <div class="faq-item">
-      <h3>How accurate is the transcription?</h3>
-      <p>It uses faster-whisper's "small" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation.</p>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <h3>Is it really free?</h3>
+        <p>Yes. VoxScribe is open source under the MIT license — no subscription, no paid tiers, no account required.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does it need an internet connection?</h3>
+        <p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p>
+      </div>
+      <div class="faq-item">
+        <h3>What platforms does it support?</h3>
+        <p>Windows 10 and 11 only, for now.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Does it work with any microphone?</h3>
+        <p>Yes — VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate.</p>
+      </div>
+      <div class="faq-item">
+        <h3>Why does Windows show a security warning when I install it?</h3>
+        <p>See the <a href="#smartscreen">SmartScreen note</a> in the Install section above for exactly what's happening and what to click.</p>
+      </div>
+      <div class="faq-item">
+        <h3>How accurate is the transcription?</h3>
+        <p>It uses faster-whisper's "small" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation.</p>
+      </div>
     </div>
   </div>
 </section>
