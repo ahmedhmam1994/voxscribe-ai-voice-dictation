@@ -96,52 +96,6 @@
     to { transform: translate(20px, 30px) scale(1.08); }
   }
 
-  .hero-waveform {
-    position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
-    width: min(760px, 92%); height: 140px;
-    display: flex; align-items: flex-end; justify-content: center; gap: 5px;
-    opacity: 0.16;
-  }
-  .hero-waveform span {
-    flex: 1 1 0; max-width: 12px; border-radius: 5px;
-    background: linear-gradient(180deg, var(--cyan), var(--accent-hover) 55%, var(--magenta));
-    transform-origin: bottom center;
-  }
-  .hero-waveform span:nth-child(1)  { height: 22%; }
-  .hero-waveform span:nth-child(2)  { height: 38%; }
-  .hero-waveform span:nth-child(3)  { height: 58%; }
-  .hero-waveform span:nth-child(4)  { height: 40%; }
-  .hero-waveform span:nth-child(5)  { height: 70%; }
-  .hero-waveform span:nth-child(6)  { height: 48%; }
-  .hero-waveform span:nth-child(7)  { height: 85%; }
-  .hero-waveform span:nth-child(8)  { height: 60%; }
-  .hero-waveform span:nth-child(9)  { height: 95%; }
-  .hero-waveform span:nth-child(10) { height: 65%; }
-  .hero-waveform span:nth-child(11) { height: 100%; }
-  .hero-waveform span:nth-child(12) { height: 72%; }
-  .hero-waveform span:nth-child(13) { height: 90%; }
-  .hero-waveform span:nth-child(14) { height: 62%; }
-  .hero-waveform span:nth-child(15) { height: 95%; }
-  .hero-waveform span:nth-child(16) { height: 55%; }
-  .hero-waveform span:nth-child(17) { height: 78%; }
-  .hero-waveform span:nth-child(18) { height: 45%; }
-  .hero-waveform span:nth-child(19) { height: 65%; }
-  .hero-waveform span:nth-child(20) { height: 35%; }
-  .hero-waveform span:nth-child(21) { height: 50%; }
-  .hero-waveform span:nth-child(22) { height: 30%; }
-  .hero-waveform span:nth-child(23) { height: 42%; }
-  .hero-waveform span:nth-child(24) { height: 20%; }
-  @media (prefers-reduced-motion: no-preference) {
-    .hero-waveform span { animation: wave-pulse 2.4s ease-in-out infinite; }
-    .hero-waveform span:nth-child(odd) { animation-duration: 3.1s; }
-    .hero-waveform span:nth-child(3n) { animation-delay: -0.6s; }
-    .hero-waveform span:nth-child(4n) { animation-delay: -1.4s; }
-  }
-  @keyframes wave-pulse {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.65); }
-  }
-
   /* SCROLL REVEAL: cards/steps fade+lift in as they enter the viewport.
      Elements start visible (no [data-reveal] styling) until JS confirms
      IntersectionObserver support and reduced-motion isn't requested, so
@@ -189,7 +143,7 @@
   header.hero { position: relative; padding: 72px 24px 64px; text-align: center; overflow: hidden; }
   header.hero .wrap { z-index: 1; }
   h1 { font-size: 48px; line-height: 1.15; margin: 0 0 18px; font-weight: 800; letter-spacing: -0.01em; }
-  h1 .accent { background: linear-gradient(90deg, var(--accent-hover), var(--cyan), var(--magenta)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h1 .accent { color: var(--accent-hover); }
   .subhead { font-size: 19px; color: var(--text-muted); max-width: 640px; margin: 0 auto 36px; line-height: 1.55; }
   .keycap {
     display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
@@ -240,6 +194,17 @@
   .section-head { text-align: center; max-width: 620px; margin: 0 auto 48px; }
   .section-head h2 { font-size: 32px; margin: 0 0 12px; font-weight: 800; letter-spacing: -0.01em; }
   .section-head p { color: var(--text-muted); font-size: 16px; line-height: 1.6; margin: 0; }
+  .section-head.left { text-align: left; margin: 0 0 48px; }
+  .section-head.reviews-head { max-width: 620px; margin-left: auto; margin-right: auto; }
+
+  /* SPLIT HEAD: header beside content instead of stacked above it -- used
+     where a section benefits from breaking the centered-stack rhythm every
+     other section uses. */
+  .split-head { display: grid; grid-template-columns: 280px 1fr; gap: 48px; align-items: start; }
+  .split-head .section-head { margin: 0; }
+  @media (max-width: 760px) {
+    .split-head { grid-template-columns: 1fr; gap: 24px; }
+  }
 
   /* FEATURES GRID */
   .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px; }
@@ -409,12 +374,6 @@
 <header class="hero">
   <div class="glow-field">
     <div class="glow-blob purple"></div>
-    <div class="hero-waveform" aria-hidden="true">
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-      <span></span><span></span><span></span><span></span><span></span><span></span>
-    </div>
   </div>
   <div class="wrap">
     <span class="eyebrow">
@@ -524,8 +483,8 @@
 </section>
 
 <section id="compare">
-  <div class="wrap">
-    <div class="section-head">
+  <div class="wrap split-head">
+    <div class="section-head left">
       <span class="eyebrow">Compare</span>
       <h2>Free vs. cloud dictation tools</h2>
       <p>Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe runs everything locally, for free.</p>
@@ -564,7 +523,7 @@
 
 <section id="reviews">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head left reviews-head">
       <span class="eyebrow">Reviews</span>
       <h2>What people are saying</h2>
       <p>Real feedback from people who've actually tried it.</p>
