@@ -22,6 +22,7 @@ numpy==2.5.2
 onnxruntime==1.28.0
 packaging==26.3
 pefile==2024.8.26
+posthog==7.47.0
 protobuf==7.35.1
 pycparser==3.0
 pyinstaller==6.22.1

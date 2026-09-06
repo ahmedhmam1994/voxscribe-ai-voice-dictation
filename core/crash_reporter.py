@@ -1,4 +1,4 @@
-"""Local-only crash logging -- no telemetry, nothing leaves the device.
+"""Local-only crash logging -- crash logs never leave the device.
 
 VoxScribe.spec sets console=False, so an unhandled exception in the packaged
 .exe would otherwise vanish with no trace to debug from. This installs a
@@ -6,6 +6,9 @@ global excepthook that writes uncaught exceptions to a local log file
 instead. Logs are never uploaded automatically -- see docs/privacy.html.
 Use the tray menu's "Open Logs Folder" to find one and attach it to a
 GitHub issue by hand, if you choose to.
+
+This module only handles crash logs -- it's unrelated to the separate,
+disclosed anonymous "app_launched" ping in core/telemetry.py.
 """
 
 from __future__ import annotations

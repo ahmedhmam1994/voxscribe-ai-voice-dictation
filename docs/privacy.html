@@ -61,7 +61,7 @@
     <li><strong>Transcribed text</strong> is typed directly into whichever application has focus, and optionally saved to a <code>.txt</code> file only if you click Save Transcript. VoxScribe does not send this text anywhere.</li>
     <li><strong>Internet access</strong> is used exactly once: downloading the Whisper speech-recognition model from Hugging Face on first launch. After that, transcription works fully offline.</li>
     <li>If the app crashes, a log is written to a folder on your own machine (<code>%LOCALAPPDATA%\VoxScribe\logs\</code>) so it can be diagnosed if you choose to share it. This never happens automatically — nothing is uploaded or sent anywhere on your behalf.</li>
-    <li>VoxScribe collects no analytics, telemetry, or usage data, and sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
+    <li>VoxScribe sends one anonymous ping to our analytics provider (PostHog) each time the app launches, so we can see how many people actually use VoxScribe. This ping contains only the app version, your OS name/version, and a random id generated on your device — never your name, email, audio, transcripts, or anything you've typed or dictated. VoxScribe sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
   </ul>
 
   <h2>VoxScribe for Android</h2>

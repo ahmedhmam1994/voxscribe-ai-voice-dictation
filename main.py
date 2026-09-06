@@ -6,7 +6,7 @@ from PySide6.QtCore import QSharedMemory
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.main_window import MainWindow
-from core import crash_reporter
+from core import crash_reporter, telemetry
 
 # Fixed key -- create() fails with AlreadyExists if another VoxScribe process
 # already holds this segment. Catches a second launch (e.g. the old instance
@@ -19,6 +19,7 @@ _SINGLE_INSTANCE_KEY = "VoxScribe-SingleInstanceGuard-8f3c1a"
 
 def main() -> int:
     crash_reporter.install()
+    telemetry.send_app_launched()
     app = QApplication(sys.argv)
 
     guard = QSharedMemory(_SINGLE_INSTANCE_KEY)
