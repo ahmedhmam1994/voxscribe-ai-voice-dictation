@@ -19,7 +19,6 @@ _SINGLE_INSTANCE_KEY = "VoxScribe-SingleInstanceGuard-8f3c1a"
 
 def main() -> int:
     crash_reporter.install()
-    telemetry.send_app_launched()
     app = QApplication(sys.argv)
 
     guard = QSharedMemory(_SINGLE_INSTANCE_KEY)
@@ -30,6 +29,10 @@ def main() -> int:
             "VoxScribe is already running. Check the system tray.",
         )
         return 0
+
+    # Only past the single-instance guard, so a duplicate-launch race (e.g.
+    # a double-click) doesn't send two pings for what's really one launch.
+    telemetry.send_app_launched()
 
     window = MainWindow()  # noqa: F841 -- kept alive by the reference here
     # Start hidden to the tray -- no window pops up on launch. Use the tray
