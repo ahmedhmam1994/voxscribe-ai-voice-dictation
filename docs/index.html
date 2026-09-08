@@ -124,12 +124,8 @@
   }
   nav .inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; max-width: 1040px; margin: 0 auto; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; }
-  .brand-mark {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: linear-gradient(180deg, var(--accent-hover), var(--accent-pressed));
-    display: flex; align-items: center; justify-content: center;
-  }
-  .brand-mark svg { width: 14px; height: 14px; }
+  .brand-mark { width: 30px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  .brand-mark svg { width: 30px; height: 26px; }
   nav .links { display: flex; align-items: center; gap: 24px; font-size: 14px; color: var(--text-muted); }
   nav .links a { color: var(--text-muted); text-decoration: none; }
   nav .links a:hover { color: var(--text-primary); }
@@ -374,7 +370,20 @@
   <div class="inner">
     <div class="brand">
       <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="2" width="6" height="12" rx="3" fill="white"/><path d="M6 11c0 3.31 2.69 6 6 6s6-2.69 6-6" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17v3" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="voxMark" x1="0" y1="0" x2="28" y2="24" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#10b981"/>
+              <stop offset="55%" stop-color="#34d399"/>
+              <stop offset="100%" stop-color="#5eead4"/>
+            </linearGradient>
+          </defs>
+          <rect x="1" y="4" width="3" height="16" rx="1.5" fill="url(#voxMark)"/>
+          <rect x="7" y="9" width="3" height="11" rx="1.5" fill="url(#voxMark)"/>
+          <rect x="13" y="14" width="3" height="6" rx="1.5" fill="url(#voxMark)"/>
+          <rect x="19" y="9" width="3" height="11" rx="1.5" fill="url(#voxMark)"/>
+          <rect x="25" y="4" width="3" height="16" rx="1.5" fill="url(#voxMark)"/>
+        </svg>
       </div>
       VoxScribe
     </div>

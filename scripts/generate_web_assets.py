@@ -1,5 +1,5 @@
 """One-off script: generates docs/favicon assets and docs/og-image.png,
-matching the landing page's dark/violet-cyan-magenta gradient identity.
+matching the landing page's dark/emerald-teal waveform mark.
 
 Run with: venv\\Scripts\\python.exe scripts\\generate_web_assets.py
 """
@@ -19,46 +19,35 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication
 
-ACCENT = "#8b7cf6"
-ACCENT_HOVER = "#a996ff"
-ACCENT_PRESSED = "#6a5cd6"
-CYAN = "#22d3ee"
-MAGENTA = "#e879f9"
+ACCENT = "#10b981"
+ACCENT_HOVER = "#34d399"
+ACCENT_PRESSED = "#059669"
+CYAN = "#5eead4"
 BG = "#06060f"
 
 
-def draw_mic_badge(painter: QPainter, x: float, y: float, size: float) -> None:
-    """Draws the same violet mic badge used as the app icon / nav brand mark."""
-    bg = QLinearGradient(QPointF(x, y), QPointF(x, y + size))
-    bg.setColorAt(0.0, QColor("#9d90f8"))
-    bg.setColorAt(1.0, QColor(ACCENT_PRESSED))
-    fg = QColor("#ffffff")
-
-    painter.setBrush(QBrush(bg))
+def draw_wave_mark(painter: QPainter, x: float, y: float, size: float) -> None:
+    """Draws the V-shaped soundwave mark used as the nav brand mark: five
+    gradient bars, tall-to-short-to-tall, reading as both a waveform and a
+    'V' monogram for VoxScribe."""
+    grad = QLinearGradient(QPointF(x, y), QPointF(x + size, y + size))
+    grad.setColorAt(0.0, QColor(ACCENT))
+    grad.setColorAt(0.55, QColor(ACCENT_HOVER))
+    grad.setColorAt(1.0, QColor(CYAN))
+    painter.setBrush(QBrush(grad))
     painter.setPen(Qt.NoPen)
-    painter.drawEllipse(QRectF(x, y, size, size))
 
-    body_w = size * 0.28
-    body_h = size * 0.42
-    body_x = x + (size - body_w) / 2
-    body_y = y + size * 0.16
-    painter.setBrush(QBrush(fg))
-    painter.drawRoundedRect(QRectF(body_x, body_y, body_w, body_h), body_w / 2, body_w / 2)
-
-    pen = QPen(fg)
-    pen.setWidthF(size * 0.045)
-    pen.setCapStyle(Qt.RoundCap)
-    painter.setPen(pen)
-    painter.setBrush(Qt.NoBrush)
-
-    stand_rect = QRectF(x + size * 0.28, y + size * 0.42, size * 0.44, size * 0.36)
-    painter.drawArc(stand_rect, 0, -180 * 16)
-    painter.drawLine(
-        int(x + size * 0.5), int(y + size * 0.60), int(x + size * 0.5), int(y + size * 0.78)
-    )
-    painter.drawLine(
-        int(x + size * 0.36), int(y + size * 0.78), int(x + size * 0.64), int(y + size * 0.78)
-    )
+    bar_w = size * 0.11
+    gap = size * 0.115
+    bottom = y + size * 0.82
+    heights = [0.62, 0.42, 0.24, 0.42, 0.62]
+    for i, h_frac in enumerate(heights):
+        bar_h = size * h_frac
+        bar_x = x + size * 0.06 + i * (bar_w + gap)
+        bar_y = bottom - bar_h
+        painter.drawRoundedRect(
+            QRectF(bar_x, bar_y, bar_w, bar_h), bar_w / 2, bar_w / 2
+        )
 
 
 def make_favicon(size: int) -> QPixmap:
@@ -66,7 +55,7 @@ def make_favicon(size: int) -> QPixmap:
     pm.fill(Qt.transparent)
     painter = QPainter(pm)
     painter.setRenderHint(QPainter.Antialiasing)
-    draw_mic_badge(painter, 0, 0, size)
+    draw_wave_mark(painter, 0, 0, size)
     painter.end()
     return pm
 
@@ -95,11 +84,11 @@ def make_og_image() -> QPixmap:
 
     glow(180, 120, 380, ACCENT, 130)
     glow(1040, 500, 360, CYAN, 90)
-    glow(950, 80, 260, MAGENTA, 70)
+    glow(950, 80, 260, ACCENT_HOVER, 70)
 
-    # Mic badge
+    # Wave mark
     badge_size = 120
-    draw_mic_badge(painter, 90, 90, badge_size)
+    draw_wave_mark(painter, 90, 90, badge_size)
 
     # Brand wordmark next to badge
     painter.setPen(QColor("#f3f3fb"))
@@ -116,9 +105,9 @@ def make_og_image() -> QPixmap:
     painter.drawText(headline_rect, Qt.AlignLeft | Qt.TextWordWrap, "Talk anywhere on Windows.")
 
     grad_text = QLinearGradient(QPointF(90, 0), QPointF(700, 0))
-    grad_text.setColorAt(0.0, QColor(ACCENT_HOVER))
-    grad_text.setColorAt(0.5, QColor(CYAN))
-    grad_text.setColorAt(1.0, QColor(MAGENTA))
+    grad_text.setColorAt(0.0, QColor(ACCENT))
+    grad_text.setColorAt(0.5, QColor(ACCENT_HOVER))
+    grad_text.setColorAt(1.0, QColor(CYAN))
     painter.setPen(QPen(QBrush(grad_text), 0))
     painter.drawText(QRectF(90, 340, 1020, 90), Qt.AlignLeft, "VoxScribe types it for you.")
 
