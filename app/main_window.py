@@ -73,6 +73,7 @@ from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import foreground_process_name
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
+from core.voice_commands import apply_voice_commands
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
@@ -1595,6 +1596,21 @@ class MainWindow(QMainWindow):
         cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
         layout.addWidget(cleanup_checkbox)
 
+        voice_commands_checkbox = QCheckBox(
+            'Voice commands ("period", "comma", "new line", "new paragraph", ...)'
+        )
+        voice_commands_checkbox.setChecked(hotkey_settings.get_voice_commands_enabled())
+        layout.addWidget(voice_commands_checkbox)
+
+        voice_commands_hint = QLabel(
+            'Say these words while dictating and they\'ll be typed as punctuation '
+            "instead of literal text -- e.g. \"period\", \"comma\", \"question mark\", "
+            '"new line", "new paragraph", "open quote"/"close quote".'
+        )
+        voice_commands_hint.setObjectName("settingsHint")
+        voice_commands_hint.setWordWrap(True)
+        layout.addWidget(voice_commands_hint)
+
         sound_checkbox = QCheckBox("Play a sound when recording starts/stops")
         sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
         layout.addWidget(sound_checkbox)
@@ -1719,6 +1735,15 @@ class MainWindow(QMainWindow):
                 "Filler-word cleanup enabled."
                 if new_cleanup_enabled
                 else "Filler-word cleanup disabled."
+            )
+
+        new_voice_commands_enabled = voice_commands_checkbox.isChecked()
+        if new_voice_commands_enabled != hotkey_settings.get_voice_commands_enabled():
+            hotkey_settings.set_voice_commands_enabled(new_voice_commands_enabled)
+            changes.append(
+                "Voice commands enabled."
+                if new_voice_commands_enabled
+                else "Voice commands disabled."
             )
 
         new_sound_enabled = sound_checkbox.isChecked()
@@ -2180,6 +2205,8 @@ class MainWindow(QMainWindow):
     def _on_transcribed(self, text: str) -> None:
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
+        if text and hotkey_settings.get_voice_commands_enabled():
+            text = apply_voice_commands(text)
         if text and hotkey_license.is_pro():
             text = snippets.expand_snippet(text)
         self.transcript_area.append(text if text else "[no speech recognized]")

@@ -175,6 +175,20 @@ def set_cleanup_enabled(enabled: bool) -> None:
     _settings().setValue("cleanup_enabled", enabled)
 
 
+def get_voice_commands_enabled() -> bool:
+    """Default False (opt-in): someone who says the literal word "period" or
+    "comma" mid-sentence would otherwise get a surprise symbol substitution
+    the moment this feature shipped. See core/voice_commands.py."""
+    value = _settings().value("voice_commands_enabled", False)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_voice_commands_enabled(enabled: bool) -> None:
+    _settings().setValue("voice_commands_enabled", enabled)
+
+
 def get_custom_vocabulary() -> list[str]:
     """Names/acronyms/terms Whisper tends to mishear -- fed to faster-whisper
     as an `initial_prompt` hint (see core/transcribe.py) to bias recognition
