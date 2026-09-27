@@ -70,7 +70,7 @@ from core.audio_capture import (
 )
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
-from core.focused_window import foreground_process_name
+from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 from core.voice_commands import apply_voice_commands
@@ -866,6 +866,12 @@ class MainWindow(QMainWindow):
         self._chunks: list[np.ndarray] = []
         self._record_rate: int = SAMPLE_RATE
         self._last_recording_duration: float = 0.0
+        # The window the user was dictating into, captured when recording
+        # stops -- transcription runs in the background and finishes after a
+        # delay, long enough for the user to have switched windows in the
+        # meantime, which would otherwise send the typed text to whatever
+        # they switched to instead of what they meant to dictate into.
+        self._recording_target_hwnd: int | None = None
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
 
@@ -2176,6 +2182,11 @@ class MainWindow(QMainWindow):
         _play_start_sound()
 
     def _stop_recording(self) -> None:
+        # Capture now, while the user is still (presumably) looking at the
+        # window they were dictating into -- transcription hasn't started
+        # yet, so this is the closest we get to "the window they meant".
+        self._recording_target_hwnd = foreground_window_handle()
+
         self.stream.stop()
         self.stream.close()
         self.stream = None
@@ -2316,6 +2327,17 @@ class MainWindow(QMainWindow):
         self._refresh_insights()
 
     def _type_into_focused_window(self, text: str) -> None:
+        # Transcription runs in the background and finishes after a delay --
+        # long enough for the user to have switched to a different window
+        # since they stopped recording. Re-focus the window captured at
+        # _stop_recording() so the text lands where they meant it to, not
+        # wherever they've since clicked. If that fails (window closed,
+        # Windows refuses the focus change -- see focus_window()'s
+        # docstring), fall through and type into whatever is focused now,
+        # same as this always did before.
+        if self._recording_target_hwnd is not None:
+            focus_window(self._recording_target_hwnd)
+
         try:
             # A small per-character delay matters here: some target apps
             # (rich-text/JS-driven inputs, not plain native text fields --

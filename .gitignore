@@ -24,3 +24,7 @@ graphify-out/
 # every already-sold key stays valid but no new ones can ever be issued;
 # leaking it means anyone can forge a valid key.
 license_signing_key.raw
+
+# Personal sales ledger (scripts/generate_license_key.py) -- buyer names +
+# issued keys, never meant to be public or shipped with the app.
+sold_keys.csv
