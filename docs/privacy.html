@@ -62,6 +62,7 @@
     <li><strong>Internet access</strong> is used exactly once: downloading the Whisper speech-recognition model from Hugging Face on first launch. After that, transcription works fully offline.</li>
     <li>If the app crashes, a log is written to a folder on your own machine (<code>%LOCALAPPDATA%\VoxScribe\logs\</code>) so it can be diagnosed if you choose to share it. This never happens automatically; nothing is uploaded or sent anywhere on your behalf.</li>
     <li>VoxScribe sends one anonymous ping to our analytics provider (PostHog) each time the app launches, so we can see how many people actually use VoxScribe. This ping contains only the app version, your OS name/version, and a random id generated on your device: never your name, email, audio, transcripts, or anything you've typed or dictated. VoxScribe sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
+    <li><strong>VoxScribe Pro activation</strong> makes one additional network request, only when you paste a license key and click Unlock in Settings: it sends the key and a hardware id derived from your PC (not tied to your Windows installation, your name, or any account) to our activation server, which checks that the key hasn't already been activated on a different device. This request happens once per activation, not on every launch; after that, Pro status is checked entirely offline like everything else on this page.</li>
   </ul>
 
   <h2>VoxScribe for Android</h2>

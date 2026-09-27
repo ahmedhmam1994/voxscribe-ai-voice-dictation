@@ -1340,17 +1340,37 @@ class MainWindow(QMainWindow):
                 license_remove_button.show()
             else:
                 license_status_label.setText(
-                    "Free tier. Paste a Pro license key below to unlock Snippets."
+                    "Free tier. Paste a Pro license key below to unlock Snippets. "
+                    "Needs internet once, to activate."
                 )
                 license_key_edit.show()
                 license_unlock_button.show()
                 license_remove_button.hide()
 
         def _try_unlock_license() -> None:
-            if hotkey_license.set_license_key(license_key_edit.text()):
+            key = license_key_edit.text()
+            license_status_label.setText("Activating...")
+            license_unlock_button.setEnabled(False)
+            # Let the "Activating..." label actually paint before the
+            # blocking network call below -- there's no QThread here (this
+            # is a one-off, user-initiated click, not a recurring
+            # background task), so without this the dialog would otherwise
+            # look frozen for the duration of the request.
+            QApplication.processEvents()
+
+            ok, message = hotkey_license.activate_online(key)
+            license_unlock_button.setEnabled(True)
+            if not ok:
+                license_status_label.setText(message or "Activation failed -- try again.")
+                return
+
+            if hotkey_license.set_license_key(key):
                 license_key_edit.clear()
                 _refresh_license_ui()
             else:
+                # Passed online activation but failed local verification --
+                # shouldn't happen (activate_online already checks this
+                # first), but don't silently claim success if it somehow did.
                 license_status_label.setText(
                     "That key isn't valid -- check for typos and try again."
                 )
