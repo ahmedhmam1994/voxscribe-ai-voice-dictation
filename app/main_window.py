@@ -57,6 +57,7 @@ from PySide6.QtWidgets import (
 
 from app.floating_indicator import FloatingIndicator
 from app.version import __version__
+from app.whats_new import whats_new_text
 from core import history, snippets
 from core import license as hotkey_license
 from core import settings as hotkey_settings
@@ -1156,6 +1157,7 @@ class MainWindow(QMainWindow):
         self._register_global_hotkey()
 
         self._setup_tray_icon()
+        self._announce_whats_new()
 
         self._update_checker: UpdateCheckThread | None = None
         self._update_downloader: UpdateDownloadThread | None = None
@@ -1809,6 +1811,25 @@ class MainWindow(QMainWindow):
             )
 
     # -- system tray ------------------------------------------------------
+
+    def _announce_whats_new(self) -> None:
+        """Shows a one-time tray balloon summarizing what changed, the first
+        time VoxScribe runs after an update. Skipped on a brand-new install
+        (last_seen_version is None) -- there's nothing to compare against,
+        and a "what's new" balloon makes no sense before someone has used
+        the app at all."""
+        last_seen = hotkey_settings.get_last_seen_version()
+        if last_seen != __version__:
+            if last_seen is not None:
+                notes = whats_new_text(__version__)
+                if notes and self.tray_icon is not None:
+                    self.tray_icon.showMessage(
+                        f"VoxScribe {__version__}",
+                        notes,
+                        QSystemTrayIcon.MessageIcon.Information,
+                        8000,
+                    )
+            hotkey_settings.set_last_seen_version(__version__)
 
     def _setup_tray_icon(self) -> None:
         """Adds a tray icon so the app can keep running (hotkey + indicator

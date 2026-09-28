@@ -322,3 +322,16 @@ def record_dictation(word_count: int) -> None:
     s = _settings()
     s.setValue("stats_sessions", sessions + 1)
     s.setValue("stats_words", words + word_count)
+
+
+def get_last_seen_version() -> str | None:
+    """None means this install has never recorded a version -- either a
+    fresh install or an upgrade from before this setting existed. Callers
+    use that to distinguish "just installed, nothing to announce" from
+    "was on an older version, show what changed" (see app/whats_new.py)."""
+    value = _settings().value("last_seen_version", "")
+    return value or None
+
+
+def set_last_seen_version(version: str) -> None:
+    _settings().setValue("last_seen_version", version)
