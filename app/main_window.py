@@ -1191,9 +1191,7 @@ class MainWindow(QMainWindow):
     def _register_global_hotkey(self) -> None:
         """(Re)registers the global hold-to-talk hotkey as self._hotkey.
         Safe to call again after changing the hotkey (see
-        _open_settings_dialog) -- unhooks the previous registration first.
-        self._hotkey may be a chord (e.g. "ctrl+alt+space") -- see
-        hotkey_settings.parse_hotkey()."""
+        _open_settings_dialog) -- unhooks the previous registration first."""
         for hook in (self._hotkey_press_hook, self._hotkey_release_hook):
             if hook is not None:
                 try:
@@ -1204,25 +1202,12 @@ class MainWindow(QMainWindow):
         self._hotkey_release_hook = None
         self._hotkey_registration_error = None
 
-        required_modifiers, trigger_key = hotkey_settings.parse_hotkey(self._hotkey)
-
-        def _on_trigger_press(_event: object) -> None:
-            # For a chord (required_modifiers non-empty), the trigger key
-            # alone -- e.g. typing a plain space -- must not start a
-            # recording; only fire once every required modifier is actually
-            # held down too. For a plain single-key hotkey, required_modifiers
-            # is empty and this check is skipped entirely (unchanged
-            # behavior).
-            if required_modifiers and not all(
-                keyboard.is_pressed(mod) for mod in required_modifiers
-            ):
-                return
-            self._hotkey_bridge.press_requested.emit()
-
         try:
-            self._hotkey_press_hook = keyboard.on_press_key(trigger_key, _on_trigger_press)
+            self._hotkey_press_hook = keyboard.on_press_key(
+                self._hotkey, lambda e: self._hotkey_bridge.press_requested.emit()
+            )
             self._hotkey_release_hook = keyboard.on_release_key(
-                trigger_key, lambda e: self._hotkey_bridge.release_requested.emit()
+                self._hotkey, lambda e: self._hotkey_bridge.release_requested.emit()
             )
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
@@ -1264,7 +1249,7 @@ class MainWindow(QMainWindow):
             self._hotkey_badge.setText(self._hotkey.upper())
             self._hotkey_hint_suffix.setObjectName("hotkeyHint")
             self._hotkey_hint_suffix.setText(
-                "anywhere to talk, release to stop. Text is typed directly "
+                "anywhere to talk — release to stop. Text is typed directly "
                 "into whatever you're focused on."
             )
         self._hotkey_hint_suffix.style().unpolish(self._hotkey_hint_suffix)

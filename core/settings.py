@@ -5,17 +5,12 @@ microphone device, the dictation language, whether filler-word cleanup
 runs, a custom vocabulary list, an app-exclusion list, the Whisper model
 size, whether recording plays a sound, and local usage stats.
 
-The available hotkey choices are curated to F-keys, a few rarely-typed
-keys, and a small set of modifier chords rather than allowing an arbitrary
-key: since this is a *global* hold-to-talk hotkey (registered system-wide,
-not just while VoxScribe has focus), letting it land on a normal typing
-key alone (a letter, digit, space, etc.) would make that key stop working
-for typing anywhere on the system while VoxScribe is running. A chord like
-"ctrl+alt+space" sidesteps this: parse_hotkey() splits it into required
-modifiers (checked with keyboard.is_pressed() at press time) plus a single
-trigger key that's actually press/release-hooked, so holding just one of
-the modifiers alone -- or typing the trigger key without them -- never
-starts a recording.
+The available hotkey choices are curated to F-keys and a few rarely-typed
+keys rather than allowing an arbitrary key: since this is a *global*
+hold-to-talk hotkey (registered system-wide, not just while VoxScribe has
+focus), letting it land on a normal typing key (a letter, digit, space,
+etc.) would make that key stop working for typing anywhere on the system
+while VoxScribe is running.
 """
 
 from __future__ import annotations
@@ -31,14 +26,6 @@ DEFAULT_HOTKEY = "f9"
 AVAILABLE_HOTKEYS = [
     "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
     "pause", "scroll lock", "insert",
-    # A chord, not a single key -- see parse_hotkey() and this module's
-    # docstring. Chosen specifically to combine the three keys a paying
-    # customer asked for individually (control, alt, space): requiring all
-    # three together is both easier to reach than an F-key and unlikely to
-    # collide with an existing app shortcut, unlike any one/two-key version
-    # of the same idea (e.g. plain Alt+Space is Windows' own system-menu
-    # shortcut; Ctrl+Space toggles IME input in some locales).
-    "ctrl+alt+space",
 ]
 
 _AUTO_START_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -56,20 +43,6 @@ def get_hotkey() -> str:
 
 def set_hotkey(key: str) -> None:
     _settings().setValue("hotkey", key)
-
-
-def parse_hotkey(key: str) -> tuple[list[str], str]:
-    """Splits a hotkey into (required_modifiers, trigger_key). For a plain
-    key like "f9", modifiers is [] and trigger_key is "f9" -- unchanged
-    behavior. For a chord like "ctrl+alt+space", modifiers is
-    ["ctrl", "alt"] and trigger_key is "space": the trigger key is the only
-    one actually press/release-hooked (see app/main_window.py's
-    _register_global_hotkey), and the modifiers are checked with
-    keyboard.is_pressed() at the moment the trigger key goes down."""
-    parts = [p.strip() for p in key.split("+") if p.strip()]
-    if not parts:
-        return [], key
-    return parts[:-1], parts[-1]
 
 
 def _launch_command() -> str:
