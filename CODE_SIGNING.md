@@ -8,7 +8,7 @@ The official repository is [ahmedhmam1994/voxscribe-ai-voice-dictation](https://
 
 ## What gets signed
 
-The Windows installer (`VoxScribe-Setup.exe`) and the packaged application executable (`VoxScribe.exe`) it contains, produced by this repository's release build workflow (PyInstaller + Inno Setup). Signing happens exclusively inside that CI workflow -- never a manual local build on a contributor's own machine.
+The Windows installer (`VoxScribe-Setup.exe`) and the packaged application executable (`VoxScribe.exe`) it contains, produced by this repository's release build workflow (PyInstaller + Inno Setup). Signing happens exclusively inside that CI workflow, never a manual local build on a contributor's own machine.
 
 ## Team
 
