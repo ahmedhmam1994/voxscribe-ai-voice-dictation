@@ -85,6 +85,7 @@
      ambient background should only cover the headline/CTA zone above the
      screenshot, not stretch the whole way down. */
   .glow-field { position: absolute; top: 0; left: 0; right: 0; height: 520px; overflow: hidden; pointer-events: none; z-index: 0; }
+  .glow-field video, .glow-field img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.55; }
   .glow-blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.28; }
   .glow-blob.brand { width: 420px; height: 420px; background: var(--accent); top: -140px; left: -80px; }
   @media (prefers-reduced-motion: no-preference) {
@@ -93,6 +94,11 @@
   @keyframes drift {
     from { transform: translate(0, 0) scale(1); }
     to { transform: translate(20px, 30px) scale(1.08); }
+  }
+  /* Reduced motion: hide the looping waveform video entirely, keep only the
+     static poster frame so the hero never depends on motion to look right. */
+  @media (prefers-reduced-motion: reduce) {
+    .glow-field video { display: none; }
   }
 
   /* SCROLL REVEAL: cards/steps fade+lift in as they enter the viewport.
@@ -268,6 +274,22 @@
     padding-top: 24px; border-top: 1px solid var(--border-soft);
   }
 
+  /* SHOWCASE: real UI screenshots, not mockups -- same visual language as
+     .proof-shell but three-across and smaller, since these are supporting
+     proof rather than the hero's single centerpiece. */
+  .showcase-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .showcase-card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden;
+  }
+  .showcase-card img { display: block; width: 100%; height: auto; }
+  .showcase-card .showcase-caption {
+    padding: 12px 16px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--border-soft);
+  }
+  @media (max-width: 760px) {
+    .showcase-grid { grid-template-columns: 1fr; }
+  }
+
   /* COMPARISON TABLE */
   .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; }
   table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
@@ -298,9 +320,16 @@
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .review-attribution {
-    display: flex; align-items: center; gap: 10px; padding-top: 20px; border-top: 1px solid var(--border-soft);
+    display: flex; align-items: center; gap: 12px; padding-top: 20px; border-top: 1px solid var(--border-soft);
     font-size: 14px;
   }
+  .review-attribution .avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex: none;
+    background: var(--gradient-brand);
+    display: flex; align-items: center; justify-content: center;
+    color: #060612;
+  }
+  .review-attribution .avatar svg { width: 18px; height: 18px; }
   .review-attribution .bar { width: 24px; height: 2px; background: var(--gradient-brand); flex: none; }
   .review-attribution strong { color: var(--text-primary); }
   .review-attribution span { color: var(--text-muted); }
@@ -407,6 +436,9 @@
 
 <header class="hero">
   <div class="glow-field">
+    <video autoplay muted loop playsinline poster="assets/hero-waveform.webp" aria-hidden="true">
+      <source src="assets/hero-waveform.mp4" type="video/mp4">
+    </video>
     <div class="glow-blob brand"></div>
   </div>
   <div class="wrap">
@@ -513,6 +545,21 @@
       </div>
     </div>
     <p class="how-footnote">VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
+
+    <div class="showcase-grid" style="margin-top: 48px;" data-reveal>
+      <div class="showcase-card">
+        <img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" loading="lazy">
+        <div class="showcase-caption">Idle, waiting for F9</div>
+      </div>
+      <div class="showcase-card">
+        <img src="assets/screenshot-recording.png" alt="VoxScribe recording" loading="lazy">
+        <div class="showcase-caption">Recording your voice</div>
+      </div>
+      <div class="showcase-card">
+        <img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" loading="lazy">
+        <div class="showcase-caption">Typed straight into the app</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -567,7 +614,9 @@
         <div class="quote-mark">&ldquo;</div>
         <blockquote>I&rsquo;ve used Dragon Medical, Dragon One, Dictation Daddy, VoiceTypr&hellip; I&rsquo;m <span class="highlight">proud to say I&rsquo;ve tried yours and I do like it.</span></blockquote>
         <div class="review-attribution">
-          <span class="bar"></span>
+          <span class="avatar">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M4.5 20c0-4.14 3.36-7 7.5-7s7.5 2.86 7.5 7" fill="currentColor"/></svg>
+          </span>
           <strong>Nurse</strong>
           <span>&middot; 10+ years dictating</span>
         </div>
