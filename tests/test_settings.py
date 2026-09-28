@@ -46,3 +46,21 @@ def test_available_hotkeys_contains_no_typing_keys():
 
 def test_default_hotkey_is_in_available_list():
     assert settings.DEFAULT_HOTKEY in settings.AVAILABLE_HOTKEYS
+
+
+def test_parse_hotkey_single_key_has_no_required_modifiers():
+    modifiers, trigger_key = settings.parse_hotkey("f9")
+    assert modifiers == []
+    assert trigger_key == "f9"
+
+
+def test_parse_hotkey_chord_splits_modifiers_from_trigger():
+    modifiers, trigger_key = settings.parse_hotkey("ctrl+alt+space")
+    assert modifiers == ["ctrl", "alt"]
+    assert trigger_key == "space"
+
+
+def test_chord_hotkey_round_trips(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    settings.set_hotkey("ctrl+alt+space")
+    assert settings.get_hotkey() == "ctrl+alt+space"
