@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/assets/readme-banner.png" alt="VoxScribe: local voice dictation for Windows" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml"><img src="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><img src="https://img.shields.io/github/v/release/ahmedhmam1994/voxscribe-ai-voice-dictation" alt="Latest release"></a>
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases"><img src="https://img.shields.io/github/downloads/ahmedhmam1994/voxscribe-ai-voice-dictation/total" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ahmedhmam1994/voxscribe-ai-voice-dictation" alt="License"></a>
+</p>
+
 # VoxScribe
 
 A free, open-source Windows desktop voice dictation app. Hold a global hotkey anywhere on your system, talk, release — your speech is transcribed **locally on your PC** and typed directly into whatever window has focus.
@@ -32,6 +43,12 @@ The installer does not require admin rights (per-user install). On first launch,
 1. Hold **F9** (or your chosen hotkey — see the tray menu's "Change Hotkey...")
 2. Speak
 3. Release the hotkey — the transcribed, cleaned-up text is typed into whatever app you're focused in
+
+<p align="center">
+  <img src="docs/assets/screenshot-ready.png" width="32%" alt="VoxScribe ready to record">
+  <img src="docs/assets/screenshot-recording.png" width="32%" alt="VoxScribe recording">
+  <img src="docs/assets/screenshot-transcript.png" width="32%" alt="VoxScribe with a transcript">
+</p>
 
 ## Privacy
 
