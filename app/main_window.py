@@ -80,7 +80,7 @@ ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
 
 # -- visual palette --------------------------------------------------------
-# A cohesive dark theme (near-black surfaces, soft violet accent) rather than
+# A cohesive dark theme (near-black surfaces, soft green accent) rather than
 # default battleship-gray Qt widgets. Chosen to feel like a focused, modern
 # utility (in the spirit of Wispr Flow) without fighting Windows' own dark
 # taskbar/tray rendering -- deep neutrals here read naturally next to it.
@@ -92,9 +92,9 @@ BORDER_SOFT = "#242631"
 TEXT_PRIMARY = "#eceef4"
 TEXT_MUTED = "#8b8d9c"
 TEXT_FAINT = "#5c5e6c"
-ACCENT = "#8b7cf6"
-ACCENT_HOVER = "#9d90f8"
-ACCENT_PRESSED = "#7566e0"
+ACCENT = "#3ecf8e"
+ACCENT_HOVER = "#4ee0a0"
+ACCENT_PRESSED = "#269e69"
 ACCENT_DISABLED = "#3a3b4c"
 
 
@@ -347,7 +347,7 @@ QLabel#keyBadge {{
 }}
 
 QPushButton#recordButton {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #9686f8, stop:1 #7566e0);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #34b57a, stop:1 #1f8f5c);
     color: #ffffff;
     font-size: 15px;
     font-weight: 700;
@@ -356,10 +356,10 @@ QPushButton#recordButton {{
     padding: 10px 16px;
 }}
 QPushButton#recordButton:hover {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #a89cf9, stop:1 #8574ea);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4ee0a0, stop:1 #2bb673);
 }}
 QPushButton#recordButton:pressed {{
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #8574ea, stop:1 #6a5cd0);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #2bb673, stop:1 #17754d);
 }}
 QPushButton#recordButton:disabled {{
     background: {ACCENT_DISABLED};
@@ -432,10 +432,10 @@ QPushButton#primaryOutlineButton {{
     padding: 8px 14px;
 }}
 QPushButton#primaryOutlineButton:hover {{
-    background: rgba(139, 124, 246, 0.14);
+    background: rgba(62, 207, 142, 0.14);
 }}
 QPushButton#primaryOutlineButton:pressed {{
-    background: rgba(139, 124, 246, 0.24);
+    background: rgba(62, 207, 142, 0.24);
 }}
 QPushButton#primaryOutlineButton:disabled {{
     color: {TEXT_FAINT};
@@ -498,7 +498,7 @@ QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
 
 QWidget#accentStrip {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-        stop:0 #6f5ff0, stop:0.5 {ACCENT}, stop:1 #c48cf2);
+        stop:0 #1f8f5c, stop:0.5 {ACCENT}, stop:1 #8eeab0);
 }}
 
 QWidget#sidebar {{
@@ -526,13 +526,13 @@ QPushButton#sidebarNavButton:hover {{
     color: {TEXT_PRIMARY};
 }}
 QPushButton#sidebarNavButton:checked {{
-    background: rgba(139, 124, 246, 0.16);
+    background: rgba(62, 207, 142, 0.16);
     color: {TEXT_PRIMARY};
 }}
 
 QWidget#heroBanner {{
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #372f66, stop:0.55 #5d4bb0, stop:1 #7c5cc9);
+        stop:0 #163a28, stop:0.55 #2f7a52, stop:1 #4aa06c);
     border-radius: 14px;
 }}
 QLabel#heroTitle {{
@@ -1020,7 +1020,7 @@ class MainWindow(QMainWindow):
         self._record_shadow = QGraphicsDropShadowEffect(self.record_button)
         self._record_shadow.setOffset(0, 6)
         self._record_shadow.setBlurRadius(24)
-        self._record_shadow.setColor(QColor(139, 124, 246, 110))
+        self._record_shadow.setColor(QColor(62, 207, 142, 110))
         self.record_button.setGraphicsEffect(self._record_shadow)
 
         grow = QPropertyAnimation(self._record_shadow, b"blurRadius", self)
@@ -1624,9 +1624,7 @@ class MainWindow(QMainWindow):
         cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
         layout.addWidget(cleanup_checkbox)
 
-        voice_commands_checkbox = QCheckBox(
-            'Voice commands ("period", "comma", "new line", "new paragraph", ...)'
-        )
+        voice_commands_checkbox = QCheckBox("Voice commands (punctuation by voice)")
         voice_commands_checkbox.setChecked(hotkey_settings.get_voice_commands_enabled())
         layout.addWidget(voice_commands_checkbox)
 
@@ -2063,7 +2061,7 @@ class MainWindow(QMainWindow):
             self._record_pulse.start()
         else:
             self._record_pulse.stop()
-            self._record_shadow.setColor(QColor(139, 124, 246, 110))
+            self._record_shadow.setColor(QColor(62, 207, 142, 110))
             self._record_shadow.setBlurRadius(24)
 
     def _update_save_button(self) -> None:
