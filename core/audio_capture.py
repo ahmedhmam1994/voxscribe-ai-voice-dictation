@@ -147,7 +147,7 @@ def frames(
     """Open the default (or given) microphone and yield audio frames forever.
 
     Each yielded frame is a 1-D float32 numpy array of length `frame_size`,
-    containing mono audio in the [-1.0, 1.0] range at `sample_rate` Hz —
+    containing mono audio in the [-1.0, 1.0] range at `sample_rate` Hz,
     the format Silero VAD expects.
 
     This is a generator, so it must be driven by a `for` loop (or manually
@@ -163,7 +163,7 @@ def frames(
 
     def _callback(indata, frame_count, time_info, status):  # noqa: ANN001
         if status:
-            # Overflow/underflow etc. — non-fatal, just surface it.
+            # Overflow/underflow etc., non-fatal, just surface it.
             print(f"[audio_capture] stream status: {status}")
         # indata is shape (frame_count, channels); we asked for 1 channel.
         audio_q.put(indata[:, 0].copy())

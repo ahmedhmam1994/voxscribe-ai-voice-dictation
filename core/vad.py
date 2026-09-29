@@ -10,7 +10,7 @@ installed).
 
 Model source:
     https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx
-Downloaded to `core/models/silero_vad.onnx` (git-ignored — re-download with
+Downloaded to `core/models/silero_vad.onnx` (git-ignored, re-download with
 `scripts/download_vad_model.py` or the curl command in the README/commit
 message if the file is missing).
 
@@ -60,7 +60,7 @@ class SileroVAD:
 
     Feed it consecutive audio frames (512 samples / 32ms at 16kHz) via
     `is_speech()`. Internal recurrent state carries over between calls, so
-    create one instance per audio stream and call it in order — don't share
+    create one instance per audio stream and call it in order, don't share
     an instance across unrelated streams without calling `reset()` first.
     """
 

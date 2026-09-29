@@ -117,7 +117,7 @@ class SegmentingTranscriber:
 
     Call `push()` once per audio frame (512 samples / 32ms at 16kHz, as
     produced by `core.audio_capture.frames()`). It returns a list of zero
-    or more events produced by that frame — usually empty, occasionally
+    or more events produced by that frame, usually empty, occasionally
     a status change or a finished transcription.
     """
 
@@ -197,7 +197,7 @@ class SegmentingTranscriber:
         self._silence_run = 0
 
         if len(buffer) < self.min_segment_frames:
-            return []  # too short, likely a noise blip — drop it
+            return []  # too short, likely a noise blip, drop it
 
         audio = np.concatenate(buffer).astype(np.float32)
         text = self.transcriber.transcribe(audio)

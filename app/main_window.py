@@ -1188,7 +1188,7 @@ class MainWindow(QMainWindow):
             self._hotkey_badge.setText(self._hotkey.upper())
             self._hotkey_hint_suffix.setObjectName("hotkeyHint")
             self._hotkey_hint_suffix.setText(
-                "anywhere to talk — release to stop. Text is typed directly "
+                "anywhere to talk, release to stop. Text is typed directly "
                 "into whatever you're focused on."
             )
         self._hotkey_hint_suffix.style().unpolish(self._hotkey_hint_suffix)
@@ -1515,7 +1515,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(vocab_edit)
 
         vocab_hint = QLabel(
-            "Names, acronyms, or terms Whisper tends to mishear — comma-separated. "
+            "Names, acronyms, or terms Whisper tends to mishear, comma-separated. "
             "Nudges recognition toward them; doesn't guarantee a match."
         )
         vocab_hint.setObjectName("settingsHint")
@@ -1592,7 +1592,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(excluded_edit)
 
         excluded_hint = QLabel(
-            "VoxScribe won't record while one of these apps is focused — comma-"
+            "VoxScribe won't record while one of these apps is focused, comma-"
             "separated executable names, e.g. a password manager."
         )
         excluded_hint.setObjectName("settingsHint")
