@@ -74,7 +74,7 @@ from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
-from core.voice_commands import apply_voice_commands
+from core.voice_commands import apply_voice_commands, is_undo_command
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
@@ -873,6 +873,12 @@ class MainWindow(QMainWindow):
         # meantime, which would otherwise send the typed text to whatever
         # they switched to instead of what they meant to dictate into.
         self._recording_target_hwnd: int | None = None
+        # Tracks the last text VoxScribe itself typed and which window it
+        # went into, so a spoken "scratch that" can Backspace it back out --
+        # but only into the same window, never a different one the user has
+        # since switched to. See core/voice_commands.py's is_undo_command().
+        self._last_typed_text: str = ""
+        self._last_typed_hwnd: int | None = None
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
 
@@ -1631,7 +1637,8 @@ class MainWindow(QMainWindow):
         voice_commands_hint = QLabel(
             'Say these words while dictating and they\'ll be typed as punctuation '
             "instead of literal text -- e.g. \"period\", \"comma\", \"question mark\", "
-            '"new line", "new paragraph", "open quote"/"close quote".'
+            '"new line", "new paragraph", "open quote"/"close quote". Say '
+            '"scratch that" alone to undo the last thing VoxScribe typed.'
         )
         voice_commands_hint.setObjectName("settingsHint")
         voice_commands_hint.setWordWrap(True)
@@ -2253,6 +2260,14 @@ class MainWindow(QMainWindow):
         self._worker.start()
 
     def _on_transcribed(self, text: str) -> None:
+        if (
+            text
+            and hotkey_settings.get_voice_commands_enabled()
+            and is_undo_command(text)
+        ):
+            self._handle_undo_command()
+            return
+
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
         if text and hotkey_settings.get_voice_commands_enabled():
@@ -2387,8 +2402,41 @@ class MainWindow(QMainWindow):
             # interleaved character-by-character) -- 30ms/char still reads
             # as instant to a human but gives slower inputs enough room.
             keyboard.write(text, delay=0.03)
+            self._last_typed_text = text
+            self._last_typed_hwnd = self._recording_target_hwnd
         except Exception:  # noqa: BLE001
             pass
+
+    def _handle_undo_command(self) -> None:
+        """Spoken "scratch that" -- Backspace out the last text VoxScribe
+        itself typed, but only if the focused window is still the same one
+        it was typed into. If the user has since switched windows, refuse
+        rather than guess: blindly Backspacing into the wrong window could
+        delete text the user never dictated."""
+        self.record_button.setEnabled(True)
+        self._indicator.hide_indicator()
+
+        if not self._last_typed_text:
+            self._set_status("Nothing to undo", "ready")
+            return
+
+        current_hwnd = foreground_window_handle()
+        if self._last_typed_hwnd is None or current_hwnd != self._last_typed_hwnd:
+            self._set_status("Can't undo -- active window changed", "error")
+            return
+
+        if self._recording_target_hwnd is not None:
+            focus_window(self._recording_target_hwnd)
+
+        try:
+            for _ in range(len(self._last_typed_text)):
+                keyboard.send("backspace")
+        except Exception:  # noqa: BLE001
+            pass
+
+        self._last_typed_text = ""
+        self._last_typed_hwnd = None
+        self._set_status("Undid last dictation", "ready")
 
     def _on_transcribe_failed(self, message: str) -> None:
         self.transcript_area.append(f"[error] {message}")

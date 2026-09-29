@@ -1,14 +1,21 @@
-"""Spoken punctuation/formatting commands ("period", "new line", ...).
+"""Spoken punctuation/formatting commands ("period", "new line", ...), plus
+a single spoken editing command ("scratch that").
 
 Whisper transcribes these as literal words -- this module turns them into
-the punctuation/whitespace they name. Deliberately scoped to punctuation and
-line breaks only (no "scratch that"/"undo" editing commands): those would
-need to track what VoxScribe itself typed into the focused window and could
-misfire if focus moved, which is a bigger, riskier feature than this one.
+the punctuation/whitespace they name. `is_undo_command()` is deliberately
+separate from the punctuation table above: undoing needs to track what
+VoxScribe itself typed into the focused window and re-send Backspace, which
+is app/main_window.py's job, not this pure-text module's. To keep the
+misfire risk low (focus moving, or undoing text the user meant to keep),
+it only fires when the ENTIRE dictated utterance is one of the recognized
+phrases -- never mid-sentence -- and the caller is expected to additionally
+verify the focused window hasn't changed since the last thing was typed.
 
 Opt-in (see core/settings.py's voice_commands_enabled) because a user who
 says the literal word "period" or "comma" mid-sentence -- rare, but real --
-would otherwise get a surprise symbol instead of the word.
+would otherwise get a surprise symbol instead of the word. Same reasoning
+covers "scratch that" -- rare as a literal phrase someone means to dictate,
+but real.
 """
 
 from __future__ import annotations
@@ -113,6 +120,25 @@ def apply_voice_commands(text: str) -> str:
     result = result.replace(_CAP_MARK, "")
 
     return result.strip()
+
+
+# Whole-utterance spoken undo phrases. Intentionally short and strict --
+# matched only against the full trimmed dictation (see is_undo_command), not
+# searched for inside a longer sentence.
+_UNDO_PHRASES = {"scratch that", "undo that", "delete that", "undo"}
+_TRAILING_PUNCT_RE = re.compile(r"[.!?]+$")
+
+
+def is_undo_command(text: str) -> bool:
+    """True if the entire dictated utterance is a spoken undo phrase, e.g.
+    "Scratch that." Whisper often appends a trailing period to short
+    utterances like this, so that's stripped before comparing. Returns False
+    for anything longer or different -- "scratch that itch" or "undo that
+    email" are real dictation, not a command."""
+    if not text:
+        return False
+    normalized = _TRAILING_PUNCT_RE.sub("", text.strip()).strip().lower()
+    return normalized in _UNDO_PHRASES
 
 
 if __name__ == "__main__":

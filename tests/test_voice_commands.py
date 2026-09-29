@@ -1,6 +1,6 @@
 """Tests for core/voice_commands.py's spoken punctuation/formatting commands."""
 
-from core.voice_commands import apply_voice_commands
+from core.voice_commands import apply_voice_commands, is_undo_command
 
 
 def test_empty_and_blank_pass_through_unchanged():
@@ -62,3 +62,19 @@ def test_is_case_insensitive():
 
 def test_no_leftover_capitalization_marker():
     assert "\x00" not in apply_voice_commands("hello period world period new line done")
+
+
+def test_is_undo_command_recognizes_whole_utterance_phrases():
+    assert is_undo_command("scratch that")
+    assert is_undo_command("Scratch that.")
+    assert is_undo_command("undo that")
+    assert is_undo_command("delete that")
+    assert is_undo_command("undo")
+    assert is_undo_command("UNDO THAT")
+
+
+def test_is_undo_command_rejects_embedded_or_different_text():
+    assert not is_undo_command("scratch that itch")
+    assert not is_undo_command("please undo that email")
+    assert not is_undo_command("hello world")
+    assert not is_undo_command("")
