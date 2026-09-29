@@ -129,6 +129,59 @@ def make_og_image() -> QPixmap:
     return pm
 
 
+def make_readme_banner() -> QPixmap:
+    w, h = 1344, 576
+    pm = QPixmap(w, h)
+    painter = QPainter(pm)
+    painter.setRenderHint(QPainter.Antialiasing)
+
+    painter.fillRect(0, 0, w, h, QColor(BG))
+
+    def glow(cx: float, cy: float, r: float, color: str, alpha: int) -> None:
+        grad = QRadialGradient(QPointF(cx, cy), r)
+        c1 = QColor(color)
+        c1.setAlpha(alpha)
+        c2 = QColor(color)
+        c2.setAlpha(0)
+        grad.setColorAt(0.0, c1)
+        grad.setColorAt(1.0, c2)
+        painter.setBrush(QBrush(grad))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(QPointF(cx, cy), r, r)
+
+    glow(w * 0.5, h * 0.35, 460, ACCENT, 90)
+    glow(w * 0.5, h * 0.65, 380, CYAN, 60)
+
+    icon_size = 96
+    wordmark_font = QFont("Segoe UI", 52, QFont.Bold)
+    metrics_pm = QPixmap(1, 1)
+    metrics_painter = QPainter(metrics_pm)
+    metrics_painter.setFont(wordmark_font)
+    wordmark_width = metrics_painter.fontMetrics().horizontalAdvance("VoxScribe")
+    metrics_painter.end()
+
+    gap = 22
+    group_width = icon_size + gap + wordmark_width
+    group_x = (w - group_width) / 2
+    group_y = h * 0.36
+
+    draw_wave_mark(painter, group_x, group_y, icon_size)
+
+    painter.setPen(QColor("#f3f3fb"))
+    painter.setFont(wordmark_font)
+    text_rect = QRectF(group_x + icon_size + gap, group_y - 10, wordmark_width + 10, icon_size + 20)
+    painter.drawText(text_rect, Qt.AlignVCenter | Qt.AlignLeft, "VoxScribe")
+
+    painter.setPen(QColor("#9797ac"))
+    tagline_font = QFont("Segoe UI", 22)
+    painter.setFont(tagline_font)
+    tagline_rect = QRectF(0, group_y + icon_size + 18, w, 50)
+    painter.drawText(tagline_rect, Qt.AlignHCenter, "Local voice dictation for Windows")
+
+    painter.end()
+    return pm
+
+
 def main() -> None:
     app = QApplication(sys.argv)  # noqa: F841 -- required for QPixmap/QPainter to work
 
@@ -141,8 +194,12 @@ def main() -> None:
     make_favicon(256).save(str(out_dir / "favicon.ico"), "ICO")
     make_og_image().save(str(out_dir / "og-image.png"), "PNG")
 
+    assets_dir = out_dir / "assets"
+    assets_dir.mkdir(exist_ok=True)
+    make_readme_banner().save(str(assets_dir / "readme-banner.png"), "PNG")
+
     print(f"Saved favicon-32.png, favicon-16.png, apple-touch-icon.png, favicon.ico, "
-          f"og-image.png to {out_dir}")
+          f"og-image.png to {out_dir}, and readme-banner.png to {assets_dir}")
 
 
 if __name__ == "__main__":
