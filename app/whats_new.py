@@ -9,6 +9,11 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.3": (
+        "- New look: green waveform icon and accent color throughout the app.\n"
+        "- Fixed: the Settings window could overflow and clip its fields on some "
+        "displays."
+    ),
     "1.6.2": (
         "- Voice commands (opt-in): say \"period\", \"comma\", \"new line\" and more "
         "while dictating to get real punctuation instead of the literal words. "
