@@ -20,10 +20,10 @@ import keyboard
 import numpy as np
 import sounddevice as sd
 from PySide6.QtCore import (
+    QByteArray,
     QEasingCurve,
     QObject,
     QPropertyAnimation,
-    QRectF,
     QSequentialAnimationGroup,
     QSize,
     Qt,
@@ -31,7 +31,8 @@ from PySide6.QtCore import (
     QTimer,
     Signal,
 )
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -98,137 +99,69 @@ ACCENT_PRESSED = "#269e69"
 ACCENT_DISABLED = "#3a3b4c"
 
 
-# -- hand-drawn vector icons ------------------------------------------------
-# No icon library is wired into this desktop app, and QSS/Qt widgets have no
-# equivalent of a web icon font. Rather than fall back to unicode glyphs
-# (which render inconsistently across Windows font fallback), icons are
-# drawn directly with QPainter at a fixed stroke weight -- a real, if tiny,
-# authored icon set instead of text-only buttons.
-_ICON_STROKE = 1.6
+# -- real icons (Lucide, ISC-licensed SVGs bundled in app/icons/) ----------
+# Previously hand-drawn with QPainter primitives; swapped for a real icon
+# set since the hand-drawn shapes read as amateurish at actual UI size.
+# Lucide's SVGs use stroke="currentColor" so they can be recolored per call
+# (active/disabled/hover states, different theme colors) by substituting
+# that token before rendering -- one bundled file per icon, no per-color
+# duplicate assets needed.
+_ICONS_DIR = Path(__file__).parent / "icons"
+_svg_cache: dict[str, str] = {}
 
 
-def _new_icon_painter(size: int, color: str) -> tuple[QPixmap, QPainter]:
+def _svg_source(name: str) -> str:
+    if name not in _svg_cache:
+        _svg_cache[name] = (_ICONS_DIR / f"{name}.svg").read_text(encoding="utf-8")
+    return _svg_cache[name]
+
+
+def _load_svg_icon(name: str, size: int, color: str) -> QIcon:
+    svg = _svg_source(name).replace("currentColor", color)
+    renderer = QSvgRenderer(QByteArray(svg.encode("utf-8")))
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(color))
-    pen.setWidthF(_ICON_STROKE)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.BrushStyle.NoBrush)
-    return pixmap, painter
+    renderer.render(painter)
+    painter.end()
+    return QIcon(pixmap)
 
 
 def _icon_mic(size: int = 22, color: str = "#ffffff") -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    body = QRectF(s * 0.37, s * 0.08, s * 0.26, s * 0.42)
-    painter.drawRoundedRect(body, body.width() / 2, body.width() / 2)
-    bracket = QRectF(s * 0.20, s * 0.28, s * 0.60, s * 0.50)
-    painter.drawArc(bracket, 200 * 16, 140 * 16)
-    painter.drawLine(int(s * 0.5), int(s * 0.72), int(s * 0.5), int(s * 0.88))
-    painter.drawLine(int(s * 0.34), int(s * 0.88), int(s * 0.66), int(s * 0.88))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("mic", size, color)
 
 
 def _icon_stop(size: int = 22, color: str = "#ffffff") -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.setBrush(QColor(color))
-    rect = QRectF(s * 0.30, s * 0.30, s * 0.40, s * 0.40)
-    painter.drawRoundedRect(rect, s * 0.06, s * 0.06)
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("square", size, color)
 
 
 def _icon_save(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawLine(int(s * 0.5), int(s * 0.14), int(s * 0.5), int(s * 0.62))
-    path = QPainterPath()
-    path.moveTo(s * 0.32, s * 0.44)
-    path.lineTo(s * 0.5, s * 0.64)
-    path.lineTo(s * 0.68, s * 0.44)
-    painter.drawPath(path)
-    painter.drawLine(int(s * 0.18), int(s * 0.82), int(s * 0.82), int(s * 0.82))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("download", size, color)
 
 
 def _icon_copy(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    back = QRectF(s * 0.16, s * 0.16, s * 0.52, s * 0.52)
-    painter.drawRoundedRect(back, s * 0.08, s * 0.08)
-    front = QRectF(s * 0.34, s * 0.34, s * 0.52, s * 0.52)
-    painter.setPen(QPen(QColor(color), _ICON_STROKE))
-    painter.setBrush(QColor(BG_CARD))
-    painter.drawRoundedRect(front, s * 0.08, s * 0.08)
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("copy", size, color)
 
 
 def _icon_clear(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawLine(int(s * 0.22), int(s * 0.30), int(s * 0.78), int(s * 0.30))
-    painter.drawLine(int(s * 0.40), int(s * 0.18), int(s * 0.60), int(s * 0.18))
-    body = QRectF(s * 0.28, s * 0.30, s * 0.44, s * 0.56)
-    painter.drawRoundedRect(body, s * 0.05, s * 0.05)
-    painter.drawLine(int(s * 0.42), int(s * 0.40), int(s * 0.42), int(s * 0.74))
-    painter.drawLine(int(s * 0.58), int(s * 0.40), int(s * 0.58), int(s * 0.74))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("trash-2", size, color)
 
 
 def _icon_settings(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    rows_and_knobs = ((0.30, 0.62), (0.52, 0.36), (0.74, 0.56))
-    for y, _knob_x in rows_and_knobs:
-        painter.drawLine(int(s * 0.10), int(s * y), int(s * 0.90), int(s * y))
-    painter.setBrush(QColor(color))
-    for y, knob_x in rows_and_knobs:
-        painter.drawEllipse(QRectF(s * knob_x - s * 0.08, s * y - s * 0.08, s * 0.16, s * 0.16))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("settings", size, color)
 
 
 def _icon_globe(size: int = 13, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawEllipse(QRectF(s * 0.08, s * 0.08, s * 0.84, s * 0.84))
-    painter.drawLine(int(s * 0.08), int(s * 0.5), int(s * 0.92), int(s * 0.5))
-    painter.drawEllipse(QRectF(s * 0.32, s * 0.08, s * 0.36, s * 0.84))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("globe", size, color)
 
 
 def _icon_keyboard(size: int = 14, color: str = TEXT_FAINT) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    body = QRectF(s * 0.08, s * 0.24, s * 0.84, s * 0.52)
-    painter.drawRoundedRect(body, s * 0.08, s * 0.08)
-    for cx in (0.24, 0.40, 0.56, 0.72):
-        painter.drawPoint(int(s * cx), int(s * 0.42))
-    painter.drawLine(int(s * 0.24), int(s * 0.60), int(s * 0.76), int(s * 0.60))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("keyboard", size, color)
 
 
 def _icon_insights(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    bars = ((0.20, 0.45), (0.46, 0.25), (0.72, 0.60))
-    for x, h in bars:
-        rect = QRectF(s * x, s * (0.86 - h), s * 0.18, s * h)
-        painter.drawRoundedRect(rect, s * 0.03, s * 0.03)
-    painter.drawLine(int(s * 0.10), int(s * 0.86), int(s * 0.90), int(s * 0.86))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("bar-chart-3", size, color)
 
 
 class _StatusDot(QWidget):
