@@ -9,6 +9,11 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.3.1": (
+        "- New: say \"scratch that\" alone to undo the last thing VoxScribe typed "
+        "(with Voice commands enabled in Settings).\n"
+        "- Real icons throughout the app, replacing the old hand-drawn ones."
+    ),
     "1.6.3": (
         "- New look: green waveform icon and accent color throughout the app.\n"
         "- Fixed: the Settings window could overflow and clip its fields on some "
