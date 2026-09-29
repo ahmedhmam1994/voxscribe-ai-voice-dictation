@@ -20,10 +20,10 @@ import keyboard
 import numpy as np
 import sounddevice as sd
 from PySide6.QtCore import (
+    QByteArray,
     QEasingCurve,
     QObject,
     QPropertyAnimation,
-    QRectF,
     QSequentialAnimationGroup,
     QSize,
     Qt,
@@ -31,7 +31,8 @@ from PySide6.QtCore import (
     QTimer,
     Signal,
 )
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPainterPath, QPen, QPixmap
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -74,7 +75,7 @@ from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
-from core.voice_commands import apply_voice_commands
+from core.voice_commands import apply_voice_commands, is_undo_command
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
@@ -98,137 +99,69 @@ ACCENT_PRESSED = "#269e69"
 ACCENT_DISABLED = "#3a3b4c"
 
 
-# -- hand-drawn vector icons ------------------------------------------------
-# No icon library is wired into this desktop app, and QSS/Qt widgets have no
-# equivalent of a web icon font. Rather than fall back to unicode glyphs
-# (which render inconsistently across Windows font fallback), icons are
-# drawn directly with QPainter at a fixed stroke weight -- a real, if tiny,
-# authored icon set instead of text-only buttons.
-_ICON_STROKE = 1.6
+# -- real icons (Lucide, ISC-licensed SVGs bundled in app/icons/) ----------
+# Previously hand-drawn with QPainter primitives; swapped for a real icon
+# set since the hand-drawn shapes read as amateurish at actual UI size.
+# Lucide's SVGs use stroke="currentColor" so they can be recolored per call
+# (active/disabled/hover states, different theme colors) by substituting
+# that token before rendering -- one bundled file per icon, no per-color
+# duplicate assets needed.
+_ICONS_DIR = Path(__file__).parent / "icons"
+_svg_cache: dict[str, str] = {}
 
 
-def _new_icon_painter(size: int, color: str) -> tuple[QPixmap, QPainter]:
+def _svg_source(name: str) -> str:
+    if name not in _svg_cache:
+        _svg_cache[name] = (_ICONS_DIR / f"{name}.svg").read_text(encoding="utf-8")
+    return _svg_cache[name]
+
+
+def _load_svg_icon(name: str, size: int, color: str) -> QIcon:
+    svg = _svg_source(name).replace("currentColor", color)
+    renderer = QSvgRenderer(QByteArray(svg.encode("utf-8")))
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.Antialiasing)
-    pen = QPen(QColor(color))
-    pen.setWidthF(_ICON_STROKE)
-    pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-    pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
-    painter.setBrush(Qt.BrushStyle.NoBrush)
-    return pixmap, painter
+    renderer.render(painter)
+    painter.end()
+    return QIcon(pixmap)
 
 
 def _icon_mic(size: int = 22, color: str = "#ffffff") -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    body = QRectF(s * 0.37, s * 0.08, s * 0.26, s * 0.42)
-    painter.drawRoundedRect(body, body.width() / 2, body.width() / 2)
-    bracket = QRectF(s * 0.20, s * 0.28, s * 0.60, s * 0.50)
-    painter.drawArc(bracket, 200 * 16, 140 * 16)
-    painter.drawLine(int(s * 0.5), int(s * 0.72), int(s * 0.5), int(s * 0.88))
-    painter.drawLine(int(s * 0.34), int(s * 0.88), int(s * 0.66), int(s * 0.88))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("mic", size, color)
 
 
 def _icon_stop(size: int = 22, color: str = "#ffffff") -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.setBrush(QColor(color))
-    rect = QRectF(s * 0.30, s * 0.30, s * 0.40, s * 0.40)
-    painter.drawRoundedRect(rect, s * 0.06, s * 0.06)
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("square", size, color)
 
 
 def _icon_save(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawLine(int(s * 0.5), int(s * 0.14), int(s * 0.5), int(s * 0.62))
-    path = QPainterPath()
-    path.moveTo(s * 0.32, s * 0.44)
-    path.lineTo(s * 0.5, s * 0.64)
-    path.lineTo(s * 0.68, s * 0.44)
-    painter.drawPath(path)
-    painter.drawLine(int(s * 0.18), int(s * 0.82), int(s * 0.82), int(s * 0.82))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("download", size, color)
 
 
 def _icon_copy(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    back = QRectF(s * 0.16, s * 0.16, s * 0.52, s * 0.52)
-    painter.drawRoundedRect(back, s * 0.08, s * 0.08)
-    front = QRectF(s * 0.34, s * 0.34, s * 0.52, s * 0.52)
-    painter.setPen(QPen(QColor(color), _ICON_STROKE))
-    painter.setBrush(QColor(BG_CARD))
-    painter.drawRoundedRect(front, s * 0.08, s * 0.08)
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("copy", size, color)
 
 
 def _icon_clear(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawLine(int(s * 0.22), int(s * 0.30), int(s * 0.78), int(s * 0.30))
-    painter.drawLine(int(s * 0.40), int(s * 0.18), int(s * 0.60), int(s * 0.18))
-    body = QRectF(s * 0.28, s * 0.30, s * 0.44, s * 0.56)
-    painter.drawRoundedRect(body, s * 0.05, s * 0.05)
-    painter.drawLine(int(s * 0.42), int(s * 0.40), int(s * 0.42), int(s * 0.74))
-    painter.drawLine(int(s * 0.58), int(s * 0.40), int(s * 0.58), int(s * 0.74))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("trash-2", size, color)
 
 
 def _icon_settings(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    rows_and_knobs = ((0.30, 0.62), (0.52, 0.36), (0.74, 0.56))
-    for y, _knob_x in rows_and_knobs:
-        painter.drawLine(int(s * 0.10), int(s * y), int(s * 0.90), int(s * y))
-    painter.setBrush(QColor(color))
-    for y, knob_x in rows_and_knobs:
-        painter.drawEllipse(QRectF(s * knob_x - s * 0.08, s * y - s * 0.08, s * 0.16, s * 0.16))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("settings", size, color)
 
 
 def _icon_globe(size: int = 13, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    painter.drawEllipse(QRectF(s * 0.08, s * 0.08, s * 0.84, s * 0.84))
-    painter.drawLine(int(s * 0.08), int(s * 0.5), int(s * 0.92), int(s * 0.5))
-    painter.drawEllipse(QRectF(s * 0.32, s * 0.08, s * 0.36, s * 0.84))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("globe", size, color)
 
 
 def _icon_keyboard(size: int = 14, color: str = TEXT_FAINT) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    body = QRectF(s * 0.08, s * 0.24, s * 0.84, s * 0.52)
-    painter.drawRoundedRect(body, s * 0.08, s * 0.08)
-    for cx in (0.24, 0.40, 0.56, 0.72):
-        painter.drawPoint(int(s * cx), int(s * 0.42))
-    painter.drawLine(int(s * 0.24), int(s * 0.60), int(s * 0.76), int(s * 0.60))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("keyboard", size, color)
 
 
 def _icon_insights(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
-    pixmap, painter = _new_icon_painter(size, color)
-    s = size
-    bars = ((0.20, 0.45), (0.46, 0.25), (0.72, 0.60))
-    for x, h in bars:
-        rect = QRectF(s * x, s * (0.86 - h), s * 0.18, s * h)
-        painter.drawRoundedRect(rect, s * 0.03, s * 0.03)
-    painter.drawLine(int(s * 0.10), int(s * 0.86), int(s * 0.90), int(s * 0.86))
-    painter.end()
-    return QIcon(pixmap)
+    return _load_svg_icon("bar-chart-3", size, color)
 
 
 class _StatusDot(QWidget):
@@ -873,6 +806,12 @@ class MainWindow(QMainWindow):
         # meantime, which would otherwise send the typed text to whatever
         # they switched to instead of what they meant to dictate into.
         self._recording_target_hwnd: int | None = None
+        # Tracks the last text VoxScribe itself typed and which window it
+        # went into, so a spoken "scratch that" can Backspace it back out --
+        # but only into the same window, never a different one the user has
+        # since switched to. See core/voice_commands.py's is_undo_command().
+        self._last_typed_text: str = ""
+        self._last_typed_hwnd: int | None = None
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
 
@@ -1249,7 +1188,7 @@ class MainWindow(QMainWindow):
             self._hotkey_badge.setText(self._hotkey.upper())
             self._hotkey_hint_suffix.setObjectName("hotkeyHint")
             self._hotkey_hint_suffix.setText(
-                "anywhere to talk — release to stop. Text is typed directly "
+                "anywhere to talk, release to stop. Text is typed directly "
                 "into whatever you're focused on."
             )
         self._hotkey_hint_suffix.style().unpolish(self._hotkey_hint_suffix)
@@ -1576,7 +1515,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(vocab_edit)
 
         vocab_hint = QLabel(
-            "Names, acronyms, or terms Whisper tends to mishear — comma-separated. "
+            "Names, acronyms, or terms Whisper tends to mishear, comma-separated. "
             "Nudges recognition toward them; doesn't guarantee a match."
         )
         vocab_hint.setObjectName("settingsHint")
@@ -1631,7 +1570,8 @@ class MainWindow(QMainWindow):
         voice_commands_hint = QLabel(
             'Say these words while dictating and they\'ll be typed as punctuation '
             "instead of literal text -- e.g. \"period\", \"comma\", \"question mark\", "
-            '"new line", "new paragraph", "open quote"/"close quote".'
+            '"new line", "new paragraph", "open quote"/"close quote". Say '
+            '"scratch that" alone to undo the last thing VoxScribe typed.'
         )
         voice_commands_hint.setObjectName("settingsHint")
         voice_commands_hint.setWordWrap(True)
@@ -1652,7 +1592,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(excluded_edit)
 
         excluded_hint = QLabel(
-            "VoxScribe won't record while one of these apps is focused — comma-"
+            "VoxScribe won't record while one of these apps is focused, comma-"
             "separated executable names, e.g. a password manager."
         )
         excluded_hint.setObjectName("settingsHint")
@@ -2253,6 +2193,14 @@ class MainWindow(QMainWindow):
         self._worker.start()
 
     def _on_transcribed(self, text: str) -> None:
+        if (
+            text
+            and hotkey_settings.get_voice_commands_enabled()
+            and is_undo_command(text)
+        ):
+            self._handle_undo_command()
+            return
+
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
         if text and hotkey_settings.get_voice_commands_enabled():
@@ -2387,8 +2335,41 @@ class MainWindow(QMainWindow):
             # interleaved character-by-character) -- 30ms/char still reads
             # as instant to a human but gives slower inputs enough room.
             keyboard.write(text, delay=0.03)
+            self._last_typed_text = text
+            self._last_typed_hwnd = self._recording_target_hwnd
         except Exception:  # noqa: BLE001
             pass
+
+    def _handle_undo_command(self) -> None:
+        """Spoken "scratch that" -- Backspace out the last text VoxScribe
+        itself typed, but only if the focused window is still the same one
+        it was typed into. If the user has since switched windows, refuse
+        rather than guess: blindly Backspacing into the wrong window could
+        delete text the user never dictated."""
+        self.record_button.setEnabled(True)
+        self._indicator.hide_indicator()
+
+        if not self._last_typed_text:
+            self._set_status("Nothing to undo", "ready")
+            return
+
+        current_hwnd = foreground_window_handle()
+        if self._last_typed_hwnd is None or current_hwnd != self._last_typed_hwnd:
+            self._set_status("Can't undo -- active window changed", "error")
+            return
+
+        if self._recording_target_hwnd is not None:
+            focus_window(self._recording_target_hwnd)
+
+        try:
+            for _ in range(len(self._last_typed_text)):
+                keyboard.send("backspace")
+        except Exception:  # noqa: BLE001
+            pass
+
+        self._last_typed_text = ""
+        self._last_typed_hwnd = None
+        self._set_status("Undid last dictation", "ready")
 
     def _on_transcribe_failed(self, message: str) -> None:
         self.transcript_area.append(f"[error] {message}")

@@ -13,4 +13,4 @@ root for the full model-size history (`tiny.en` → multilingual `tiny` →
 preemptive choice). Not committed to git (see `.gitignore`) because they're
 large binaries nobody can meaningfully diff. Without them, `WhisperEngine`
 detects they're missing and the app automatically falls back to Milestone
-1's `SpeechRecognizer` path instead — no crash, no build break.
+1's `SpeechRecognizer` path instead, no crash, no build break.

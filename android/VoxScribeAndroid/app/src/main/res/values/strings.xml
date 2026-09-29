@@ -41,9 +41,9 @@
     <string name="status_ready_whisper">Ready (offline Whisper)</string>
     <string name="status_listening">Listening…</string>
     <string name="status_transcribing">Transcribing…</string>
-    <string name="status_need_permission">Microphone permission needed — open VoxScribe app to grant it</string>
+    <string name="status_need_permission">Microphone permission needed, open VoxScribe app to grant it</string>
     <string name="status_no_recognizer">No speech recognizer available on this device</string>
-    <string name="status_error">Error (%1$d) — try again</string>
+    <string name="status_error">Error (%1$d), try again</string>
 
     <string name="key_space">space</string>
 
@@ -60,7 +60,7 @@
     <string name="bubble_notification_channel_desc">Shown while VoxScribe\'s floating dictation bubble is active</string>
     <string name="bubble_notification_title">VoxScribe bubble is active</string>
     <string name="bubble_notification_text">Hold the bubble anywhere to dictate</string>
-    <string name="bubble_insert_failed_clipboard_fallback">Couldn\'t insert directly — copied to clipboard instead</string>
+    <string name="bubble_insert_failed_clipboard_fallback">Couldn\'t insert directly, copied to clipboard instead</string>
 
     <string name="setup_bubble_section_label">FLOATING BUBBLE MODE</string>
     <string name="setup_bubble_section_subtitle">An alternative to switching keyboards: a small bubble floats over any app. Hold it to talk, release to insert the text right where you\'re typing.</string>
@@ -68,9 +68,9 @@
     <string name="setup_grant_overlay_done">1. Overlay permission ✓</string>
     <string name="setup_enable_accessibility">2. Enable accessibility service</string>
     <string name="setup_enable_accessibility_done">2. Accessibility service ✓</string>
-    <string name="setup_enable_accessibility_hint">Opens Accessibility settings — find and turn on \"VoxScribe\" in the list.</string>
+    <string name="setup_enable_accessibility_hint">Opens Accessibility settings, find and turn on \"VoxScribe\" in the list.</string>
     <string name="setup_start_bubble">3. Start floating bubble</string>
     <string name="setup_stop_bubble">3. Stop floating bubble</string>
     <string name="bubble_missing_permissions">Grant overlay + accessibility permissions first (steps 1 and 2 above)</string>
-    <string name="bubble_status_running">Bubble is active — drag it anywhere, hold to talk.</string>
+    <string name="bubble_status_running">Bubble is active, drag it anywhere, hold to talk.</string>
 </resources>

@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+import glob
+
 from PyInstaller.utils.hooks import collect_all
 
 # VoxScribe only uses PySide6.QtCore/QtGui/QtWidgets (see app/main_window.py,
@@ -43,6 +45,7 @@ def _strip_bloat(entries):
     return [e for e in entries if not any(m in e[0] for m in _BLOAT_MARKERS)]
 
 datas = [('app/icon.ico', 'app')]
+datas += [(svg, 'app/icons') for svg in glob.glob('app/icons/*.svg')]
 binaries = []
 hiddenimports = ['sounddevice']
 tmp_ret = collect_all('keyboard')
