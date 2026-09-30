@@ -122,23 +122,84 @@ def apply_voice_commands(text: str) -> str:
     return result.strip()
 
 
-# Whole-utterance spoken undo phrases. Intentionally short and strict --
-# matched only against the full trimmed dictation (see is_undo_command), not
-# searched for inside a longer sentence.
-_UNDO_PHRASES = {"scratch that", "undo that", "delete that", "undo"}
+# Whole-utterance spoken editing phrases -> how much of the last typed text
+# to remove. Intentionally short and strict -- matched only against the full
+# trimmed dictation (see get_editing_command), never searched for inside a
+# longer sentence, and the multi-word phrases are listed first so a phrase
+# doesn't get mistaken for a shorter one it starts with.
+_EDITING_PHRASES: dict[str, str] = {
+    "delete last word": "word",
+    "delete that word": "word",
+    "scratch that word": "word",
+    "delete last sentence": "sentence",
+    "delete that sentence": "sentence",
+    "scratch that sentence": "sentence",
+    "scratch that": "all",
+    "undo that": "all",
+    "delete that": "all",
+    "undo": "all",
+}
 _TRAILING_PUNCT_RE = re.compile(r"[.!?]+$")
 
 
-def is_undo_command(text: str) -> bool:
-    """True if the entire dictated utterance is a spoken undo phrase, e.g.
-    "Scratch that." Whisper often appends a trailing period to short
-    utterances like this, so that's stripped before comparing. Returns False
-    for anything longer or different -- "scratch that itch" or "undo that
-    email" are real dictation, not a command."""
+def get_editing_command(text: str) -> str | None:
+    """Returns "all", "word", "sentence", or None if the entire dictated
+    utterance is (respectively) a spoken undo-everything, delete-last-word,
+    delete-last-sentence phrase, or not an editing command at all. Whisper
+    often appends a trailing period to short utterances like this, so that's
+    stripped before comparing. Returns None for anything longer or
+    different -- "scratch that itch" or "delete last word of the email" are
+    real dictation, not a command."""
     if not text:
-        return False
+        return None
     normalized = _TRAILING_PUNCT_RE.sub("", text.strip()).strip().lower()
-    return normalized in _UNDO_PHRASES
+    return _EDITING_PHRASES.get(normalized)
+
+
+def is_undo_command(text: str) -> bool:
+    """True if the entire dictated utterance is a spoken undo-everything
+    phrase (not delete-last-word/-sentence). Kept as a thin wrapper around
+    get_editing_command for callers that only care about the full-undo case."""
+    return get_editing_command(text) == "all"
+
+
+_SENTENCE_END_CHARS = ".!?"
+
+
+def compute_deletion(text: str, mode: str) -> tuple[str, int]:
+    """Given the text VoxScribe last typed, returns (remaining_text,
+    backspace_count) for the requested editing mode ("all", "word", or
+    "sentence"). The caller (app/main_window.py) sends `backspace_count`
+    Backspace presses and remembers `remaining_text` as the new "last typed"
+    state, so a second "delete last word" in a row keeps peeling words off
+    rather than re-deleting the same thing.
+
+    "word" strips trailing whitespace, then removes back to the previous
+    whitespace boundary (or everything, if it's a single word).
+
+    "sentence" removes back to the previous sentence-ending punctuation
+    (. ! ?), ignoring one at the very end of the text itself -- that just
+    marks the end of the one sentence being removed, not a boundary to stop
+    at. If there's no earlier sentence, it removes everything.
+    """
+    if mode == "all" or not text:
+        return "", len(text)
+
+    if mode == "word":
+        stripped = text.rstrip()
+        idx = stripped.rfind(" ")
+        if idx == -1:
+            return "", len(text)
+        return stripped[:idx], len(text) - idx
+
+    if mode == "sentence":
+        search_area = text[:-1]  # ignore a terminator at the very end
+        idx = max(search_area.rfind(ch) for ch in _SENTENCE_END_CHARS)
+        if idx == -1:
+            return "", len(text)
+        return text[: idx + 1], len(text) - (idx + 1)
+
+    raise ValueError(f"unknown editing mode: {mode!r}")
 
 
 if __name__ == "__main__":

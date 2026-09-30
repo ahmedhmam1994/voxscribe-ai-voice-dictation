@@ -1,6 +1,11 @@
 """Tests for core/voice_commands.py's spoken punctuation/formatting commands."""
 
-from core.voice_commands import apply_voice_commands, is_undo_command
+from core.voice_commands import (
+    apply_voice_commands,
+    compute_deletion,
+    get_editing_command,
+    is_undo_command,
+)
 
 
 def test_empty_and_blank_pass_through_unchanged():
@@ -77,4 +82,33 @@ def test_is_undo_command_rejects_embedded_or_different_text():
     assert not is_undo_command("scratch that itch")
     assert not is_undo_command("please undo that email")
     assert not is_undo_command("hello world")
+
+
+def test_get_editing_command_recognizes_word_and_sentence_phrases():
+    assert get_editing_command("delete last word") == "word"
+    assert get_editing_command("Delete that word.") == "word"
+    assert get_editing_command("scratch that word") == "word"
+    assert get_editing_command("delete last sentence") == "sentence"
+    assert get_editing_command("delete that sentence") == "sentence"
+    assert get_editing_command("scratch that sentence") == "sentence"
+    assert get_editing_command("scratch that") == "all"
+    assert get_editing_command("hello world") is None
+    assert get_editing_command("") is None
+
+
+def test_compute_deletion_all_clears_everything():
+    assert compute_deletion("hello there", "all") == ("", 11)
+    assert compute_deletion("", "all") == ("", 0)
+
+
+def test_compute_deletion_word_removes_last_word_and_its_space():
+    assert compute_deletion("hello there friend", "word") == ("hello there", 7)
+    assert compute_deletion("hello", "word") == ("", 5)
+    assert compute_deletion("hello there ", "word") == ("hello", 7)
+
+
+def test_compute_deletion_sentence_removes_last_sentence_only():
+    assert compute_deletion("First one. Second one.", "sentence") == ("First one.", 12)
+    assert compute_deletion("Just one sentence.", "sentence") == ("", 18)
+    assert compute_deletion("No terminators here", "sentence") == ("", 19)
     assert not is_undo_command("")
