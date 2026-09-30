@@ -9,7 +9,7 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
-    "1.6.4": (
+    "1.6.3.2": (
         "- New: say \"delete last word\" or \"delete last sentence\" to remove just "
         "that much of your last dictation (with Voice commands enabled in Settings)."
     ),
