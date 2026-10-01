@@ -861,6 +861,7 @@ class MainWindow(QMainWindow):
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
         self._file_worker: FileTranscribeThread | None = None
+        self._import_queue: list[str] = []
 
         # Hold-to-talk state for the global hotkey (configurable -- see
         # core/settings.py -- F9 by default):
@@ -2476,19 +2477,37 @@ class MainWindow(QMainWindow):
     # -- import existing audio/video file ---------------------------------
 
     def import_audio_file(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
+        paths, _ = QFileDialog.getOpenFileNames(
             self,
             "Import Audio or Video",
             "",
             "Audio/Video Files (*.wav *.mp3 *.m4a *.mp4 *.mov *.flac *.ogg *.wma *.aac *.webm);;"
             "All Files (*)",
         )
-        if not path:
+        if not paths:
             return
 
+        self._import_queue = paths
         self.record_button.setEnabled(False)
         self.import_button.setEnabled(False)
-        self._set_status("Transcribing file...", "transcribing")
+        self._process_next_import_file()
+
+    def _process_next_import_file(self) -> None:
+        if not self._import_queue:
+            self.record_button.setEnabled(True)
+            self.import_button.setEnabled(True)
+            self._set_status("Ready", "ready")
+            self._indicator.hide_indicator()
+            return
+
+        path = self._import_queue.pop(0)
+        remaining = len(self._import_queue)
+        status = (
+            f"Transcribing file... ({remaining} more queued)"
+            if remaining
+            else "Transcribing file..."
+        )
+        self._set_status(status, "transcribing")
         self._indicator.show_status("transcribing")
 
         self._file_worker = FileTranscribeThread(
@@ -2498,22 +2517,19 @@ class MainWindow(QMainWindow):
             hotkey_settings.custom_vocabulary_prompt(),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
-        self._file_worker.done.connect(self._on_file_transcribed)
-        self._file_worker.failed.connect(self._on_file_transcribe_failed)
+        self._file_worker.done.connect(lambda text, p=path: self._on_file_transcribed(text, p))
+        self._file_worker.failed.connect(
+            lambda message, p=path: self._on_file_transcribe_failed(message, p)
+        )
         self._file_worker.start()
 
-    def _on_file_transcribed(self, text: str) -> None:
+    def _on_file_transcribed(self, text: str, path: str) -> None:
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
-        self.transcript_area.append(text if text else "[no speech recognized]")
-        self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
-        self._set_status("Ready", "ready")
-        self._indicator.hide_indicator()
+        label = f"[{Path(path).name}]"
+        self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
+        self._process_next_import_file()
 
-    def _on_file_transcribe_failed(self, message: str) -> None:
-        self.transcript_area.append(f"[error] {message}")
-        self._set_status("Ready", "ready")
-        self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
-        self._indicator.hide_indicator()
+    def _on_file_transcribe_failed(self, message: str, path: str) -> None:
+        self.transcript_area.append(f"[{Path(path).name}] [error] {message}")
+        self._process_next_import_file()
