@@ -164,6 +164,10 @@ def _icon_insights(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
     return _load_svg_icon("bar-chart-3", size, color)
 
 
+def _icon_upload(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
+    return _load_svg_icon("upload", size, color)
+
+
 class _StatusDot(QWidget):
     """Small solid-color circle used inside the status pill."""
 
@@ -765,17 +769,58 @@ class TranscribeThread(QThread):
         audio: np.ndarray,
         language: str | None = "en",
         initial_prompt: str | None = None,
+        task: str = "transcribe",
     ) -> None:
         super().__init__()
         self.transcriber = transcriber
         self.audio = audio
         self.language = language
         self.initial_prompt = initial_prompt
+        self.task = task
 
     def run(self) -> None:
         try:
             text = self.transcriber.transcribe(
-                self.audio, language=self.language, initial_prompt=self.initial_prompt
+                self.audio,
+                language=self.language,
+                initial_prompt=self.initial_prompt,
+                task=self.task,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(str(exc))
+            return
+        self.done.emit(text)
+
+
+class FileTranscribeThread(QThread):
+    """Same shape as TranscribeThread, but for an existing file on disk
+    (see Transcriber.transcribe_file) rather than a captured mic buffer."""
+
+    done = Signal(str)
+    failed = Signal(str)
+
+    def __init__(
+        self,
+        transcriber: Transcriber,
+        path: str,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+    ) -> None:
+        super().__init__()
+        self.transcriber = transcriber
+        self.path = path
+        self.language = language
+        self.initial_prompt = initial_prompt
+        self.task = task
+
+    def run(self) -> None:
+        try:
+            text = self.transcriber.transcribe_file(
+                self.path,
+                language=self.language,
+                initial_prompt=self.initial_prompt,
+                task=self.task,
             )
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
@@ -815,6 +860,7 @@ class MainWindow(QMainWindow):
         self._last_typed_hwnd: int | None = None
         self._loader: ModelLoaderThread | None = None
         self._worker: TranscribeThread | None = None
+        self._file_worker: FileTranscribeThread | None = None
 
         # Hold-to-talk state for the global hotkey (configurable -- see
         # core/settings.py -- F9 by default):
@@ -980,6 +1026,16 @@ class MainWindow(QMainWindow):
 
         button_row = QHBoxLayout()
         button_row.setSpacing(10)
+
+        self.import_button = QPushButton("Import Audio")
+        self.import_button.setObjectName("secondaryButton")
+        self.import_button.setEnabled(False)
+        self.import_button.setMinimumHeight(38)
+        self.import_button.setCursor(Qt.PointingHandCursor)
+        self.import_button.setIcon(_icon_upload(16, TEXT_PRIMARY))
+        self.import_button.setIconSize(QSize(15, 15))
+        self.import_button.clicked.connect(self.import_audio_file)
+        button_row.addWidget(self.import_button)
 
         self.save_button = QPushButton("Save Transcript")
         self.save_button.setObjectName("primaryOutlineButton")
@@ -1467,6 +1523,19 @@ class MainWindow(QMainWindow):
                 break
         layout.addWidget(language_combo)
 
+        translate_checkbox = QCheckBox("Translate to English")
+        translate_checkbox.setChecked(hotkey_settings.get_translate_to_english_enabled())
+        layout.addWidget(translate_checkbox)
+
+        translate_hint = QLabel(
+            "Speak in the language above, get English text out instead of a "
+            "transcript in that language. Built into the Whisper model "
+            "already running, no extra download."
+        )
+        translate_hint.setObjectName("settingsHint")
+        translate_hint.setWordWrap(True)
+        layout.addWidget(translate_hint)
+
         model_label = QLabel("WHISPER MODEL SIZE")
         model_label.setObjectName("settingsSectionLabel")
         layout.addWidget(model_label)
@@ -1660,6 +1729,15 @@ class MainWindow(QMainWindow):
             hotkey_settings.set_language(new_language)
             self._refresh_language_badge()
             changes.append(f"Dictation language set to {language_combo.currentText()}.")
+
+        new_translate_enabled = translate_checkbox.isChecked()
+        if new_translate_enabled != hotkey_settings.get_translate_to_english_enabled():
+            hotkey_settings.set_translate_to_english_enabled(new_translate_enabled)
+            changes.append(
+                "Translate to English enabled."
+                if new_translate_enabled
+                else "Translate to English disabled."
+            )
 
         new_model_size = model_combo.currentData()
         if new_model_size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
@@ -2057,6 +2135,7 @@ class MainWindow(QMainWindow):
         self.transcriber = transcriber
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
 
     def _on_model_load_failed(self, message: str) -> None:
         self._set_status("Failed to load model", "error")
@@ -2159,6 +2238,7 @@ class MainWindow(QMainWindow):
             return
         self.record_button.setText("Stop Recording")
         self._set_record_button_recording(True)
+        self.import_button.setEnabled(False)
         self._set_status("Recording...", "recording")
         self._indicator.show_status("recording")
         _play_start_sound()
@@ -2190,6 +2270,7 @@ class MainWindow(QMainWindow):
             audio,
             hotkey_settings.get_language(),
             hotkey_settings.custom_vocabulary_prompt(),
+            "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
         self._worker.done.connect(self._on_transcribed)
         self._worker.failed.connect(self._on_transcribe_failed)
@@ -2209,6 +2290,7 @@ class MainWindow(QMainWindow):
             text = snippets.expand_snippet(text)
         self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
         self._indicator.hide_indicator()
 
         if text:
@@ -2356,6 +2438,7 @@ class MainWindow(QMainWindow):
         whatever's left rather than clearing it outright (except for "all"),
         so a second "delete last word" in a row keeps peeling words off."""
         self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
         self._indicator.hide_indicator()
 
         if not self._last_typed_text:
@@ -2387,4 +2470,50 @@ class MainWindow(QMainWindow):
         self.transcript_area.append(f"[error] {message}")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
+        self._indicator.hide_indicator()
+
+    # -- import existing audio/video file ---------------------------------
+
+    def import_audio_file(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Import Audio or Video",
+            "",
+            "Audio/Video Files (*.wav *.mp3 *.m4a *.mp4 *.mov *.flac *.ogg *.wma *.aac *.webm);;"
+            "All Files (*)",
+        )
+        if not path:
+            return
+
+        self.record_button.setEnabled(False)
+        self.import_button.setEnabled(False)
+        self._set_status("Transcribing file...", "transcribing")
+        self._indicator.show_status("transcribing")
+
+        self._file_worker = FileTranscribeThread(
+            self.transcriber,
+            path,
+            hotkey_settings.get_language(),
+            hotkey_settings.custom_vocabulary_prompt(),
+            "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
+        )
+        self._file_worker.done.connect(self._on_file_transcribed)
+        self._file_worker.failed.connect(self._on_file_transcribe_failed)
+        self._file_worker.start()
+
+    def _on_file_transcribed(self, text: str) -> None:
+        if text and hotkey_settings.get_cleanup_enabled():
+            text = clean_transcript(text)
+        self.transcript_area.append(text if text else "[no speech recognized]")
+        self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
+        self._set_status("Ready", "ready")
+        self._indicator.hide_indicator()
+
+    def _on_file_transcribe_failed(self, message: str) -> None:
+        self.transcript_area.append(f"[error] {message}")
+        self._set_status("Ready", "ready")
+        self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
         self._indicator.hide_indicator()
