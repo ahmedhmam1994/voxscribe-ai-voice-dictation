@@ -189,6 +189,22 @@ def set_voice_commands_enabled(enabled: bool) -> None:
     _settings().setValue("voice_commands_enabled", enabled)
 
 
+def get_translate_to_english_enabled() -> bool:
+    """Default False: most users dictate and want the words back in the
+    language they spoke them in. When on, Whisper's own built-in
+    X-to-English translation task runs instead of plain transcription --
+    speak in any supported language, English text comes out. See
+    core/transcribe.py's `task` parameter."""
+    value = _settings().value("translate_to_english_enabled", False)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_translate_to_english_enabled(enabled: bool) -> None:
+    _settings().setValue("translate_to_english_enabled", enabled)
+
+
 def get_custom_vocabulary() -> list[str]:
     """Names/acronyms/terms Whisper tends to mishear -- fed to faster-whisper
     as an `initial_prompt` hint (see core/transcribe.py) to bias recognition

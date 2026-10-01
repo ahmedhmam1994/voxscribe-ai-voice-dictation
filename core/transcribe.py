@@ -63,6 +63,7 @@ class Transcriber:
         audio: np.ndarray,
         language: str | None = "en",
         initial_prompt: str | None = None,
+        task: str = "transcribe",
     ) -> str:
         """Transcribe a float32 mono buffer at 16kHz, return the text.
 
@@ -80,6 +81,14 @@ class Transcriber:
         it to transcribe that text itself -- the local equivalent of Wispr
         Flow's custom dictionary.
 
+        `task`: "transcribe" (default) writes out what was said, in the
+        language it was spoken in. "translate" is Whisper's own built-in
+        X-to-English task -- it always translates into English specifically
+        (not an arbitrary target language), regardless of `language`, which
+        here just tells it what's being spoken, not what to output. No
+        separate model or extra work needed, this capability already ships
+        inside the same Whisper model VoxScribe already downloads.
+
         Returns an empty string if no speech is recognized.
         """
         # Normalize to a healthy peak level before transcribing. Unlike the
@@ -95,6 +104,7 @@ class Transcriber:
             audio,
             language=language,
             initial_prompt=initial_prompt,
+            task=task,
             # Let faster-whisper's own bundled VAD trim leading/trailing
             # silence within the clip -- useful now that recording is
             # manually started/stopped (push-to-talk) rather than gated by
@@ -102,6 +112,51 @@ class Transcriber:
             vad_filter=True,
         )
         return " ".join(seg.text.strip() for seg in segments).strip()
+
+    def transcribe_file(
+        self,
+        path: str,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+    ) -> str:
+        """Transcribe an existing audio/video file on disk, return the text.
+
+        Unlike `transcribe()`, this hands the file path straight to
+        faster-whisper rather than a decoded numpy buffer: it decodes the
+        file itself via the bundled `av` (PyAV/ffmpeg) dependency, so any
+        container/codec ffmpeg understands works (mp3, m4a, mp4, mov, flac,
+        ...), not just raw PCM. No peak-normalization pass here -- that's
+        specifically a fix for this app's own quiet live-mic capture, not
+        something to assume about an arbitrary file someone drops in.
+
+        `task`: see `transcribe()` -- "translate" outputs English regardless
+        of the spoken language.
+        """
+        segments = self.transcribe_file_segments(
+            path, language=language, initial_prompt=initial_prompt, task=task
+        )
+        return " ".join(text.strip() for _start, _end, text in segments).strip()
+
+    def transcribe_file_segments(
+        self,
+        path: str,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+    ) -> list[tuple[float, float, str]]:
+        """Like `transcribe_file()`, but keeps each segment's start/end time
+        (in seconds) instead of flattening to one string -- what SRT caption
+        export needs that plain transcription doesn't.
+        """
+        segments, _info = self.model.transcribe(
+            path,
+            language=language,
+            initial_prompt=initial_prompt,
+            task=task,
+            vad_filter=True,
+        )
+        return [(seg.start, seg.end, seg.text.strip()) for seg in segments]
 
 
 class SegmentingTranscriber:
