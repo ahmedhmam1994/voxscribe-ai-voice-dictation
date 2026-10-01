@@ -133,6 +133,22 @@ class Transcriber:
         `task`: see `transcribe()` -- "translate" outputs English regardless
         of the spoken language.
         """
+        segments = self.transcribe_file_segments(
+            path, language=language, initial_prompt=initial_prompt, task=task
+        )
+        return " ".join(text.strip() for _start, _end, text in segments).strip()
+
+    def transcribe_file_segments(
+        self,
+        path: str,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+    ) -> list[tuple[float, float, str]]:
+        """Like `transcribe_file()`, but keeps each segment's start/end time
+        (in seconds) instead of flattening to one string -- what SRT caption
+        export needs that plain transcription doesn't.
+        """
         segments, _info = self.model.transcribe(
             path,
             language=language,
@@ -140,7 +156,7 @@ class Transcriber:
             task=task,
             vad_filter=True,
         )
-        return " ".join(seg.text.strip() for seg in segments).strip()
+        return [(seg.start, seg.end, seg.text.strip()) for seg in segments]
 
 
 class SegmentingTranscriber:

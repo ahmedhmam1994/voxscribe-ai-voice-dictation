@@ -73,6 +73,7 @@ from core.audio_capture import (
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
+from core.srt import format_srt
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 from core.voice_commands import apply_voice_commands, compute_deletion, get_editing_command
@@ -806,6 +807,7 @@ class FileTranscribeThread(QThread):
         language: str | None = "en",
         initial_prompt: str | None = None,
         task: str = "transcribe",
+        export_srt: bool = False,
     ) -> None:
         super().__init__()
         self.transcriber = transcriber
@@ -813,10 +815,12 @@ class FileTranscribeThread(QThread):
         self.language = language
         self.initial_prompt = initial_prompt
         self.task = task
+        self.export_srt = export_srt
+        self.srt_path: str | None = None
 
     def run(self) -> None:
         try:
-            text = self.transcriber.transcribe_file(
+            segments = self.transcriber.transcribe_file_segments(
                 self.path,
                 language=self.language,
                 initial_prompt=self.initial_prompt,
@@ -825,6 +829,19 @@ class FileTranscribeThread(QThread):
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
             return
+
+        if self.export_srt:
+            srt_path = str(Path(self.path).with_suffix(".srt"))
+            try:
+                with open(srt_path, "w", encoding="utf-8") as f:
+                    f.write(format_srt(segments))
+                self.srt_path = srt_path
+            except OSError:
+                # Transcription itself succeeded -- still hand the text back
+                # rather than failing the whole import over a write error.
+                pass
+
+        text = " ".join(text.strip() for _start, _end, text in segments).strip()
         self.done.emit(text)
 
 
@@ -1069,6 +1086,10 @@ class MainWindow(QMainWindow):
         button_row.addWidget(self.clear_button)
 
         layout.addLayout(button_row)
+
+        self.export_srt_checkbox = QCheckBox("Also save .srt captions when importing a file")
+        self.export_srt_checkbox.setObjectName("exportSrtCheckbox")
+        layout.addWidget(self.export_srt_checkbox)
 
         transcript_label = QLabel("TRANSCRIPT")
         transcript_label.setObjectName("transcriptCaption")
@@ -2516,6 +2537,7 @@ class MainWindow(QMainWindow):
             hotkey_settings.get_language(),
             hotkey_settings.custom_vocabulary_prompt(),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
+            self.export_srt_checkbox.isChecked(),
         )
         self._file_worker.done.connect(lambda text, p=path: self._on_file_transcribed(text, p))
         self._file_worker.failed.connect(
@@ -2528,6 +2550,8 @@ class MainWindow(QMainWindow):
             text = clean_transcript(text)
         label = f"[{Path(path).name}]"
         self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
+        if self._file_worker is not None and self._file_worker.srt_path:
+            self.transcript_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
         self._process_next_import_file()
 
     def _on_file_transcribe_failed(self, message: str, path: str) -> None:
