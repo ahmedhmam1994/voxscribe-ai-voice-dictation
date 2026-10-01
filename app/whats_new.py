@@ -9,6 +9,15 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.4": (
+        "- New: Import Audio lets you transcribe existing audio/video files "
+        "(wav, mp3, m4a, mp4, mov, flac, and more), not just live dictation. "
+        "Pick multiple files at once to transcribe them in one batch.\n"
+        "- New: Translate to English (opt-in in Settings) outputs English text "
+        "regardless of the language you spoke in.\n"
+        "- New: optionally save a .srt caption file alongside an imported "
+        "audio/video file, with real timestamps."
+    ),
     "1.6.3.2": (
         "- New: say \"delete last word\" or \"delete last sentence\" to remove just "
         "that much of your last dictation (with Voice commands enabled in Settings)."
