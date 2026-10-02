@@ -13,7 +13,7 @@
 
 A free, open-source Windows desktop voice dictation app. Hold a global hotkey anywhere on your system, talk, release. Your speech is transcribed **locally on your PC** and typed directly into whatever window has focus.
 
-Modeled after Wispr Flow, but free and privacy-first: your voice audio is never uploaded anywhere.
+Free and privacy-first: your voice audio is never uploaded anywhere.
 
 <p align="center">
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/raw/main/docs/assets/voxscribe-features.mp4">
