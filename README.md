@@ -15,6 +15,14 @@ A free, open-source Windows desktop voice dictation app. Hold a global hotkey an
 
 Modeled after Wispr Flow, but free and privacy-first: your voice audio is never uploaded anywhere.
 
+<p align="center">
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/raw/main/docs/assets/voxscribe-features.mp4">
+    <img src="docs/assets/voxscribe-features-preview.webp" alt="VoxScribe feature overview video. Click to watch the full 53 second version." width="720">
+  </a>
+  <br>
+  <sub>Click to watch the full 53 second feature overview.</sub>
+</p>
+
 ## Features
 
 - **Hold-to-talk hotkey (F9 by default, changeable):** works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
