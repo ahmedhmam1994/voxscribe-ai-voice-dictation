@@ -9,6 +9,14 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.5": (
+        "- New: Word replacements in Settings. Fix words Whisper keeps mishearing "
+        "(for example \"vox scribe\" to \"VoxScribe\").\n"
+        "- New: \"Keep microphone ready\" (off by default) so your first word is "
+        "never clipped.\n"
+        "- New: Left Shift is now a hotkey option. Hold it alone for a moment to "
+        "talk; normal typing never triggers it."
+    ),
     "1.6.4.1": (
         "- Settings now shows a direct \"Get Pro\" button and a quick price "
         "comparison, so upgrading doesn't require hunting for a link."
