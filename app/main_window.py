@@ -1333,6 +1333,22 @@ class MainWindow(QMainWindow):
         license_status_label.setObjectName("settingsHint")
         layout.addWidget(license_status_label)
 
+        license_compare_label = QLabel(
+            "Other dictation tools charge a yearly or monthly subscription, "
+            "often well into the hundreds per year. VoxScribe Pro is $14 once."
+        )
+        license_compare_label.setWordWrap(True)
+        license_compare_label.setObjectName("settingsHint")
+        layout.addWidget(license_compare_label)
+
+        license_buy_button = QPushButton("Get Pro ($14 once)")
+        license_buy_button.setObjectName("primaryOutlineButton")
+        license_buy_button.setCursor(Qt.PointingHandCursor)
+        license_buy_button.clicked.connect(
+            lambda: webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
+        )
+        layout.addWidget(license_buy_button)
+
         license_key_edit = QLineEdit()
         license_key_edit.setPlaceholderText("Paste your license key")
         license_key_edit.setMinimumHeight(36)
@@ -1355,6 +1371,8 @@ class MainWindow(QMainWindow):
                 license_status_label.setText(
                     "✓ Pro unlocked -- thank you for supporting VoxScribe."
                 )
+                license_compare_label.hide()
+                license_buy_button.hide()
                 license_key_edit.hide()
                 license_unlock_button.hide()
                 license_remove_button.show()
@@ -1363,6 +1381,8 @@ class MainWindow(QMainWindow):
                     "Free tier. Paste a Pro license key below to unlock Snippets. "
                     "Needs internet once, to activate."
                 )
+                license_compare_label.show()
+                license_buy_button.show()
                 license_key_edit.show()
                 license_unlock_button.show()
                 license_remove_button.hide()
