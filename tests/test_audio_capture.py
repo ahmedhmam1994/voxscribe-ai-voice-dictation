@@ -48,3 +48,24 @@ def test_resample_returns_float32():
     audio = np.linspace(-1.0, 1.0, num=48_000, dtype=np.float64)
     result = resample_to_16k(audio, 48_000)
     assert result.dtype == np.float32
+
+
+def test_rolling_buffer_keeps_only_recent_audio():
+    from core.audio_capture import RollingBuffer
+
+    buf = RollingBuffer(max_samples=100)
+    for i in range(10):
+        buf.push(np.full(30, i, dtype=np.float32))
+    kept = np.concatenate(buf.drain())
+    assert len(kept) >= 100
+    assert len(kept) < 100 + 30
+    assert kept[-1] == 9
+
+
+def test_rolling_buffer_drain_empties_it():
+    from core.audio_capture import RollingBuffer
+
+    buf = RollingBuffer(max_samples=50)
+    buf.push(np.ones(20, dtype=np.float32))
+    assert len(buf.drain()) == 1
+    assert buf.drain() == []

@@ -25,8 +25,13 @@ DEFAULT_HOTKEY = "f9"
 
 AVAILABLE_HOTKEYS = [
     "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
-    "pause", "scroll lock", "insert",
+    "pause", "scroll lock", "insert", "left shift",
 ]
+
+# Keys you also type with all day. They're only safe as a hold-to-talk
+# trigger behind a hold delay (core/hold_gate.py): recording starts only if
+# the key is held alone for a moment, so normal typing is unaffected.
+HOLD_DELAY_HOTKEYS = {"left shift"}
 
 _AUTO_START_KEY_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
 _AUTO_START_VALUE_NAME = "VoxScribe"
@@ -203,6 +208,21 @@ def get_translate_to_english_enabled() -> bool:
 
 def set_translate_to_english_enabled(enabled: bool) -> None:
     _settings().setValue("translate_to_english_enabled", enabled)
+
+
+def get_keep_mic_ready_enabled() -> bool:
+    """Default False: keeping the mic open all the time shows Windows' mic
+    in-use indicator constantly and can keep a Bluetooth headset in its
+    lower-quality call mode. Opt-in, for people who want the first word
+    never clipped. See core/audio_capture.py's RollingBuffer."""
+    value = _settings().value("keep_mic_ready_enabled", False)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_keep_mic_ready_enabled(enabled: bool) -> None:
+    _settings().setValue("keep_mic_ready_enabled", enabled)
 
 
 def get_custom_vocabulary() -> list[str]:
