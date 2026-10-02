@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Offline Subtitle (.srt) Generator for Windows: VoxScribe</title>
+<meta name="description" content="Turn any audio or video file into an .srt subtitle file on your own PC. Free, open source, runs offline with Whisper, nothing is uploaded. Batch several files at once.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/free-srt-subtitle-generator-windows.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Free Offline Subtitle (.srt) Generator for Windows">
+<meta property="og:description" content="Audio or video in, .srt subtitles out, all on your own PC. Free and open source, nothing is uploaded.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/free-srt-subtitle-generator-windows.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Offline Subtitle (.srt) Generator for Windows">
+<meta name="twitter:description" content="Audio or video in, .srt subtitles out, all on your own PC. Free and open source, nothing is uploaded.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is my video or audio uploaded anywhere?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. VoxScribe transcribes the file on your own PC with the Whisper model, so the audio never leaves your machine. The only internet use is a one-time download of the speech model on first launch." }
+    },
+    {
+      "@type": "Question",
+      "name": "Which file types can I turn into subtitles?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Common audio and video formats work, including wav, mp3, m4a, mp4, mov, flac, ogg, wma, aac and webm. Anything the bundled ffmpeg-based decoder understands should load." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I generate subtitles for several files at once?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Select multiple files in the import dialog and VoxScribe works through them one after another. With the .srt checkbox ticked, it saves a matching .srt next to each source file." }
+    },
+    {
+      "@type": "Question",
+      "name": "Can it translate subtitles to English?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. Turn on Translate to English in Settings and speech in other languages comes out as English text. It only translates into English." }
+    },
+    {
+      "@type": "Question",
+      "name": "How accurate are the timestamps?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Timestamps come from Whisper's own speech segments, so each subtitle line covers one spoken segment rather than single words. That works well for captions, but you may want to review long lines before publishing." }
+    }
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  pre {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; margin: 20px 0; overflow-x: auto;
+    color: var(--text-primary); font-size: 14px; line-height: 1.6;
+    font-family: "Cascadia Mono", Consolas, monospace;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>Free Offline Subtitle (.srt) Generator for Windows</h1>
+  <p class="subhead">Drop in an audio or video file, get an <strong>.srt</strong> subtitle file back. It all runs on your own PC with Whisper, so nothing is uploaded and there are no per-minute fees.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html">See the full feature list</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; works offline after the first model download</p>
+
+  <h2>How to make subtitles from a video or audio file</h2>
+  <ol>
+    <li>Install VoxScribe and let it download the speech model on first launch (internet needed once)</li>
+    <li>Tick <strong>Also save .srt captions when importing a file</strong> under the Import Audio button</li>
+    <li>Click <strong>Import Audio</strong> and pick your file, or pick several</li>
+    <li>Wait for it to finish. The transcript appears in the app, and an .srt file with the same name is saved right next to your original file</li>
+  </ol>
+  <p>Open the .srt in any video editor or player, such as VLC, DaVinci Resolve, Premiere Pro or CapCut, or upload it as a caption track on YouTube.</p>
+
+  <h2>What the output looks like</h2>
+  <p>A standard SubRip file: numbered lines, start and end times, then the text.</p>
+  <pre>1
+00:00:00,000 --> 00:00:04,000
+This is a test of importing audio.
+
+2
+00:00:04,500 --> 00:00:08,200
+Each line covers one spoken segment.</pre>
+
+  <h2>Why use a local tool for subtitles</h2>
+  <ul>
+    <li><strong>Private.</strong> Interviews, meetings and client footage never leave your computer.</li>
+    <li><strong>No limits or bills.</strong> No upload caps, no minute counters, no subscription. The app is free and open source.</li>
+    <li><strong>Batch friendly.</strong> Select a whole folder's worth of files and let it run through them.</li>
+    <li><strong>Many formats.</strong> wav, mp3, m4a, mp4, mov, flac, ogg, wma, aac and webm.</li>
+    <li><strong>Many languages.</strong> About 28 languages, or auto-detect. Turn on Translate to English to get English subtitles from other languages.</li>
+  </ul>
+
+  <div class="card">
+    <strong>Be realistic about the result:</strong> accuracy depends on audio quality and the model size, and each subtitle line covers one spoken segment rather than single words. It is a strong first draft for captions, but skim the file before publishing, especially for names and technical terms. You can add those to the custom vocabulary or word replacement lists in Settings to fix repeat mistakes.
+  </div>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Is my video or audio uploaded anywhere?</h3>
+    <p>No. VoxScribe transcribes the file on your own PC with the Whisper model, so the audio never leaves your machine. The only internet use is a one-time download of the speech model on first launch.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Which file types can I turn into subtitles?</h3>
+    <p>Common audio and video formats work, including wav, mp3, m4a, mp4, mov, flac, ogg, wma, aac and webm. Anything the bundled ffmpeg-based decoder understands should load.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Can I generate subtitles for several files at once?</h3>
+    <p>Yes. Select multiple files in the import dialog and VoxScribe works through them one after another. With the .srt checkbox ticked, it saves a matching .srt next to each source file.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Can it translate subtitles to English?</h3>
+    <p>Yes. Turn on Translate to English in Settings and speech in other languages comes out as English text. It only translates into English.</p>
+  </div>
+  <div class="faq-item">
+    <h3>How accurate are the timestamps?</h3>
+    <p>Timestamps come from Whisper's own speech segments, so each subtitle line covers one spoken segment rather than single words. That works well for captions, but you may want to review long lines before publishing.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+</div>
+</body>
+</html>
