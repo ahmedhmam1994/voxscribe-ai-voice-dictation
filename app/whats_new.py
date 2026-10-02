@@ -9,6 +9,10 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.4.1": (
+        "- Settings now shows a direct \"Get Pro\" button and a quick price "
+        "comparison, so upgrading doesn't require hunting for a link."
+    ),
     "1.6.4": (
         "- New: Import Audio lets you transcribe existing audio/video files "
         "(wav, mp3, m4a, mp4, mov, flac, and more), not just live dictation. "
