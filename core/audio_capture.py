@@ -17,6 +17,34 @@ SAMPLE_RATE = 16_000
 FRAME_SIZE = 512
 
 
+class RollingBuffer:
+    """Keeps only the most recent `max_samples` of audio, in memory.
+
+    Backs the optional "keep microphone ready" mode: the mic stream stays
+    open and feeds this buffer, so when the hotkey is pressed the last
+    fraction of a second is already captured and the first word isn't
+    clipped by stream start-up lag. Nothing here is saved or transcribed
+    unless a recording is actually started.
+    """
+
+    def __init__(self, max_samples: int) -> None:
+        self._max = max(1, max_samples)
+        self._chunks: list[np.ndarray] = []
+        self._total = 0
+
+    def push(self, chunk: np.ndarray) -> None:
+        self._chunks.append(chunk)
+        self._total += len(chunk)
+        while self._chunks and self._total - len(self._chunks[0]) >= self._max:
+            self._total -= len(self._chunks.pop(0))
+
+    def drain(self) -> list[np.ndarray]:
+        chunks = self._chunks
+        self._chunks = []
+        self._total = 0
+        return chunks
+
+
 def _default_input_device() -> int | None:
     """Pick a sensible default input device.
 

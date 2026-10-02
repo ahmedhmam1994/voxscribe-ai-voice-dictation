@@ -59,11 +59,12 @@ from PySide6.QtWidgets import (
 from app.floating_indicator import FloatingIndicator
 from app.version import __version__
 from app.whats_new import whats_new_text
-from core import history, snippets
+from core import history, replacements, snippets
 from core import license as hotkey_license
 from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
+    RollingBuffer,
     device_native_samplerate,
     list_input_devices,
     peak_levels,
@@ -73,6 +74,7 @@ from core.audio_capture import (
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
+from core.hold_gate import HoldGate
 from core.srt import format_srt
 from core.transcribe import Transcriber
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
@@ -908,6 +910,17 @@ class MainWindow(QMainWindow):
         self._hotkey = hotkey_settings.get_hotkey()
         self._hotkey_key_down = False
         self._hotkey_active_session = False
+        self._hold_gate: HoldGate | None = None
+        self._hold_other_hook = None
+
+        # Optional "keep microphone ready" mode: one mic stream stays open
+        # and feeds a short in-memory rolling buffer, so a recording starts
+        # with the last ~0.5s already captured. See RollingBuffer.
+        self._ready_stream: sd.InputStream | None = None
+        self._ready_buffer: RollingBuffer | None = None
+        self._ready_rate: int = SAMPLE_RATE
+        self._ready_device: int | None = None
+        self._capturing = False
 
         # Small floating "recording/transcribing" pill -- see
         # app/floating_indicator.py. Hidden except while active.
@@ -1190,6 +1203,7 @@ class MainWindow(QMainWindow):
         self._refresh_history_feed()
 
         self._register_global_hotkey()
+        self._sync_ready_stream()
 
         self._setup_tray_icon()
         self._announce_whats_new()
@@ -1223,11 +1237,53 @@ class MainWindow(QMainWindow):
 
     # -- hotkey registration ------------------------------------------------
 
+    def _sync_ready_stream(self) -> None:
+        """Opens or closes the always-on mic stream to match the "keep
+        microphone ready" setting and the chosen device. Never touches a
+        stream that is mid-recording."""
+        want = hotkey_settings.get_keep_mic_ready_enabled()
+        device = resolve_input_device(hotkey_settings.get_input_device())
+        if self._ready_stream is not None and (not want or device != self._ready_device):
+            if self.stream is self._ready_stream:
+                return
+            try:
+                self._ready_stream.stop()
+                self._ready_stream.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._ready_stream = None
+            self._ready_buffer = None
+        if not want or self._ready_stream is not None:
+            return
+
+        rate = device_native_samplerate(device)
+        buffer = RollingBuffer(int(rate * 0.5))
+
+        def callback(indata, frames, time_info, status):  # noqa: ANN001
+            chunk = indata[:, 0].copy()
+            if self._capturing:
+                self._chunks.append(chunk)
+            else:
+                buffer.push(chunk)
+
+        try:
+            stream = sd.InputStream(
+                samplerate=rate, channels=1, dtype="float32", device=device, callback=callback
+            )
+            stream.start()
+        except Exception:  # noqa: BLE001
+            # No mic or device busy: fall back to opening it per recording.
+            return
+        self._ready_stream = stream
+        self._ready_buffer = buffer
+        self._ready_rate = rate
+        self._ready_device = device
+
     def _register_global_hotkey(self) -> None:
         """(Re)registers the global hold-to-talk hotkey as self._hotkey.
         Safe to call again after changing the hotkey (see
         _open_settings_dialog) -- unhooks the previous registration first."""
-        for hook in (self._hotkey_press_hook, self._hotkey_release_hook):
+        for hook in (self._hotkey_press_hook, self._hotkey_release_hook, self._hold_other_hook):
             if hook is not None:
                 try:
                     keyboard.unhook(hook)
@@ -1235,15 +1291,42 @@ class MainWindow(QMainWindow):
                     pass
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
+        self._hold_other_hook = None
+        self._hold_gate = None
         self._hotkey_registration_error = None
 
         try:
-            self._hotkey_press_hook = keyboard.on_press_key(
-                self._hotkey, lambda e: self._hotkey_bridge.press_requested.emit()
-            )
-            self._hotkey_release_hook = keyboard.on_release_key(
-                self._hotkey, lambda e: self._hotkey_bridge.release_requested.emit()
-            )
+            if self._hotkey in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                # A key you also type with (Shift): only counts as the
+                # hotkey when held alone for a moment, see core/hold_gate.py.
+                gate = HoldGate(
+                    on_activate=self._hotkey_bridge.press_requested.emit,
+                    on_deactivate=self._hotkey_bridge.release_requested.emit,
+                )
+                self._hold_gate = gate
+                own_codes = {42, 54}  # left and right Shift scan codes
+
+                def _other_modifier_held() -> bool:
+                    return any(keyboard.is_pressed(m) for m in ("ctrl", "alt", "windows"))
+
+                def _on_any_key(event) -> None:  # noqa: ANN001
+                    if event.event_type == "down" and event.scan_code not in own_codes:
+                        gate.other_key_down()
+
+                self._hotkey_press_hook = keyboard.on_press_key(
+                    self._hotkey, lambda e: gate.key_down(_other_modifier_held())
+                )
+                self._hotkey_release_hook = keyboard.on_release_key(
+                    self._hotkey, lambda e: gate.key_up()
+                )
+                self._hold_other_hook = keyboard.hook(_on_any_key)
+            else:
+                self._hotkey_press_hook = keyboard.on_press_key(
+                    self._hotkey, lambda e: self._hotkey_bridge.press_requested.emit()
+                )
+                self._hotkey_release_hook = keyboard.on_release_key(
+                    self._hotkey, lambda e: self._hotkey_bridge.release_requested.emit()
+                )
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
             # the app still works fine via the on-screen button, but the
@@ -1450,6 +1533,15 @@ class MainWindow(QMainWindow):
         combo.setCurrentIndex(hotkey_settings.AVAILABLE_HOTKEYS.index(self._hotkey))
         layout.addWidget(combo)
 
+        hotkey_hint = QLabel(
+            "LEFT SHIFT works by holding it alone for about a third of a second. "
+            "Typing capitals, or Shift with another key, never triggers it. "
+            "Shift+click selection isn't detected, so a long Shift+click can start a recording."
+        )
+        hotkey_hint.setObjectName("settingsHint")
+        hotkey_hint.setWordWrap(True)
+        layout.addWidget(hotkey_hint)
+
         talk_mode_combo = self._new_settings_combo()
         for mode, label in hotkey_settings.AVAILABLE_TALK_MODES:
             talk_mode_combo.addItem(label, mode)
@@ -1492,6 +1584,21 @@ class MainWindow(QMainWindow):
         mic_test_status.setWordWrap(True)
         mic_test_status.hide()
         layout.addWidget(mic_test_status)
+
+        keep_ready_checkbox = QCheckBox("Keep microphone ready (never clip the first word)")
+        keep_ready_checkbox.setChecked(hotkey_settings.get_keep_mic_ready_enabled())
+        layout.addWidget(keep_ready_checkbox)
+
+        keep_ready_hint = QLabel(
+            "Keeps the mic open and remembers the last half second in memory only, "
+            "so your first word isn't cut off by the mic starting up. Nothing is "
+            "saved or transcribed until you hold the hotkey. Windows will show the "
+            "mic as in use, and a Bluetooth headset may stay in its lower quality "
+            "call mode. Off by default."
+        )
+        keep_ready_hint.setObjectName("settingsHint")
+        keep_ready_hint.setWordWrap(True)
+        layout.addWidget(keep_ready_hint)
 
         mic_test_state: dict = {"thread": None, "timer": None, "peak_seen": 0.0}
 
@@ -1651,6 +1758,27 @@ class MainWindow(QMainWindow):
         vocab_hint.setWordWrap(True)
         layout.addWidget(vocab_hint)
 
+        replacements_label = QLabel("WORD REPLACEMENTS")
+        replacements_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(replacements_label)
+
+        replacements_edit = QTextEdit()
+        replacements_edit.setPlainText(
+            "\n".join(f"{a} => {b}" for a, b in replacements.get_replacements())
+        )
+        replacements_edit.setPlaceholderText("vox scribe => VoxScribe")
+        replacements_edit.setFixedHeight(80)
+        layout.addWidget(replacements_edit)
+
+        replacements_hint = QLabel(
+            "One per line: heard => replacement. Fixes words Whisper keeps getting "
+            "wrong the same way. Whole words only, not case sensitive. Leave the "
+            "right side empty to delete a word."
+        )
+        replacements_hint.setObjectName("settingsHint")
+        replacements_hint.setWordWrap(True)
+        layout.addWidget(replacements_hint)
+
         snippets_label = QLabel("SNIPPETS (PRO)")
         snippets_label.setObjectName("settingsSectionLabel")
         layout.addWidget(snippets_label)
@@ -1783,6 +1911,14 @@ class MainWindow(QMainWindow):
                 else f"Microphone set to {mic_combo.currentText()}."
             )
 
+        new_keep_ready = keep_ready_checkbox.isChecked()
+        if new_keep_ready != hotkey_settings.get_keep_mic_ready_enabled():
+            hotkey_settings.set_keep_mic_ready_enabled(new_keep_ready)
+            changes.append(
+                "Microphone will stay ready." if new_keep_ready else "Microphone ready mode off."
+            )
+        self._sync_ready_stream()
+
         new_language = language_combo.currentData()
         if new_language != current_language:
             hotkey_settings.set_language(new_language)
@@ -1816,6 +1952,15 @@ class MainWindow(QMainWindow):
                 f"{'s' if len(new_vocabulary) != 1 else ''})."
                 if new_vocabulary
                 else "Custom vocabulary cleared."
+            )
+
+        new_replacements = replacements.parse_replacements_text(replacements_edit.toPlainText())
+        if new_replacements != replacements.get_replacements():
+            replacements.set_replacements(new_replacements)
+            changes.append(
+                f"Word replacements updated ({len(new_replacements)})."
+                if new_replacements
+                else "Word replacements cleared."
             )
 
         if hotkey_license.is_pro():
@@ -2113,6 +2258,13 @@ class MainWindow(QMainWindow):
             keyboard.unhook_all()
         except Exception:  # noqa: BLE001
             pass
+        if self._ready_stream is not None:
+            try:
+                self._ready_stream.stop()
+                self._ready_stream.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._ready_stream = None
         if getattr(self, "tray_icon", None) is not None:
             self.tray_icon.hide()
         self._indicator.close()
@@ -2272,6 +2424,26 @@ class MainWindow(QMainWindow):
         # Falls back to auto-detection if the user's chosen device (Settings
         # -> Microphone) has been unplugged/disconnected since it was picked.
         device = resolve_input_device(hotkey_settings.get_input_device())
+
+        if (
+            self._ready_stream is not None
+            and self._ready_buffer is not None
+            and device == self._ready_device
+        ):
+            # Keep-ready mode: the stream is already open, so start from the
+            # last fraction of a second it already heard.
+            self._record_rate = self._ready_rate
+            self._chunks = self._ready_buffer.drain()
+            self._capturing = True
+            self.stream = self._ready_stream
+            self.record_button.setText("Stop Recording")
+            self._set_record_button_recording(True)
+            self.import_button.setEnabled(False)
+            self._set_status("Recording...", "recording")
+            self._indicator.show_status("recording")
+            _play_start_sound()
+            return
+
         # Record at the device's own native rate rather than forcing 16kHz --
         # some devices/drivers (e.g. a laptop's internal mic falling back to
         # when a Bluetooth headset isn't connected) reject a forced 16kHz
@@ -2308,8 +2480,11 @@ class MainWindow(QMainWindow):
         # yet, so this is the closest we get to "the window they meant".
         self._recording_target_hwnd = foreground_window_handle()
 
-        self.stream.stop()
-        self.stream.close()
+        if self.stream is self._ready_stream:
+            self._capturing = False
+        else:
+            self.stream.stop()
+            self.stream.close()
         self.stream = None
         _play_stop_sound()
 
@@ -2345,6 +2520,8 @@ class MainWindow(QMainWindow):
             text = clean_transcript(text)
         if text and hotkey_settings.get_voice_commands_enabled():
             text = apply_voice_commands(text)
+        if text:
+            text = replacements.apply_replacements(text)
         if text and hotkey_license.is_pro():
             text = snippets.expand_snippet(text)
         self.transcript_area.append(text if text else "[no speech recognized]")
@@ -2585,6 +2762,8 @@ class MainWindow(QMainWindow):
     def _on_file_transcribed(self, text: str, path: str) -> None:
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
+        if text:
+            text = replacements.apply_replacements(text)
         label = f"[{Path(path).name}]"
         self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
         if self._file_worker is not None and self._file_worker.srt_path:
