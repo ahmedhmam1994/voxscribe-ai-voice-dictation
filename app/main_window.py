@@ -249,6 +249,23 @@ QWidget {{
     color: {TEXT_PRIMARY};
 }}
 
+QCheckBox {{
+    color: {TEXT_MUTED};
+    font-size: 12px;
+    spacing: 8px;
+}}
+QCheckBox::indicator {{
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid {BORDER};
+    background: {BG_CARD};
+}}
+QCheckBox::indicator:checked {{
+    background: {ACCENT};
+    border: 1px solid {ACCENT};
+}}
+
 QWidget#statusPill {{
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #1f212c, stop:1 #1a1c26);
     border: 1px solid {BORDER_SOFT};
