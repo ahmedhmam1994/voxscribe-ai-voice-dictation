@@ -21,6 +21,8 @@ Free and privacy-first: your voice audio is never uploaded anywhere.
   </a>
   <br>
   <sub>Click to watch the full 53 second feature overview.</sub>
+  <br>
+  <sub>Curious how it works? Read <a href="https://dev.to/ahmed_ibrahim_1994/what-broke-when-i-shipped-a-local-whisper-dictation-app-to-real-windows-hardware-11kg">what broke when I shipped it to real Windows hardware</a>.</sub>
 </p>
 
 ## Features
