@@ -38,6 +38,13 @@ Free and privacy-first: your voice audio is never uploaded anywhere.
 
 Grab the latest installer from the [Releases page](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases).
 
+Prefer a package manager? With [Scoop](https://scoop.sh):
+
+```
+scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe
+scoop install voxscribe
+```
+
 > **Note on Windows SmartScreen:** since VoxScribe is a new, unsigned app that hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click **More info → Run anyway** to proceed. This is expected for unsigned indie software and not a sign of a problem.
 
 The installer does not require admin rights (per-user install). On first launch, VoxScribe downloads the Whisper speech model (a few hundred MB) from Hugging Face. This requires an internet connection once; after that, transcription works fully offline.
