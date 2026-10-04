@@ -1,0 +1,124 @@
+name: Release build
+
+# Builds the Windows installer from the public source on GitHub's own runner,
+# so the binary can be verified as built solely from this repository (a
+# requirement of the SignPath Foundation's free code signing for open source).
+#
+# Manual only on purpose: releases are still published by hand, and the
+# package manifests (winget, Scoop) pin the SHA-256 of that published file.
+# Letting CI silently replace the installer on a release would break those
+# hashes. Run this from the Actions tab; the installer comes out as a
+# downloadable build artifact. Set "attach_to_release" only when you want CI's
+# build to become the release asset (and then update the pinned hashes).
+
+on:
+  workflow_dispatch:
+    inputs:
+      attach_to_release:
+        description: "Attach the installer to the GitHub release matching the app version"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest ruff
+
+      - name: Lint and test
+        run: |
+          ruff check .
+          pytest tests/ -q
+
+      - name: Read app version
+        id: version
+        shell: pwsh
+        run: |
+          $v = (python -c "from app.version import __version__; print(__version__)").Trim()
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "App version: $v"
+
+      - name: Check installer script version matches
+        shell: pwsh
+        run: |
+          $iss = Select-String -Path installer.iss -Pattern '#define MyAppVersion "(.+)"'
+          $issVersion = $iss.Matches[0].Groups[1].Value
+          if ($issVersion -ne "${{ steps.version.outputs.version }}") {
+            Write-Error "installer.iss says $issVersion but app/version.py says ${{ steps.version.outputs.version }}"
+            exit 1
+          }
+
+      - name: Build with PyInstaller
+        run: python -m PyInstaller --noconfirm --clean VoxScribe.spec
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" installer.iss
+          if (-not (Test-Path "installer_output\VoxScribe-Setup.exe")) {
+            Write-Error "Installer was not produced"
+            exit 1
+          }
+
+      - name: Show checksum
+        shell: pwsh
+        run: |
+          $h = Get-FileHash installer_output\VoxScribe-Setup.exe -Algorithm SHA256
+          Write-Host "SHA256: $($h.Hash.ToLower())"
+          "### VoxScribe-Setup.exe (${{ steps.version.outputs.version }})" >> $env:GITHUB_STEP_SUMMARY
+          "SHA256: ``$($h.Hash.ToLower())``" >> $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload installer artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoxScribe-Setup-${{ steps.version.outputs.version }}
+          path: installer_output/VoxScribe-Setup.exe
+          if-no-files-found: error
+
+      # Code signing, to enable once the SignPath Foundation approves the
+      # project. Fill in the organization id and slugs from the SignPath
+      # dashboard, add the SIGNPATH_API_TOKEN repository secret, then
+      # uncomment. See https://github.com/SignPath/github-action-submit-signing-request
+      #
+      # - name: Sign installer with SignPath
+      #   uses: signpath/github-action-submit-signing-request@v1
+      #   with:
+      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+      #     organization-id: "<signpath organization id>"
+      #     project-slug: voxscribe
+      #     signing-policy-slug: release-signing
+      #     github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      #     wait-for-completion: true
+      #     output-artifact-directory: signed
+
+      - name: Attach to release
+        if: ${{ inputs.attach_to_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.version.outputs.version }}"
+          gh release view $tag --repo ${{ github.repository }} | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "No release named $tag exists. Create the release first."
+            exit 1
+          }
+          gh release upload $tag installer_output\VoxScribe-Setup.exe --clobber --repo ${{ github.repository }}
