@@ -11,7 +11,8 @@ from __future__ import annotations
 WHATS_NEW: dict[str, str] = {
     "1.6.6": (
         "- Fixed: if the speech model download was broken, VoxScribe now repairs it "
-        "automatically and shows a clear message with a Retry button instead of sitting on \"Loading model\".\n"
+        "automatically and shows a clear message with a Retry button instead of "
+        "sitting on \"Loading model\".\n"
         "- Fixed: first-run model downloads now show their progress.\n"
         "- Fixed: silent or empty recordings no longer produce made-up text or an error.\n"
         "- Fixed: cleanup no longer removes real repeated words like \"had had\" or \"bye bye\".\n"
