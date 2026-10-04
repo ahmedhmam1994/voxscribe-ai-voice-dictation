@@ -62,9 +62,9 @@ The installer does not require admin rights (per-user install). On first launch,
 
 ## Privacy
 
-- Audio is captured, transcribed, and discarded locally: nothing is sent to a server
+- Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- The only network request VoxScribe makes is the one-time Whisper model download on first run
+- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, an anonymous launch ping (app version and OS only, can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://getvoxscribe.vercel.app/privacy.html) for details
 
 ## Building from source
 

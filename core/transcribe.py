@@ -13,6 +13,10 @@ Two pieces live here:
 
 from __future__ import annotations
 
+import os
+import shutil
+from pathlib import Path
+
 import numpy as np
 from faster_whisper import WhisperModel
 
@@ -45,6 +49,86 @@ DEFAULT_START_DEBOUNCE_FRAMES = 4
 
 _FRAME_SIZE = 512  # samples per VAD frame (see core/vad.py)
 _FRAME_DURATION_SEC = _FRAME_SIZE / SAMPLE_RATE  # 32ms
+
+# Recordings whose loudest sample is below this (about -54 dBFS) are treated
+# as silence instead of being normalized up and sent to Whisper.
+SILENCE_PEAK_FLOOR = 0.002
+
+# Approximate download size of each model, in MB, only used to show progress
+# while a first-run download is in flight.
+MODEL_APPROX_MB = {
+    "tiny": 75,
+    "base": 145,
+    "small": 484,
+    "medium": 1530,
+    "large": 3090,
+    "large-v3": 3090,
+}
+
+
+def _hf_cache_root() -> Path:
+    env = os.environ.get("HF_HUB_CACHE")
+    if env:
+        return Path(env)
+    home = os.environ.get("HF_HOME")
+    if home:
+        return Path(home) / "hub"
+    return Path.home() / ".cache" / "huggingface" / "hub"
+
+
+def model_cache_dir(model_size: str) -> Path:
+    """Where faster-whisper stores `model_size` after downloading it."""
+    repo = "faster-whisper-large-v3" if model_size == "large" else f"faster-whisper-{model_size}"
+    return _hf_cache_root() / f"models--Systran--{repo}"
+
+
+def model_cache_bytes(model_size: str) -> int:
+    """Bytes currently on disk for this model, including a partial download."""
+    root = model_cache_dir(model_size)
+    total = 0
+    try:
+        for path in root.rglob("*"):
+            if path.is_file() and not path.is_symlink():
+                total += path.stat().st_size
+    except OSError:
+        pass
+    return total
+
+
+def purge_model_cache(model_size: str) -> bool:
+    """Delete a model's cache folder so the next load downloads it fresh.
+    Used when a cached copy is broken (interrupted download, a file removed
+    by antivirus). Returns whether anything was removed."""
+    root = model_cache_dir(model_size)
+    if not root.exists():
+        return False
+    shutil.rmtree(root, ignore_errors=True)
+    return not root.exists()
+
+
+def load_transcriber(model_size: str) -> "Transcriber":
+    """Load a Transcriber, repairing a broken cached model once.
+
+    If the first load fails, the cached copy is deleted and downloaded again.
+    A second failure is raised to the caller (no network, disk full, ...).
+    """
+    try:
+        return Transcriber(model_size=model_size)
+    except Exception as exc:  # noqa: BLE001
+        if not looks_like_broken_cache(exc) or not purge_model_cache(model_size):
+            raise
+        return Transcriber(model_size=model_size)
+
+
+def looks_like_broken_cache(exc: Exception) -> bool:
+    """True for load errors caused by an unreadable cached model file, as
+    opposed to e.g. being offline during a first download (where deleting
+    a partial download would only throw away progress)."""
+    text = str(exc).lower()
+    return any(
+        marker in text
+        for marker in ("model.bin", "unable to open", "corrupt", "invalid", "not a valid")
+    )
 
 
 class Transcriber:
@@ -96,8 +180,15 @@ class Transcriber:
         # real-time per-frame context), this is a one-shot peak-normalize on
         # the whole finished segment, so it safely boosts quiet mics (like
         # this user's Bluetooth headset) without introducing artifacts.
+        if len(audio) == 0:
+            return ""
         peak = np.max(np.abs(audio))
-        if 0 < peak < 0.5:
+        if peak < SILENCE_PEAK_FLOOR:
+            # Effectively silence (muted or disconnected mic, a tap on the
+            # hotkey). Boosting this to a healthy level would hand Whisper
+            # loud noise, and Whisper answers noise with invented sentences.
+            return ""
+        if peak < 0.5:
             audio = audio * (0.5 / peak)
 
         segments, _info = self.model.transcribe(

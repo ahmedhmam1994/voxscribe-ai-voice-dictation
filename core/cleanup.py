@@ -43,8 +43,17 @@ _LIKE_LEADING_RE = re.compile(
 )
 
 # Collapse an immediately-repeated word ("the the", "I I") into one,
-# regardless of case, keeping the first occurrence's casing.
-_REPEATED_WORD_RE = re.compile(r"\b(\w+)\b(\s+\1\b)+", re.IGNORECASE)
+# regardless of case, keeping the first occurrence's casing. Limited to short
+# function words that are almost never legitimately doubled: collapsing every
+# repeated word would also mangle real phrases like "had had", "bye bye",
+# "no no no" or a number like "50 50".
+_STUTTER_WORDS = (
+    "the", "a", "an", "to", "and", "of", "in", "on", "for", "with",
+    "i", "we", "you", "it", "my", "but",
+)
+_REPEATED_WORD_RE = re.compile(
+    r"\b(" + "|".join(_STUTTER_WORDS) + r")\b(\s+\1\b)+", re.IGNORECASE
+)
 
 # Extra space(s) before punctuation, e.g. "hello , world" -> "hello, world".
 _SPACE_BEFORE_PUNCT_RE = re.compile(r"\s+([,.!?;:])")

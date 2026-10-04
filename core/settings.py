@@ -335,6 +335,19 @@ def set_sound_enabled(enabled: bool) -> None:
     _settings().setValue("sound_enabled", enabled)
 
 
+def get_telemetry_enabled() -> bool:
+    """Whether the anonymous launch ping (app version and OS only, see
+    core/telemetry.py) is sent. Default True; users can switch it off."""
+    value = _settings().value("telemetry_enabled", True)
+    if isinstance(value, str):
+        return value.lower() != "false"
+    return bool(value)
+
+
+def set_telemetry_enabled(enabled: bool) -> None:
+    _settings().setValue("telemetry_enabled", "true" if enabled else "false")
+
+
 def get_stats() -> tuple[int, int]:
     """(sessions, words) -- both 0 if VoxScribe has never transcribed
     anything since this setting was introduced. Purely local counters, never
