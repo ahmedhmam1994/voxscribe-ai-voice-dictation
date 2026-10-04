@@ -127,7 +127,7 @@ def looks_like_broken_cache(exc: Exception) -> bool:
     text = str(exc).lower()
     return any(
         marker in text
-        for marker in ("model.bin", "unable to open", "corrupt", "invalid", "not a valid")
+        for marker in ("model.bin", "unable to open file", "corrupt")
     )
 
 

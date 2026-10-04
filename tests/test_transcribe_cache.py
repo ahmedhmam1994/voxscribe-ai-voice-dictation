@@ -89,3 +89,17 @@ def test_load_does_not_purge_on_network_error(monkeypatch, tmp_path):
     with pytest.raises(OSError):
         transcribe.load_transcriber("small")
     assert d.exists()
+
+
+def test_unrelated_load_errors_do_not_purge(monkeypatch, tmp_path):
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path))
+    d = transcribe.model_cache_dir("small")
+    (d / "blobs").mkdir(parents=True)
+
+    def fake_model(*a, **k):
+        raise ValueError("Invalid compute type: float99")
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    with pytest.raises(ValueError):
+        transcribe.load_transcriber("small")
+    assert d.exists()
