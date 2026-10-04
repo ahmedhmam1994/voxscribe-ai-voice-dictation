@@ -29,11 +29,15 @@ _DOT_COLORS = {
     "recording": "#3ecf8e",  # green
     "transcribing": "#f0a54a",  # amber
     "not_ready": "#f0546b",  # red
+    "model_failed": "#f0546b",  # red
+    "busy": "#f0a54a",  # amber
 }
 _LABELS = {
     "recording": "Recording...",
     "transcribing": "Transcribing...",
     "not_ready": "Still loading model...",
+    "model_failed": "Model failed to load",
+    "busy": "Busy with file import",
 }
 
 

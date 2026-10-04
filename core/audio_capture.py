@@ -7,6 +7,7 @@ at 16kHz, sized for the Silero VAD ONNX model (512-sample frames = 32ms).
 from __future__ import annotations
 
 import queue
+import threading
 from collections.abc import Generator
 
 import numpy as np
@@ -31,17 +32,21 @@ class RollingBuffer:
         self._max = max(1, max_samples)
         self._chunks: list[np.ndarray] = []
         self._total = 0
+        # push() runs on the audio callback thread, drain() on the Qt thread.
+        self._lock = threading.Lock()
 
     def push(self, chunk: np.ndarray) -> None:
-        self._chunks.append(chunk)
-        self._total += len(chunk)
-        while self._chunks and self._total - len(self._chunks[0]) >= self._max:
-            self._total -= len(self._chunks.pop(0))
+        with self._lock:
+            self._chunks.append(chunk)
+            self._total += len(chunk)
+            while self._chunks and self._total - len(self._chunks[0]) >= self._max:
+                self._total -= len(self._chunks.pop(0))
 
     def drain(self) -> list[np.ndarray]:
-        chunks = self._chunks
-        self._chunks = []
-        self._total = 0
+        with self._lock:
+            chunks = self._chunks
+            self._chunks = []
+            self._total = 0
         return chunks
 
 

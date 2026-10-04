@@ -46,3 +46,12 @@ def test_available_hotkeys_contains_no_typing_keys():
 
 def test_default_hotkey_is_in_available_list():
     assert settings.DEFAULT_HOTKEY in settings.AVAILABLE_HOTKEYS
+
+
+def test_telemetry_defaults_on_and_can_be_switched_off(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_telemetry_enabled() is True
+    settings.set_telemetry_enabled(False)
+    assert settings.get_telemetry_enabled() is False
+    settings.set_telemetry_enabled(True)
+    assert settings.get_telemetry_enabled() is True

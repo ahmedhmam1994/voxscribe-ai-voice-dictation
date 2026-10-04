@@ -30,6 +30,7 @@ RELEASES_PAGE_URL = (
     "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"
 )
 REQUEST_TIMEOUT_SEC = 6
+DOWNLOAD_TIMEOUT_SEC = 30
 
 
 def _parse_version(tag: str) -> tuple[int, ...]:
@@ -114,10 +115,21 @@ class UpdateDownloadThread(QThread):
 
     def run(self) -> None:
         dest = Path.home() / "Downloads" / self.asset_name
+        part = dest.with_name(dest.name + ".part")
         try:
             dest.parent.mkdir(parents=True, exist_ok=True)
-            urllib.request.urlretrieve(self.asset_url, dest)  # noqa: S310 -- github release asset
-        except (urllib.error.URLError, OSError, ValueError) as exc:
+            # urlretrieve has no timeout and would hang forever on a stalled
+            # connection; the timeout applies to each read. Written to a
+            # .part file first so a failed download never leaves a truncated
+            # installer that looks complete.
+            with urllib.request.urlopen(  # noqa: S310 -- github release asset
+                self.asset_url, timeout=DOWNLOAD_TIMEOUT_SEC
+            ) as resp, open(part, "wb") as out:
+                while chunk := resp.read(1024 * 256):
+                    out.write(chunk)
+            part.replace(dest)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+            part.unlink(missing_ok=True)
             self.failed.emit(str(exc))
             return
         self.done.emit(str(dest))

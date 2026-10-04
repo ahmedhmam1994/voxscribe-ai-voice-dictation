@@ -9,6 +9,18 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.6": (
+        "- Fixed: if the speech model download was broken, VoxScribe now repairs it "
+        "automatically and shows a clear message with a Retry button instead of "
+        "sitting on \"Loading model\".\n"
+        "- Fixed: first-run model downloads now show their progress.\n"
+        "- Fixed: silent or empty recordings no longer produce made-up text or an error.\n"
+        "- Fixed: cleanup no longer removes real repeated words like \"had had\" or \"bye bye\".\n"
+        "- Fixed: long dictations no longer freeze the window while typing, and dictating "
+        "during a file import is blocked instead of risking a crash.\n"
+        "- Fixed: \"scratch that\" only ever deletes in the window the text was typed into.\n"
+        "- New: you can turn off the anonymous launch ping in Settings."
+    ),
     "1.6.5": (
         "- New: Word replacements in Settings. Fix words Whisper keeps mishearing "
         "(for example \"vox scribe\" to \"VoxScribe\").\n"

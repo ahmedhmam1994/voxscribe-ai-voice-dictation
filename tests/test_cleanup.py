@@ -22,6 +22,13 @@ def test_strips_repeated_words():
     assert clean_transcript("I I I need to go") == "I need to go"
 
 
+def test_keeps_legitimately_repeated_words():
+    assert clean_transcript("I had had enough") == "I had had enough"
+    assert clean_transcript("bye bye") == "Bye bye"
+    assert clean_transcript("it is 50 50") == "It is 50 50"
+    assert clean_transcript("no no no") == "No no no"
+
+
 def test_strips_comma_bounded_like_filler():
     # The comma before "like," is kept -- only ", like," itself collapses
     # to a single ",", not removed entirely.

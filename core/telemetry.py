@@ -48,6 +48,11 @@ def _anonymous_id() -> str:
 
 def send_app_launched() -> None:
     try:
+        from core import settings as app_settings
+
+        if not app_settings.get_telemetry_enabled():
+            return
+
         import posthog
 
         posthog.project_api_key = _POSTHOG_PROJECT_API_KEY

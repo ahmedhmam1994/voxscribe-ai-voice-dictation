@@ -76,7 +76,7 @@ from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.hold_gate import HoldGate
 from core.srt import format_srt
-from core.transcribe import Transcriber
+from core.transcribe import MODEL_APPROX_MB, Transcriber, load_transcriber, model_cache_bytes
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 from core.voice_commands import apply_voice_commands, compute_deletion, get_editing_command
 
@@ -729,8 +729,24 @@ def _play_stop_sound() -> None:
 class ModelLoaderThread(QThread):
     done = Signal(object)
     failed = Signal(str)
+    progress = Signal(str)
+
+    def _watch_download(self, model_size: str, stop: threading.Event) -> None:
+        """Reports first-run download progress by watching the cache folder
+        grow -- the download itself runs inside faster-whisper, which gives
+        no progress callback."""
+        expected_mb = MODEL_APPROX_MB.get(model_size)
+        if not expected_mb:
+            return
+        last_mb = -1
+        while not stop.wait(1.0):
+            mb = model_cache_bytes(model_size) // (1024 * 1024)
+            if 0 < mb < expected_mb * 0.97 and mb != last_mb:
+                last_mb = mb
+                self.progress.emit(f"Downloading model... {mb} of about {expected_mb} MB")
 
     def run(self) -> None:
+        stop = threading.Event()
         try:
             # Settings -> Whisper Model Size: takes effect on the next
             # launch (this thread only runs at startup), not live mid-
@@ -745,10 +761,15 @@ class ModelLoaderThread(QThread):
                 # since removed) -- fall back rather than loading a model
                 # the user isn't licensed for.
                 model_size = hotkey_settings.DEFAULT_MODEL_SIZE
-            transcriber = Transcriber(model_size=model_size)
+            threading.Thread(
+                target=self._watch_download, args=(model_size, stop), daemon=True
+            ).start()
+            transcriber = load_transcriber(model_size)
         except Exception as exc:  # noqa: BLE001
+            stop.set()
             self.failed.emit(str(exc))
             return
+        stop.set()
         self.done.emit(transcriber)
 
 
@@ -1139,10 +1160,9 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central)
 
-        self._loader = ModelLoaderThread()
-        self._loader.done.connect(self._on_model_loaded)
-        self._loader.failed.connect(self._on_model_load_failed)
-        self._loader.start()
+        self._model_failed = False
+        self._typing_lock = threading.Lock()
+        self._start_model_load()
 
         # Global hold-to-talk hotkey: works even when this window isn't
         # focused (or is hidden to tray), so you can click into another
@@ -1840,6 +1860,18 @@ class MainWindow(QMainWindow):
         sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
         layout.addWidget(sound_checkbox)
 
+        telemetry_checkbox = QCheckBox("Send an anonymous launch ping (app version and OS only)")
+        telemetry_checkbox.setChecked(hotkey_settings.get_telemetry_enabled())
+        layout.addWidget(telemetry_checkbox)
+
+        telemetry_hint = QLabel(
+            "One tiny ping each time VoxScribe starts, so I can see how many people use it. "
+            "No audio, text, or personal data. Takes effect on the next launch."
+        )
+        telemetry_hint.setObjectName("settingsHint")
+        telemetry_hint.setWordWrap(True)
+        layout.addWidget(telemetry_hint)
+
         excluded_label = QLabel("DISABLED APPS")
         excluded_label.setObjectName("settingsSectionLabel")
         layout.addWidget(excluded_label)
@@ -2002,6 +2034,13 @@ class MainWindow(QMainWindow):
             hotkey_settings.set_sound_enabled(new_sound_enabled)
             changes.append(
                 "Recording sounds enabled." if new_sound_enabled else "Recording sounds disabled."
+            )
+
+        new_telemetry_enabled = telemetry_checkbox.isChecked()
+        if new_telemetry_enabled != hotkey_settings.get_telemetry_enabled():
+            hotkey_settings.set_telemetry_enabled(new_telemetry_enabled)
+            changes.append(
+                "Launch ping enabled." if new_telemetry_enabled else "Launch ping disabled."
             )
 
         new_excluded_apps = [a.strip() for a in excluded_edit.text().split(",") if a.strip()]
@@ -2342,19 +2381,44 @@ class MainWindow(QMainWindow):
 
     # -- model loading --------------------------------------------------
 
+    def _start_model_load(self) -> None:
+        self._model_failed = False
+        self._loader = ModelLoaderThread()
+        self._loader.done.connect(self._on_model_loaded)
+        self._loader.failed.connect(self._on_model_load_failed)
+        self._loader.progress.connect(lambda text: self._set_status(text, "transcribing"))
+        self._loader.start()
+
     def _on_model_loaded(self, transcriber: Transcriber) -> None:
         self.transcriber = transcriber
+        self._model_failed = False
+        self.record_button.setText("Start Recording")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
         self.import_button.setEnabled(True)
 
     def _on_model_load_failed(self, message: str) -> None:
-        self._set_status("Failed to load model", "error")
-        self.transcript_area.append(f"[error] {message}")
+        self._model_failed = True
+        self._set_status("Model failed to load. Click Retry.", "error")
+        self.transcript_area.append(
+            "[error] The speech model could not be loaded: "
+            f"{message}\nVoxScribe already tried to repair its download once. "
+            "Check your internet connection and free disk space, then click "
+            "Retry. If antivirus is removing model files, allow VoxScribe and "
+            "the folder .cache\\huggingface in your user folder."
+        )
+        self.record_button.setText("Retry loading model")
+        self.record_button.setEnabled(True)
 
     # -- recording / transcription --------------------------------------
 
     def toggle_recording(self) -> None:
+        if self.transcriber is None and self._model_failed:
+            self.record_button.setEnabled(False)
+            self.record_button.setText("Start Recording")
+            self._set_status("Loading model...", "loading")
+            self._start_model_load()
+            return
         if self.stream is None:
             self._start_recording()
         else:
@@ -2385,7 +2449,13 @@ class MainWindow(QMainWindow):
             # here that used to run with transcriber=None and surface a
             # confusing "'NoneType' object has no attribute 'transcribe'"
             # instead of telling the user what's actually happening.
-            self._indicator.show_status("not_ready")
+            self._indicator.show_status("model_failed" if self._model_failed else "not_ready")
+            QTimer.singleShot(2500 if self._model_failed else 1500, self._indicator.hide_indicator)
+            return
+        if self._import_active():
+            # A file import is using the model; dictating now would run two
+            # transcriptions at once and re-enable buttons mid-import.
+            self._indicator.show_status("busy")
             QTimer.singleShot(1500, self._indicator.hide_indicator)
             return
         if hotkey_settings.get_talk_mode() == "toggle":
@@ -2413,7 +2483,13 @@ class MainWindow(QMainWindow):
             self._hotkey_active_session = False
             self._stop_recording()
 
+    def _import_active(self) -> bool:
+        worker = getattr(self, "_file_worker", None)
+        return bool(self._import_queue) or (worker is not None and worker.isRunning())
+
     def _start_recording(self) -> None:
+        if self._import_active():
+            return
         excluded_process = foreground_process_name()
         if excluded_process and excluded_process in hotkey_settings.get_excluded_apps():
             self._hotkey_active_session = False
@@ -2643,20 +2719,28 @@ class MainWindow(QMainWindow):
         if self._recording_target_hwnd is not None:
             focus_window(self._recording_target_hwnd)
 
-        try:
-            # A small per-character delay matters here: some target apps
-            # (rich-text/JS-driven inputs, not plain native text fields --
-            # e.g. a chat box in an Electron/web-based app) can't keep up
-            # with instantly-injected keystrokes and end up scrambling the
-            # character order. 12ms/char wasn't enough for some inputs
-            # (reported: two overlapping copies of the same phrase
-            # interleaved character-by-character) -- 30ms/char still reads
-            # as instant to a human but gives slower inputs enough room.
-            keyboard.write(text, delay=0.03)
-            self._last_typed_text = text
-            self._last_typed_hwnd = self._recording_target_hwnd
-        except Exception:  # noqa: BLE001
-            pass
+        target_hwnd = self._recording_target_hwnd
+
+        def _type() -> None:
+            # Typed on a background thread: at 30ms per character a long
+            # dictation would otherwise freeze the window and tray for as
+            # long as the typing takes. The lock keeps two dictations from
+            # interleaving their keystrokes.
+            with self._typing_lock:
+                try:
+                    # A small per-character delay matters here: some target
+                    # apps (rich-text/JS-driven inputs, e.g. a chat box in an
+                    # Electron/web-based app) can't keep up with instantly-
+                    # injected keystrokes and scramble the character order.
+                    # 12ms/char wasn't enough for some inputs; 30ms/char still
+                    # reads as instant to a human but gives slower inputs room.
+                    keyboard.write(text, delay=0.03)
+                    self._last_typed_text = text
+                    self._last_typed_hwnd = target_hwnd
+                except Exception:  # noqa: BLE001
+                    pass
+
+        threading.Thread(target=_type, daemon=True).start()
 
     _EDITING_STATUS_TEXT = {
         "all": "Undid last dictation",
@@ -2686,8 +2770,10 @@ class MainWindow(QMainWindow):
             self._set_status("Can't undo -- active window changed", "error")
             return
 
-        if self._recording_target_hwnd is not None:
-            focus_window(self._recording_target_hwnd)
+        # Refocus the window the text was typed into (already confirmed to be
+        # the focused one above), never the window the command was spoken in:
+        # those can differ, and Backspace must only ever hit the right one.
+        focus_window(self._last_typed_hwnd)
 
         remaining_text, backspace_count = compute_deletion(self._last_typed_text, mode)
 
