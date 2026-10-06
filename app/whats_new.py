@@ -9,6 +9,22 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.7": (
+        "- Fixed: scrolling the Settings page no longer changes dropdown values "
+        "by accident.\n"
+        "- Fixed: a model file that is briefly locked (often by antivirus right "
+        "after the download) is now retried before VoxScribe deletes and "
+        "re-downloads it.\n"
+        "- New: when an update is available it now stays in the tray menu and "
+        "the tray tooltip changes, instead of one short notification that is "
+        "easy to miss.\n"
+        "- New: softer start and stop sounds, if you have sounds turned on in "
+        "Settings.\n"
+        "- New: adjustable typing delay in Settings, for editors that scramble "
+        "or drop characters.\n"
+        "- Better: Settings now spells out what Pro adds.\n"
+        "- Better: the first letter after every sentence end is capitalized."
+    ),
     "1.6.6": (
         "- Fixed: if the speech model download was broken, VoxScribe now repairs it "
         "automatically and shows a clear message with a Retry button instead of "

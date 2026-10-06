@@ -103,3 +103,69 @@ def test_unrelated_load_errors_do_not_purge(monkeypatch, tmp_path):
     with pytest.raises(ValueError):
         transcribe.load_transcriber("small")
     assert d.exists()
+
+
+def _make_model_bin(size_name, tmp_path, monkeypatch, nbytes=2_000_000):
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path))
+    snap = transcribe.model_cache_dir(size_name) / "snapshots" / "abc"
+    snap.mkdir(parents=True)
+    (snap / "model.bin").write_bytes(b"\0" * nbytes)
+    return transcribe.model_cache_dir(size_name)
+
+
+def test_locked_file_is_retried_without_deleting_the_cache(monkeypatch, tmp_path):
+    cache = _make_model_bin("small", tmp_path, monkeypatch)
+    sleeps = []
+    monkeypatch.setattr(transcribe.time, "sleep", lambda s: sleeps.append(s))
+    calls = {"n": 0}
+
+    def fake_model(*a, **k):
+        calls["n"] += 1
+        if calls["n"] <= 2:
+            raise RuntimeError("Unable to open file 'model.bin' in model 'x'")
+        return object()
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    transcribe.load_transcriber("small")
+    assert calls["n"] == 3
+    assert sleeps == [3, 6]
+    assert cache.exists()
+
+
+def test_persistent_failure_still_purges_after_retries(monkeypatch, tmp_path):
+    cache = _make_model_bin("small", tmp_path, monkeypatch)
+    sleeps = []
+    monkeypatch.setattr(transcribe.time, "sleep", lambda s: sleeps.append(s))
+    calls = {"n": 0}
+
+    def fake_model(*a, **k):
+        calls["n"] += 1
+        if calls["n"] <= 4:  # first load plus all three retries fail
+            raise RuntimeError("Unable to open file 'model.bin' in model 'x'")
+        return object()
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    transcribe.load_transcriber("small")
+    assert sleeps == [3, 6, 12]
+    assert calls["n"] == 5
+    assert not cache.exists()
+
+
+def test_missing_model_bin_purges_immediately(monkeypatch, tmp_path):
+    monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path))
+    cache = transcribe.model_cache_dir("small")
+    (cache / "blobs").mkdir(parents=True)
+    sleeps = []
+    monkeypatch.setattr(transcribe.time, "sleep", lambda s: sleeps.append(s))
+    calls = {"n": 0}
+
+    def fake_model(*a, **k):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("File model.bin is incomplete")
+        return object()
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    transcribe.load_transcriber("small")
+    assert sleeps == []
+    assert not cache.exists()

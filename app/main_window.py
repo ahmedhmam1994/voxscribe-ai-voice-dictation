@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QScrollArea,
+    QSpinBox,
     QStackedWidget,
     QSystemTrayIcon,
     QTextEdit,
@@ -71,6 +72,7 @@ from core.audio_capture import (
     resample_to_16k,
     resolve_input_device,
 )
+from core.chime import make_chime
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
@@ -701,29 +703,48 @@ QMenu::separator {{
 """
 
 
-def _play_tone(frequency: int, duration_ms: int) -> None:
-    """Fires winsound.Beep() on a short-lived background thread so a start/
-    stop sound cue (Settings -> Play a sound) can't block the Qt event loop
-    for its duration -- Beep() is a blocking call. Best-effort: some
-    systems/sandboxes have no audio device, so failures are swallowed
+def _play_chime(kind: str) -> None:
+    """Plays the soft start/stop chime (core/chime.py) on a short-lived
+    background thread so a sound cue (Settings -> Play a sound) can't block
+    the Qt event loop -- playing from memory is a blocking call. Best-effort:
+    some systems/sandboxes have no audio device, so failures are swallowed
     rather than surfaced as an error over a cosmetic feature."""
-    def _beep() -> None:
+    def _play() -> None:
         try:
-            winsound.Beep(frequency, duration_ms)
-        except OSError:
+            winsound.PlaySound(make_chime(kind), winsound.SND_MEMORY)
+        except (OSError, RuntimeError):
             pass
 
-    threading.Thread(target=_beep, daemon=True).start()
+    threading.Thread(target=_play, daemon=True).start()
 
 
 def _play_start_sound() -> None:
     if hotkey_settings.get_sound_enabled():
-        _play_tone(880, 90)
+        _play_chime("start")
 
 
 def _play_stop_sound() -> None:
     if hotkey_settings.get_sound_enabled():
-        _play_tone(440, 90)
+        _play_chime("stop")
+
+
+class _NoWheelComboBox(QComboBox):
+    """A dropdown that ignores the mouse wheel. Inside the scrolling
+    Settings page, scrolling past a dropdown otherwise changes its value
+    (hotkey, language, model size) instead of scrolling the page. Clicking
+    the box and the arrow keys still work, and the open list scrolls
+    normally."""
+
+    def wheelEvent(self, event) -> None:  # noqa: N802, ANN001
+        event.ignore()
+
+
+class _NoWheelSpinBox(QSpinBox):
+    """Same reason as _NoWheelComboBox: scrolling the Settings page must not
+    change a number box it happens to pass over."""
+
+    def wheelEvent(self, event) -> None:  # noqa: N802, ANN001
+        event.ignore()
 
 
 class ModelLoaderThread(QThread):
@@ -1402,7 +1423,7 @@ class MainWindow(QMainWindow):
         adjust policy below caps how much the closed box's *own* width
         counts toward its size hint -- the dropdown popup still shows full,
         untruncated item text regardless."""
-        combo = QComboBox()
+        combo = _NoWheelComboBox()
         combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         combo.setMinimumContentsLength(20)
         combo.setMinimumHeight(36)
@@ -1453,6 +1474,17 @@ class MainWindow(QMainWindow):
         license_status_label.setObjectName("settingsHint")
         layout.addWidget(license_status_label)
 
+        license_benefits_label = QLabel(
+            "What Pro adds:\n"
+            "- Snippets: say a short trigger phrase and VoxScribe types a full block of "
+            "text, with live {date}, {time} and {clipboard} variables.\n"
+            "- Medium and Large Whisper models for higher accuracy (they need a faster PC).\n"
+            "Everything else stays free, with no account."
+        )
+        license_benefits_label.setWordWrap(True)
+        license_benefits_label.setObjectName("settingsHint")
+        layout.addWidget(license_benefits_label)
+
         license_compare_label = QLabel(
             "Other dictation tools charge a yearly or monthly subscription, "
             "often well into the hundreds per year. VoxScribe Pro is $14 once."
@@ -1491,6 +1523,7 @@ class MainWindow(QMainWindow):
                 license_status_label.setText(
                     "✓ Pro unlocked -- thank you for supporting VoxScribe."
                 )
+                license_benefits_label.hide()
                 license_compare_label.hide()
                 license_buy_button.hide()
                 license_key_edit.hide()
@@ -1501,6 +1534,7 @@ class MainWindow(QMainWindow):
                     "Free tier. Paste a Pro license key below to unlock Snippets. "
                     "Needs internet once, to activate."
                 )
+                license_benefits_label.show()
                 license_compare_label.show()
                 license_buy_button.show()
                 license_key_edit.show()
@@ -1860,6 +1894,28 @@ class MainWindow(QMainWindow):
         sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
         layout.addWidget(sound_checkbox)
 
+        typing_delay_label = QLabel("TYPING DELAY (MS PER CHARACTER)")
+        typing_delay_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(typing_delay_label)
+
+        typing_delay_spin = _NoWheelSpinBox()
+        typing_delay_spin.setRange(
+            hotkey_settings.MIN_TYPING_DELAY_MS, hotkey_settings.MAX_TYPING_DELAY_MS
+        )
+        typing_delay_spin.setValue(hotkey_settings.get_typing_delay_ms())
+        typing_delay_spin.setSuffix(" ms")
+        typing_delay_spin.setMinimumHeight(36)
+        layout.addWidget(typing_delay_spin)
+
+        typing_delay_hint = QLabel(
+            "How long VoxScribe pauses between typed characters. The default of 30 works "
+            "in most apps. Raise it if a rich-text editor or web chat box scrambles or "
+            "drops characters; lower it if you want text to appear faster."
+        )
+        typing_delay_hint.setObjectName("settingsHint")
+        typing_delay_hint.setWordWrap(True)
+        layout.addWidget(typing_delay_hint)
+
         telemetry_checkbox = QCheckBox("Send an anonymous launch ping (app version and OS only)")
         telemetry_checkbox.setChecked(hotkey_settings.get_telemetry_enabled())
         layout.addWidget(telemetry_checkbox)
@@ -2036,6 +2092,11 @@ class MainWindow(QMainWindow):
                 "Recording sounds enabled." if new_sound_enabled else "Recording sounds disabled."
             )
 
+        new_typing_delay = typing_delay_spin.value()
+        if new_typing_delay != hotkey_settings.get_typing_delay_ms():
+            hotkey_settings.set_typing_delay_ms(new_typing_delay)
+            changes.append(f"Typing delay set to {new_typing_delay} ms.")
+
         new_telemetry_enabled = telemetry_checkbox.isChecked()
         if new_telemetry_enabled != hotkey_settings.get_telemetry_enabled():
             hotkey_settings.set_telemetry_enabled(new_telemetry_enabled)
@@ -2113,6 +2174,14 @@ class MainWindow(QMainWindow):
         settings_action.triggered.connect(self._open_settings_dialog)
         menu.addAction(settings_action)
 
+        # Hidden until an update is found, then stays in the menu (and the
+        # tray tooltip changes) until it's acted on, so a missed 8-second
+        # notification doesn't mean the update is never noticed.
+        self._update_action = QAction("Update available", self)
+        self._update_action.triggered.connect(self._on_tray_message_clicked)
+        self._update_action.setVisible(False)
+        menu.addAction(self._update_action)
+
         check_updates_action = QAction("Check for Updates...", self)
         check_updates_action.triggered.connect(lambda: self._start_update_check(manual=True))
         menu.addAction(check_updates_action)
@@ -2184,9 +2253,30 @@ class MainWindow(QMainWindow):
         self._update_checker.failed.connect(lambda msg: self._on_update_check_failed(msg, manual))
         self._update_checker.start()
 
+    def _refresh_update_action(self) -> None:
+        """Keeps the tray menu's update item and tooltip in step with the
+        update state: nothing, update found, or installer downloaded."""
+        action = getattr(self, "_update_action", None)
+        if action is None or self.tray_icon is None:
+            return
+        if self._downloaded_installer_path:
+            action.setText("Run the downloaded update installer")
+            action.setVisible(True)
+            self.tray_icon.setToolTip("VoxScribe (update downloaded)")
+        elif self._pending_update_info is not None:
+            action.setText(f"Update to {self._pending_update_info.version} available")
+            action.setVisible(True)
+            self.tray_icon.setToolTip(
+                f"VoxScribe (update {self._pending_update_info.version} available)"
+            )
+        else:
+            action.setVisible(False)
+            self.tray_icon.setToolTip("VoxScribe")
+
     def _on_update_found(self, info: UpdateInfo) -> None:
         self._pending_update_info = info
         self._downloaded_installer_path = None
+        self._refresh_update_action()
         if self.tray_icon is None:
             return
         if info.asset_url:
@@ -2236,6 +2326,7 @@ class MainWindow(QMainWindow):
             os.startfile(self._downloaded_installer_path)  # noqa: S606 -- Windows-only app
             self._downloaded_installer_path = None
             self._pending_update_info = None
+            self._refresh_update_action()
             return
 
         if self._update_downloader is not None and self._update_downloader.isRunning():
@@ -2248,6 +2339,7 @@ class MainWindow(QMainWindow):
         if not info.asset_url or not info.asset_name:
             webbrowser.open(info.url)
             self._pending_update_info = None
+            self._refresh_update_action()
             return
 
         if self.tray_icon is not None:
@@ -2264,6 +2356,7 @@ class MainWindow(QMainWindow):
 
     def _on_update_downloaded(self, path: str) -> None:
         self._downloaded_installer_path = path
+        self._refresh_update_action()
         if self.tray_icon is not None:
             self.tray_icon.showMessage(
                 "VoxScribe update downloaded",
@@ -2279,6 +2372,7 @@ class MainWindow(QMainWindow):
         self._pending_update_info = (
             UpdateInfo(version=info.version, url=info.url) if info else None
         )
+        self._refresh_update_action()
         if self.tray_icon is not None:
             self.tray_icon.showMessage(
                 "VoxScribe",
@@ -2720,6 +2814,7 @@ class MainWindow(QMainWindow):
             focus_window(self._recording_target_hwnd)
 
         target_hwnd = self._recording_target_hwnd
+        typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
 
         def _type() -> None:
             # Typed on a background thread: at 30ms per character a long
@@ -2732,9 +2827,10 @@ class MainWindow(QMainWindow):
                     # apps (rich-text/JS-driven inputs, e.g. a chat box in an
                     # Electron/web-based app) can't keep up with instantly-
                     # injected keystrokes and scramble the character order.
-                    # 12ms/char wasn't enough for some inputs; 30ms/char still
-                    # reads as instant to a human but gives slower inputs room.
-                    keyboard.write(text, delay=0.03)
+                    # 12ms/char wasn't enough for some inputs; the 30ms default
+                    # still reads as instant but gives slower inputs room, and
+                    # Settings lets users raise it for the slowest editors.
+                    keyboard.write(text, delay=typing_delay)
                     self._last_typed_text = text
                     self._last_typed_hwnd = target_hwnd
                 except Exception:  # noqa: BLE001
