@@ -13,6 +13,7 @@ packaged bundle small (see the v1.3 packaging fix in the project history).
 
 from __future__ import annotations
 
+import http.client
 import json
 import urllib.error
 import urllib.request
@@ -128,7 +129,13 @@ class UpdateDownloadThread(QThread):
                 while chunk := resp.read(1024 * 256):
                     out.write(chunk)
             part.replace(dest)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        except (
+            urllib.error.URLError,
+            http.client.HTTPException,  # e.g. IncompleteRead on a dropped connection
+            TimeoutError,
+            OSError,
+            ValueError,
+        ) as exc:
             part.unlink(missing_ok=True)
             self.failed.emit(str(exc))
             return

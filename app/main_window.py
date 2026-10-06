@@ -907,6 +907,8 @@ class FileTranscribeThread(QThread):
 
 
 class MainWindow(QMainWindow):
+    _balloon_is_update = False
+
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("VoxScribe")
@@ -2126,7 +2128,7 @@ class MainWindow(QMainWindow):
                 changes.append(f"Couldn't update the startup setting: {exc}")
 
         if changes and self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 " ".join(changes),
                 QSystemTrayIcon.MessageIcon.Information,
@@ -2146,7 +2148,7 @@ class MainWindow(QMainWindow):
             if last_seen is not None:
                 notes = whats_new_text(__version__)
                 if notes and self.tray_icon is not None:
-                    self.tray_icon.showMessage(
+                    self._notify(
                         f"VoxScribe {__version__}",
                         notes,
                         QSystemTrayIcon.MessageIcon.Information,
@@ -2178,7 +2180,7 @@ class MainWindow(QMainWindow):
         # tray tooltip changes) until it's acted on, so a missed 8-second
         # notification doesn't mean the update is never noticed.
         self._update_action = QAction("Update available", self)
-        self._update_action.triggered.connect(self._on_tray_message_clicked)
+        self._update_action.triggered.connect(self._start_update_action)
         self._update_action.setVisible(False)
         menu.addAction(self._update_action)
 
@@ -2204,7 +2206,7 @@ class MainWindow(QMainWindow):
         # to tell the user the global hotkey didn't register, since that
         # failure happens before this tray icon even exists.
         if self._hotkey_registration_error:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 f"Couldn't register the {self._hotkey.upper()} hotkey (often needs "
                 "admin rights). Open VoxScribe and use the Start/Stop button instead.",
@@ -2212,7 +2214,7 @@ class MainWindow(QMainWindow):
                 6000,
             )
         else:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 f"Running in the background. Hold {self._hotkey.upper()} anywhere to dictate.",
                 QSystemTrayIcon.MessageIcon.Information,
@@ -2280,28 +2282,30 @@ class MainWindow(QMainWindow):
         if self.tray_icon is None:
             return
         if info.asset_url:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe update available",
                 f"Version {info.version} is available (you're on {__version__}). "
                 "Click this notification to download the installer.",
                 QSystemTrayIcon.MessageIcon.Information,
                 8000,
+                update=True,
             )
         else:
             # No .exe asset found on the release (shouldn't normally
             # happen) -- fall back to the release page link, same as
             # before one-click download existed.
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe update available",
                 f"Version {info.version} is available (you're on {__version__}). "
                 "Click this notification to open the download page.",
                 QSystemTrayIcon.MessageIcon.Information,
                 8000,
+                update=True,
             )
 
     def _on_update_none_found(self, manual: bool) -> None:
         if manual and self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 f"You're up to date (v{__version__}).",
                 QSystemTrayIcon.MessageIcon.Information,
@@ -2310,14 +2314,28 @@ class MainWindow(QMainWindow):
 
     def _on_update_check_failed(self, message: str, manual: bool) -> None:
         if manual and self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 f"Couldn't check for updates: {message}",
                 QSystemTrayIcon.MessageIcon.Warning,
                 5000,
             )
 
+    def _notify(
+        self, title: str, text: str, icon: QSystemTrayIcon.MessageIcon, msecs: int,
+        *, update: bool = False,
+    ) -> None:
+        """Shows a tray balloon and remembers whether it is an update
+        balloon, so a click on any other balloon (settings changed, up to
+        date...) can't start a download or launch the installer."""
+        self._balloon_is_update = update
+        self.tray_icon.showMessage(title, text, icon, msecs)
+
     def _on_tray_message_clicked(self) -> None:
+        if self._balloon_is_update:
+            self._start_update_action()
+
+    def _start_update_action(self) -> None:
         # Three possible states, checked in order: a downloaded installer
         # ready to run, a download in progress (ignore the click), or an
         # update just found (start the download, or fall back to the
@@ -2343,7 +2361,7 @@ class MainWindow(QMainWindow):
             return
 
         if self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 "Downloading the update...",
                 QSystemTrayIcon.MessageIcon.Information,
@@ -2358,11 +2376,12 @@ class MainWindow(QMainWindow):
         self._downloaded_installer_path = path
         self._refresh_update_action()
         if self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe update downloaded",
                 "Click this notification to run the installer.",
                 QSystemTrayIcon.MessageIcon.Information,
                 8000,
+                update=True,
             )
 
     def _on_update_download_failed(self, message: str) -> None:
@@ -2374,12 +2393,13 @@ class MainWindow(QMainWindow):
         )
         self._refresh_update_action()
         if self.tray_icon is not None:
-            self.tray_icon.showMessage(
+            self._notify(
                 "VoxScribe",
                 f"Couldn't download the update: {message}. "
                 "Click this notification to open the download page instead.",
                 QSystemTrayIcon.MessageIcon.Warning,
                 6000,
+                update=True,
             )
 
     def _open_logs_folder(self) -> None:
@@ -2516,6 +2536,10 @@ class MainWindow(QMainWindow):
         if self.stream is None:
             self._start_recording()
         else:
+            # Stopped from the button, so the hotkey no longer owns this
+            # recording (a stale flag would let a later hotkey tap stop a
+            # button-started one).
+            self._hotkey_active_session = False
             self._stop_recording()
 
     # -- hold-to-talk hotkey handlers ------------------------------------
@@ -2653,8 +2677,14 @@ class MainWindow(QMainWindow):
         if self.stream is self._ready_stream:
             self._capturing = False
         else:
-            self.stream.stop()
-            self.stream.close()
+            # A device that vanished mid-recording (e.g. a Bluetooth headset
+            # dropping) can make stop()/close() raise; carry on with what was
+            # captured instead of leaving the UI stuck on "Recording...".
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception:  # noqa: BLE001
+                pass
         self.stream = None
         _play_stop_sound()
 
@@ -2669,6 +2699,7 @@ class MainWindow(QMainWindow):
         self._chunks = []
         self._last_recording_duration = len(audio) / SAMPLE_RATE
 
+        self._retire_thread(self._worker)
         self._worker = TranscribeThread(
             self.transcriber,
             audio,
@@ -2909,6 +2940,16 @@ class MainWindow(QMainWindow):
         self.import_button.setEnabled(False)
         self._process_next_import_file()
 
+    @staticmethod
+    def _retire_thread(thread: QThread | None) -> None:
+        """A worker emits its result before run() returns, so by the time the
+        slot reassigns the attribute the old QThread may still be finishing;
+        dropping the last reference then aborts with "QThread: Destroyed while
+        thread is still running". Waits for it to exit first (it is already on
+        its way out, so this returns almost immediately)."""
+        if thread is not None:
+            thread.wait(2000)
+
     def _process_next_import_file(self) -> None:
         if not self._import_queue:
             self.record_button.setEnabled(True)
@@ -2927,6 +2968,7 @@ class MainWindow(QMainWindow):
         self._set_status(status, "transcribing")
         self._indicator.show_status("transcribing")
 
+        self._retire_thread(self._file_worker)
         self._file_worker = FileTranscribeThread(
             self.transcriber,
             path,

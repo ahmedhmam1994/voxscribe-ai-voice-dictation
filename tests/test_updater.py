@@ -1,7 +1,11 @@
 """Tests for core/updater.py's version-comparison logic (the part that
 doesn't require a real network call to GitHub)."""
 
-from core.updater import _parse_version, is_newer
+import http.client
+import urllib.request
+from pathlib import Path
+
+from core.updater import UpdateDownloadThread, _parse_version, is_newer
 
 
 def test_parse_version_simple():
@@ -40,3 +44,32 @@ def test_is_newer_false_for_older_version():
 def test_is_newer_handles_patch_versions():
     assert is_newer("1.3.1", "1.3.0") is True
     assert is_newer("1.3.0", "1.3.1") is False
+
+
+class _DroppedResponse:
+    """A response whose connection dies partway through the body."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def read(self, _size):
+        raise http.client.IncompleteRead(b"partial")
+
+
+def test_download_dropped_connection_reports_failure(tmp_path, monkeypatch):
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _DroppedResponse())
+
+    thread = UpdateDownloadThread("https://example.invalid/setup.exe", "setup.exe")
+    failures: list[str] = []
+    thread.failed.connect(failures.append)
+    thread.done.connect(lambda path: failures.append("unexpected success"))
+    thread.run()  # run() directly: no event loop needed, signals are direct here
+
+    assert len(failures) == 1
+    assert "unexpected" not in failures[0]
+    assert not (tmp_path / "Downloads" / "setup.exe").exists()
+    assert not (tmp_path / "Downloads" / "setup.exe.part").exists()
