@@ -335,6 +335,28 @@ def set_sound_enabled(enabled: bool) -> None:
     _settings().setValue("sound_enabled", enabled)
 
 
+DEFAULT_TYPING_DELAY_MS = 30
+MIN_TYPING_DELAY_MS = 5
+MAX_TYPING_DELAY_MS = 200
+
+
+def get_typing_delay_ms() -> int:
+    """Pause between typed characters. 30 ms by default: fast enough to
+    feel instant, slow enough for chat boxes and rich-text editors that
+    scramble characters when keystrokes arrive too quickly. Slow editors may
+    need more, so it's adjustable in Settings."""
+    try:
+        value = int(_settings().value("typing_delay_ms", DEFAULT_TYPING_DELAY_MS))
+    except (TypeError, ValueError):
+        return DEFAULT_TYPING_DELAY_MS
+    return max(MIN_TYPING_DELAY_MS, min(MAX_TYPING_DELAY_MS, value))
+
+
+def set_typing_delay_ms(delay_ms: int) -> None:
+    clamped = max(MIN_TYPING_DELAY_MS, min(MAX_TYPING_DELAY_MS, int(delay_ms)))
+    _settings().setValue("typing_delay_ms", clamped)
+
+
 def get_telemetry_enabled() -> bool:
     """Whether the anonymous launch ping (app version and OS only, see
     core/telemetry.py) is sent. Default True; users can switch it off."""

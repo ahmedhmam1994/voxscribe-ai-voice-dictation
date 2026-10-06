@@ -61,6 +61,27 @@ _SPACE_BEFORE_PUNCT_RE = re.compile(r"\s+([,.!?;:])")
 # Multiple whitespace collapsed to a single space.
 _MULTI_SPACE_RE = re.compile(r"\s+")
 
+# A lowercase letter starting a new sentence: after ". ", "! " or "? ".
+_SENTENCE_START_RE = re.compile(r"([.!?])(\s+)([a-z])")
+
+# Words whose trailing period doesn't end a sentence ("e.g. the ...").
+_ABBREVIATIONS = {"e.g", "i.e", "etc", "vs", "approx", "cf", "mr", "mrs", "ms", "dr"}
+
+
+def _capitalize_sentences(text: str) -> str:
+    """Capitalize the first letter after each sentence end. Whisper usually
+    does this itself, but not always, and the old cleanup only capitalized the
+    very first letter of the whole text."""
+
+    def _fix(match: re.Match[str]) -> str:
+        before = match.string[: match.start()].split()
+        last_word = before[-1].lower() if before else ""
+        if last_word in _ABBREVIATIONS and match.group(1) == ".":
+            return match.group(0)
+        return match.group(1) + match.group(2) + match.group(3).upper()
+
+    return _SENTENCE_START_RE.sub(_fix, text)
+
 
 def clean_transcript(text: str) -> str:
     """Strip common filler words/phrases and fix up spacing/capitalization.
@@ -90,9 +111,10 @@ def clean_transcript(text: str) -> str:
     # very start of the text (e.g. "um, so..." -> ", so..." -> "so...").
     result = re.sub(r"^[,;:]\s*", "", result)
 
-    # Capitalize the first letter of the result.
+    # Capitalize the first letter of the result, and of each later sentence.
     if result:
         result = result[0].upper() + result[1:]
+        result = _capitalize_sentences(result)
 
     return result
 

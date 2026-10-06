@@ -50,9 +50,8 @@ def test_strips_you_know_filler():
 
 
 def test_fixes_spacing_around_punctuation():
-    # Only the very first letter of the whole result is capitalized -- this
-    # is a known limitation (see cleanup.py), not per-sentence capitalization.
-    assert clean_transcript("hello , world .   this  is   a test") == "Hello, world. this is a test"
+    # The first letter and the letter after each sentence end are capitalized.
+    assert clean_transcript("hello , world .   this  is   a test") == "Hello, world. This is a test"
 
 
 def test_capitalizes_first_letter():
@@ -62,3 +61,14 @@ def test_capitalizes_first_letter():
 def test_no_stray_leading_punctuation_after_stripped_filler():
     result = clean_transcript("um, so I left")
     assert not result.startswith((",", ";", ":"))
+
+
+def test_capitalizes_after_each_sentence_end():
+    assert clean_transcript("hello there. how are you? i am fine! see you") == (
+        "Hello there. How are you? I am fine! See you"
+    )
+
+
+def test_does_not_capitalize_after_abbreviations():
+    assert clean_transcript("use a tool, e.g. the hammer") == "Use a tool, e.g. the hammer"
+    assert clean_transcript("bring pens, etc. and paper") == "Bring pens, etc. and paper"

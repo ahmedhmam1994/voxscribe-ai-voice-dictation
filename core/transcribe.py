@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import shutil
+import time
 from pathlib import Path
 
 import numpy as np
@@ -106,18 +107,52 @@ def purge_model_cache(model_size: str) -> bool:
     return not root.exists()
 
 
+# How long to wait between attempts when a cached model file exists but can't
+# be opened yet. A freshly downloaded 480 MB model is often locked by
+# antivirus while it is being scanned, which can take a while.
+_LOCKED_FILE_RETRY_DELAYS_SEC = (3, 6, 12)
+
+
+def _model_bin_present(model_size: str) -> bool:
+    """Whether the cached model has a non-trivial model.bin file."""
+    try:
+        for path in model_cache_dir(model_size).glob("snapshots/*/model.bin"):
+            if path.stat().st_size > 1_000_000:
+                return True
+    except OSError:
+        pass
+    return False
+
+
 def load_transcriber(model_size: str) -> "Transcriber":
     """Load a Transcriber, repairing a broken cached model once.
 
-    If the first load fails, the cached copy is deleted and downloaded again.
-    A second failure is raised to the caller (no network, disk full, ...).
+    If the first load fails because the cached model file can't be opened:
+    when the file is there, wait and retry a few times first (a just-finished
+    download is commonly locked by antivirus scanning, and deleting it would
+    only force a pointless re-download). If it still fails, or the file is
+    missing or empty, delete the cached copy and download it again once. A
+    second failure is raised to the caller (no network, disk full, ...).
     """
     try:
         return Transcriber(model_size=model_size)
     except Exception as exc:  # noqa: BLE001
-        if not looks_like_broken_cache(exc) or not purge_model_cache(model_size):
+        if not looks_like_broken_cache(exc):
             raise
-        return Transcriber(model_size=model_size)
+        first_error = exc
+
+    if _model_bin_present(model_size):
+        for delay in _LOCKED_FILE_RETRY_DELAYS_SEC:
+            time.sleep(delay)
+            try:
+                return Transcriber(model_size=model_size)
+            except Exception as retry_exc:  # noqa: BLE001
+                if not looks_like_broken_cache(retry_exc):
+                    raise
+
+    if not purge_model_cache(model_size):
+        raise first_error
+    return Transcriber(model_size=model_size)
 
 
 def looks_like_broken_cache(exc: Exception) -> bool:

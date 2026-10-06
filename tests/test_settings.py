@@ -55,3 +55,20 @@ def test_telemetry_defaults_on_and_can_be_switched_off(monkeypatch, tmp_path):
     assert settings.get_telemetry_enabled() is False
     settings.set_telemetry_enabled(True)
     assert settings.get_telemetry_enabled() is True
+
+
+def test_typing_delay_default_and_clamping(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_typing_delay_ms() == 30
+    settings.set_typing_delay_ms(80)
+    assert settings.get_typing_delay_ms() == 80
+    settings.set_typing_delay_ms(5000)
+    assert settings.get_typing_delay_ms() == settings.MAX_TYPING_DELAY_MS
+    settings.set_typing_delay_ms(1)
+    assert settings.get_typing_delay_ms() == settings.MIN_TYPING_DELAY_MS
+
+
+def test_typing_delay_ignores_garbage_values(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    settings._settings().setValue("typing_delay_ms", "not a number")
+    assert settings.get_typing_delay_ms() == settings.DEFAULT_TYPING_DELAY_MS
