@@ -3,26 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VoxScribe: Free Voice Dictation for Windows</title>
-<meta name="description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+<title>VoxScribe: Free Offline Voice Dictation for Windows (Open Source)</title>
+<meta name="description" content="Free, open-source voice typing for Windows. Hold a hotkey, speak, and Whisper types the text into any app. Runs offline on your PC, no subscription.">
 
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="VoxScribe: Free Voice Dictation for Windows">
-<meta property="og:description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+<meta property="og:site_name" content="VoxScribe">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="VoxScribe: Free Offline Voice Dictation for Windows (Open Source)">
+<meta property="og:description" content="Free, open-source voice typing for Windows. Hold a hotkey, speak, and Whisper types the text into any app. Runs offline on your PC, no subscription.">
 <meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app">
+<meta property="og:image:alt" content="VoxScribe, free offline voice dictation for Windows">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="VoxScribe: Free Voice Dictation for Windows">
-<meta name="twitter:description" content="Hold a hotkey, talk, and VoxScribe types the transcribed text directly into whatever app you're focused in. 100% local transcription, free, no subscription.">
+<meta name="twitter:title" content="VoxScribe: Free Offline Voice Dictation for Windows (Open Source)">
+<meta name="twitter:description" content="Free, open-source voice typing for Windows. Hold a hotkey, speak, and Whisper types the text into any app. Runs offline on your PC, no subscription.">
 <meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta name="twitter:image:alt" content="VoxScribe, free offline voice dictation for Windows">
 
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"VoxScribe","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11","description":"Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.","url":"https://voxscribe-ai-voice-dictation.vercel.app/","downloadUrl":"https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest","softwareVersion":"1.6.7","license":"https://opensource.org/licenses/MIT","isAccessibleForFree":true,"offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free"},{"@type":"Offer","price":"14","priceCurrency":"USD","name":"Pro (one-time)"}],"image":"https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
+</script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11 only, for now."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -552,15 +563,15 @@
 
     <div class="showcase-grid" style="margin-top: 48px;" data-reveal>
       <div class="showcase-card">
-        <img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" loading="lazy">
+        <img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" width="1375" height="900" loading="lazy">
         <div class="showcase-caption">Idle, waiting for F9</div>
       </div>
       <div class="showcase-card">
-        <img src="assets/screenshot-recording.png" alt="VoxScribe recording" loading="lazy">
+        <img src="assets/screenshot-recording.png" alt="VoxScribe recording" width="1375" height="900" loading="lazy">
         <div class="showcase-caption">Recording your voice</div>
       </div>
       <div class="showcase-card">
-        <img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" loading="lazy">
+        <img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" width="1375" height="900" loading="lazy">
         <div class="showcase-caption">Typed straight into the app</div>
       </div>
     </div>
@@ -616,7 +627,7 @@
     <div class="reviews-wrap" data-reveal>
       <div class="review-card">
         <div class="quote-mark">&ldquo;</div>
-        <blockquote>I&rsquo;ve used Dragon Medical, Dragon One, Dictation Daddy, VoiceTypr&hellip; I&rsquo;m <span class="highlight">proud to say I&rsquo;ve tried yours and I do like it.</span></blockquote>
+        <blockquote>I&rsquo;ve used [other dictation tools]&hellip; I&rsquo;m <span class="highlight">proud to say I&rsquo;ve tried yours and I do like it.</span></blockquote>
         <div class="review-attribution">
           <span class="avatar">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M4.5 20c0-4.14 3.36-7 7.5-7s7.5 2.86 7.5 7" fill="currentColor"/></svg>
@@ -705,6 +716,7 @@
         <p>Yes. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">Open a GitHub issue</a> with the name or email you used to buy it, and I'll look it up and send it back to you.</p>
       </div>
     </div>
+    <p style="margin-top:28px;color:var(--text-muted);">Guides: <a href="free-voice-dictation-windows.html">free offline voice dictation</a>, <a href="dictate-into-any-app-windows.html">dictating into any app</a>, and <a href="free-srt-subtitle-generator-windows.html">making .srt subtitles offline</a>.</p>
   </div>
 </section>
 

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://voxscribe-ai-voice-dictation.vercel.app/sitemap.xml
