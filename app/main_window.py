@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 import webbrowser
 import winsound
 from datetime import datetime
@@ -940,7 +941,8 @@ class MainWindow(QMainWindow):
         self._worker: TranscribeThread | None = None
         self._file_worker: FileTranscribeThread | None = None
         self._retired_file_workers: list[FileTranscribeThread] = []
-        self._balloon_is_update = False
+        self._balloon_action = None
+        self._held_text: str | None = None
         self._import_queue: list[str] = []
 
         # Hold-to-talk state for the global hotkey (configurable -- see
@@ -2319,20 +2321,32 @@ class MainWindow(QMainWindow):
                 5000,
             )
 
-    def _tray_notify(self, title, message, icon, msecs) -> None:  # noqa: ANN001
-        """Show a tray balloon that is NOT an update prompt. Clicking it must
-        never start an update download or run an installer."""
-        self._balloon_is_update = False
+    def _show_balloon(self, title, message, icon, msecs, action=None) -> None:  # noqa: ANN001
+        # `action` is what a click on this specific balloon does. Remembered
+        # per balloon so a click can never trigger the action of an older one.
+        self._balloon_action = action
         self.tray_icon.showMessage(title, message, icon, msecs)
+
+    def _tray_notify(self, title, message, icon, msecs) -> None:  # noqa: ANN001
+        """A balloon whose click does nothing. In particular it must never
+        start an update download or run an installer."""
+        self._show_balloon(title, message, icon, msecs)
 
     def _tray_notify_update(self, title, message, icon, msecs) -> None:  # noqa: ANN001
-        """Show a tray balloon whose click should act on the pending update."""
-        self._balloon_is_update = True
-        self.tray_icon.showMessage(title, message, icon, msecs)
+        """A balloon whose click acts on the pending update."""
+        self._show_balloon(title, message, icon, msecs, self._on_tray_message_clicked)
 
     def _on_tray_balloon_clicked(self) -> None:
-        if self._balloon_is_update:
-            self._on_tray_message_clicked()
+        action = self._balloon_action
+        self._balloon_action = None
+        if action is not None:
+            action()
+
+    def _copy_held_text(self) -> None:
+        if self._held_text:
+            QApplication.clipboard().setText(self._held_text)
+            self._held_text = None
+            self._set_status("Copied the held text to the clipboard", "ready")
 
     def _on_tray_message_clicked(self) -> None:
         # Three possible states, checked in order: a downloaded installer
@@ -2825,6 +2839,30 @@ class MainWindow(QMainWindow):
 
         self._refresh_insights()
 
+    @staticmethod
+    def _wait_for_foreground(hwnd: int, timeout: float = 0.3) -> bool:
+        """SetForegroundWindow can take a moment to actually change the
+        foreground window, so poll briefly before deciding it failed."""
+        deadline = time.monotonic() + timeout
+        while foreground_window_handle() != hwnd:
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.02)
+        return True
+
+    def _hold_text(self, text: str) -> None:
+        self._held_text = text
+        self._set_status("Text not typed: the original window changed", "error")
+        if self.tray_icon is not None:
+            self._show_balloon(
+                "VoxScribe held your text",
+                "The window you dictated into changed, so nothing was typed. "
+                "Click here to copy the text.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                8000,
+                self._copy_held_text,
+            )
+
     def _type_into_focused_window(self, text: str) -> None:
         # Transcription runs in the background and finishes after a delay --
         # long enough for the user to have switched to a different window
@@ -2832,12 +2870,18 @@ class MainWindow(QMainWindow):
         # _stop_recording() so the text lands where they meant it to, not
         # wherever they've since clicked. If that fails (window closed,
         # Windows refuses the focus change -- see focus_window()'s
-        # docstring), fall through and type into whatever is focused now,
-        # same as this always did before.
-        if self._recording_target_hwnd is not None:
-            focus_window(self._recording_target_hwnd)
-
+        # docstring), don't type anywhere: see _hold_text().
         target_hwnd = self._recording_target_hwnd
+        if target_hwnd is not None:
+            focus_window(target_hwnd)
+            if not self._wait_for_foreground(target_hwnd):
+                # The window the user dictated into is gone or won't take
+                # focus back. Typing now would put the text into whatever
+                # else is focused (possibly a chat or another private
+                # field), so hold it instead. The text is already in the
+                # transcript and history; clicking the balloon copies it.
+                self._hold_text(text)
+                return
         typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
 
         def _type() -> None:
