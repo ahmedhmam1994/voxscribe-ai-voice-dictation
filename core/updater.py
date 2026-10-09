@@ -13,6 +13,7 @@ packaged bundle small (see the v1.3 packaging fix in the project history).
 
 from __future__ import annotations
 
+import http.client
 import json
 import urllib.error
 import urllib.request
@@ -125,10 +126,24 @@ class UpdateDownloadThread(QThread):
             with urllib.request.urlopen(  # noqa: S310 -- github release asset
                 self.asset_url, timeout=DOWNLOAD_TIMEOUT_SEC
             ) as resp, open(part, "wb") as out:
+                expected = resp.headers.get("Content-Length")
+                received = 0
                 while chunk := resp.read(1024 * 256):
                     out.write(chunk)
+                    received += len(chunk)
+            # A connection that drops mid-download can end the read loop
+            # without an error; without this check the short file would be
+            # renamed to the installer name as if it were complete.
+            if expected is not None and expected.isdigit() and received != int(expected):
+                raise OSError(f"Download incomplete ({received} of {expected} bytes)")
             part.replace(dest)
-        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        except (
+            urllib.error.URLError,
+            http.client.HTTPException,
+            TimeoutError,
+            OSError,
+            ValueError,
+        ) as exc:
             part.unlink(missing_ok=True)
             self.failed.emit(str(exc))
             return

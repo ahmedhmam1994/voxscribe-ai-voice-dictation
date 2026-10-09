@@ -72,3 +72,14 @@ def test_capitalizes_after_each_sentence_end():
 def test_does_not_capitalize_after_abbreviations():
     assert clean_transcript("use a tool, e.g. the hammer") == "Use a tool, e.g. the hammer"
     assert clean_transcript("bring pens, etc. and paper") == "Bring pens, etc. and paper"
+
+
+def test_does_not_capitalize_after_time_and_country_abbreviations():
+    assert clean_transcript("see you at 5 p.m. and then we go") == "See you at 5 p.m. and then we go"
+    assert clean_transcript("we flew to the U.S. and then home") == "We flew to the U.S. and then home"
+    assert clean_transcript("meet at 9 a.m. and then lunch") == "Meet at 9 a.m. and then lunch"
+
+
+def test_does_not_capitalize_after_titles_and_suffixes():
+    assert clean_transcript("ask Acme inc. and then wait") == "Ask Acme inc. and then wait"
+    assert clean_transcript("call John jr. and then Mary sr. and then Main st. and then go").count(". And") == 0

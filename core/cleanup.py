@@ -65,7 +65,10 @@ _MULTI_SPACE_RE = re.compile(r"\s+")
 _SENTENCE_START_RE = re.compile(r"([.!?])(\s+)([a-z])")
 
 # Words whose trailing period doesn't end a sentence ("e.g. the ...").
-_ABBREVIATIONS = {"e.g", "i.e", "etc", "vs", "approx", "cf", "mr", "mrs", "ms", "dr"}
+_ABBREVIATIONS = {
+    "e.g", "i.e", "etc", "vs", "approx", "cf", "mr", "mrs", "ms", "dr",
+    "a.m", "p.m", "u.s", "inc", "jr", "sr", "st",
+}
 
 
 def _capitalize_sentences(text: str) -> str:
