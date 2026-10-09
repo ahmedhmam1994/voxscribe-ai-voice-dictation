@@ -9,6 +9,22 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.8": (
+        "- Fixed: if the window you dictated into closes or changes before the "
+        "text is ready, VoxScribe now holds the text instead of typing it "
+        "somewhere else. Click the notification to copy it.\n"
+        "- Fixed: a download of an update that was cut short is now detected and "
+        "reported instead of leaving a broken installer.\n"
+        "- Fixed: \"5 p.m. and then\" and similar abbreviations no longer get a "
+        "capital letter after them.\n"
+        "- Fixed: clicking an unrelated tray notification no longer starts an "
+        "update.\n"
+        "- Fixed: the hotkey can no longer stop a recording you started with the "
+        "button.\n"
+        "- Fixed: if your microphone disconnects while you are recording, the "
+        "window no longer gets stuck on Recording.\n"
+        "- Fixed: importing several files in a row is more stable."
+    ),
     "1.6.7": (
         "- Fixed: scrolling the Settings page no longer changes dropdown values "
         "by accident.\n"
