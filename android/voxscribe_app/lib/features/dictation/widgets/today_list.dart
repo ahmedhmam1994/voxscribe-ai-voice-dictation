@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/core/formatting.dart';
-import 'package:voxscribe_app/features/dictation/domain/dictation_entry.dart';
+import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 
 /// Today's dictations, newest first.
 class TodayList extends StatelessWidget {

@@ -10,5 +10,7 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         SetupChannel(this).register(messenger)
         EngineChannel(this).register(messenger)
+        HistoryChannel(this).register(messenger)
+        SettingsChannel(this).register(messenger)
     }
 }

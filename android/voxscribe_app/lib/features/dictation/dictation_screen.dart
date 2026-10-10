@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:voxscribe_app/core/dates.dart';
 import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
 import 'package:voxscribe_app/features/dictation/widgets/hold_to_dictate_button.dart';
 import 'package:voxscribe_app/features/dictation/widgets/language_chip.dart';
@@ -7,21 +8,31 @@ import 'package:voxscribe_app/features/dictation/widgets/status_pill.dart';
 import 'package:voxscribe_app/features/dictation/widgets/today_list.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_actions.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_card.dart';
+import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
 
 /// Dictate from inside the app and see the latest transcript and history.
 class DictationScreen extends StatelessWidget {
-  const DictationScreen({required this.controller, super.key});
+  const DictationScreen({
+    required this.controller,
+    required this.history,
+    super.key,
+  });
 
   final DictationController controller;
+  final HistoryController history;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: Listenable.merge([controller, history]),
       builder: (context, _) {
         final hasTranscript = controller.transcript != null;
+        final now = DateTime.now();
+        final today = history.entries
+            .where((entry) => isSameDay(entry.createdAt, now))
+            .toList();
         return Column(
           children: [
             _AppBar(controller: controller),
@@ -45,7 +56,7 @@ class DictationScreen extends StatelessWidget {
                     onClear: hasTranscript ? controller.clearTranscript : null,
                   ),
                   const SectionLabel('Today'),
-                  TodayList(entries: controller.entries),
+                  TodayList(entries: today),
                 ],
               ),
             ),

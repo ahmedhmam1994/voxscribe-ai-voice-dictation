@@ -15,6 +15,7 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.os.SystemClock
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -50,10 +51,14 @@ class BubbleService : Service() {
     private var bubbleView: AppCompatImageView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dictationEngine: DictationEngine? = null
+    private var state = BubbleState.IDLE
+    private var fieldFocused = false
+    private var holdStartedAt = 0L
 
     override fun onCreate() {
         super.onCreate()
         isRunning = true
+        instance = this
         createNotificationChannel()
         addBubbleToWindow()
         // WhisperEngine.isAvailable() loads the ~160MB bundled model into
@@ -91,6 +96,7 @@ class BubbleService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        instance = null
         dictationEngine?.destroy()
         dictationEngine = null
         bubbleView?.let { view -> runCatching { windowManager?.removeView(view) } }
@@ -129,6 +135,8 @@ class BubbleService : Service() {
         setState(BubbleState.IDLE)
         view.setOnTouchListener(BubbleTouchListener())
         wm.addView(view, params)
+        // Hidden until a text box is being edited; ask the typing service now.
+        VoxScribeAccessibilityService.instance?.refreshBubbleVisibility()
     }
 
     // -- drag vs. hold-to-talk ---------------------------------------------
@@ -201,7 +209,24 @@ class BubbleService : Service() {
 
     // -- state --------------------------------------------------------------
 
+    /**
+     * Called by the typing service: the bubble shows only while a text box is
+     * being edited with the keyboard open.
+     */
+    fun setFieldFocused(focused: Boolean) {
+        fieldFocused = focused
+        applyVisibility()
+    }
+
+    private fun applyVisibility() {
+        val view = bubbleView ?: return
+        // Never hide it under the user's finger while recording or transcribing.
+        val target = if (fieldFocused || state != BubbleState.IDLE) View.VISIBLE else View.GONE
+        if (view.visibility != target) view.visibility = target
+    }
+
     private fun setState(newState: BubbleState) {
+        state = newState
         val view = bubbleView ?: return
         when (newState) {
             BubbleState.IDLE -> {
@@ -225,6 +250,7 @@ class BubbleService : Service() {
                 view.contentDescription = getString(R.string.desc_bubble_transcribing)
             }
         }
+        applyVisibility()
     }
 
     private fun hasRecordAudioPermission(): Boolean =
@@ -241,6 +267,7 @@ class BubbleService : Service() {
             return
         }
 
+        holdStartedAt = SystemClock.elapsedRealtime()
         dictationEngine?.destroy()
         dictationEngine = DictationEngine(
             context = this,
@@ -267,7 +294,17 @@ class BubbleService : Service() {
         setState(BubbleState.IDLE)
         if (text.isBlank()) return
 
-        val inserted = VoxScribeAccessibilityService.instance?.insertText(text) ?: false
+        HistoryStore.add(
+            this,
+            HistoryEntry(
+                text = text,
+                atMillis = System.currentTimeMillis(),
+                durationMillis = SystemClock.elapsedRealtime() - holdStartedAt,
+            ),
+        )
+        // A trailing space keeps the next dictation in the same box from running into this one.
+        val toInsert = if (SettingsStore.trailingSpaceEnabled(this)) "$text " else text
+        val inserted = VoxScribeAccessibilityService.instance?.insertText(toInsert) ?: false
         if (!inserted) {
             val clipboard = getSystemService(ClipboardManager::class.java)
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
@@ -319,6 +356,10 @@ class BubbleService : Service() {
          * the bubble is currently active without needing a bound connection.
          */
         var isRunning: Boolean = false
+            private set
+
+        /** The running service, or null. Lets the typing service show and hide the bubble. */
+        var instance: BubbleService? = null
             private set
     }
 }

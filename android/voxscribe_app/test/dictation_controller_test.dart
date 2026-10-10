@@ -2,17 +2,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_status.dart';
+import 'package:voxscribe_app/features/history/history_controller.dart';
 
+import 'support/fake_history_repository.dart';
 import 'support/scripted_engine.dart';
 
 void main() {
   late ScriptedEngine engine;
+  late HistoryController history;
   late DictationController controller;
   final clock = DateTime(2026, 10, 10, 9, 48);
 
   setUp(() {
     engine = ScriptedEngine();
-    controller = DictationController(engine: engine, clock: () => clock);
+    history = HistoryController(repository: FakeHistoryRepository());
+    controller = DictationController(
+      engine: engine,
+      history: history,
+      clock: () => clock,
+    );
   });
 
   tearDown(() => controller.dispose());
@@ -20,7 +28,7 @@ void main() {
   test('starts ready with nothing recorded', () {
     expect(controller.status, DictationStatus.ready);
     expect(controller.transcript, isNull);
-    expect(controller.entries, isEmpty);
+    expect(history.entries, isEmpty);
   });
 
   test('holding records and keeps only the most recent levels', () async {
@@ -47,9 +55,9 @@ void main() {
 
     expect(controller.status, DictationStatus.ready);
     expect(controller.transcript, 'Remind me to call the dentist.');
-    expect(controller.entries, hasLength(1));
-    expect(controller.entries.single.wordCount, 6);
-    expect(controller.entries.single.createdAt, clock);
+    expect(history.entries, hasLength(1));
+    expect(history.entries.single.wordCount, 6);
+    expect(history.entries.single.createdAt, clock);
   });
 
   test('newest dictation comes first', () async {
@@ -61,7 +69,7 @@ void main() {
       await released;
     }
 
-    expect(controller.entries.map((e) => e.text), ['second one', 'first one']);
+    expect(history.entries.map((e) => e.text), ['second one', 'first one']);
   });
 
   test('empty transcript means no speech and adds nothing', () async {
@@ -72,7 +80,7 @@ void main() {
     await released;
 
     expect(controller.status, DictationStatus.noSpeech);
-    expect(controller.entries, isEmpty);
+    expect(history.entries, isEmpty);
     expect(controller.canStart, isTrue);
   });
 
@@ -129,7 +137,7 @@ void main() {
     controller.clearTranscript();
 
     expect(controller.transcript, isNull);
-    expect(controller.entries, hasLength(1));
+    expect(history.entries, hasLength(1));
   });
 
   group('language', () {

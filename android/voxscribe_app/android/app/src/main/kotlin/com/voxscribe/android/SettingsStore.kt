@@ -17,6 +17,7 @@ object SettingsStore {
     private const val KEY_TRAILING_SPACE = "trailing_space"
     private const val KEY_WHISPER_LANGUAGE = "whisper_language"
     private const val DEFAULT_WHISPER_LANGUAGE = "en"
+    private const val KEY_THEME_MODE = "theme_mode"
 
     /** BCP-47 tag -> display name shown in the language picker. Null tag means "device default". */
     val FALLBACK_LANGUAGES: List<Pair<String?, String>> = listOf(
@@ -73,6 +74,14 @@ object SettingsStore {
 
     fun setWhisperLanguage(context: Context, code: String) {
         prefs(context).edit().putString(KEY_WHISPER_LANGUAGE, code).apply()
+    }
+
+    /** The app theme: "system", "light" or "dark". */
+    fun themeMode(context: Context): String =
+        prefs(context).getString(KEY_THEME_MODE, "system") ?: "system"
+
+    fun setThemeMode(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_THEME_MODE, value).apply()
     }
 
     /** Append a trailing space after committing dictated text. */

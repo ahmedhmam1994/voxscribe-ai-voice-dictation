@@ -2,19 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
-import 'package:voxscribe_app/features/dictation/domain/dictation_entry.dart';
+import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
+import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_status.dart';
 
 /// Holds the state of the Dictation screen and drives the engine.
 class DictationController extends ChangeNotifier {
-  DictationController({required this._engine, this._clock = DateTime.now});
+  DictationController({
+    required this._engine,
+    required this._history,
+    this._clock = DateTime.now,
+  });
 
   /// How many recent input levels the meter shows.
   static const meterBars = 14;
 
   final DictationEngine _engine;
+  final HistoryController _history;
   final DateTime Function() _clock;
-  final List<DictationEntry> _entries = [];
   StreamSubscription<double>? _levelSubscription;
 
   DictationStatus _status = DictationStatus.ready;
@@ -31,8 +36,6 @@ class DictationController extends ChangeNotifier {
 
   /// Set while [status] is [DictationStatus.failed].
   String? get errorMessage => _errorMessage;
-
-  List<DictationEntry> get entries => List.unmodifiable(_entries);
 
   /// The last [meterBars] input levels, oldest first.
   List<double> get recentLevels => _recentLevels;
@@ -95,7 +98,7 @@ class DictationController extends ChangeNotifier {
     unawaited(_stopListeningToLevels());
     try {
       final result = await _engine.stop();
-      _finish(result);
+      await _finish(result);
     } on DictationException catch (error) {
       await _fail(error.message);
     }
@@ -106,22 +109,21 @@ class DictationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _finish(DictationResult result) {
+  Future<void> _finish(DictationResult result) async {
     final text = result.text.trim();
     if (text.isEmpty) {
       _setStatus(DictationStatus.noSpeech);
       return;
     }
     _transcript = text;
-    _entries.insert(
-      0,
+    _setStatus(DictationStatus.ready);
+    await _history.add(
       DictationEntry(
         text: text,
         createdAt: _clock(),
         duration: result.duration,
       ),
     );
-    _setStatus(DictationStatus.ready);
   }
 
   Future<void> _fail(String message) async {

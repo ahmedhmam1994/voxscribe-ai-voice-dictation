@@ -71,6 +71,8 @@ dependencies {
     // Offline recognizer. A prebuilt AAR from k2-fsa/sherpa-onnx, downloaded by
     // hand into libs/ (see libs/README.md), because it is not on Maven Central.
     implementation(files("libs/sherpa-onnx-1.13.6.aar"))
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 flutter {

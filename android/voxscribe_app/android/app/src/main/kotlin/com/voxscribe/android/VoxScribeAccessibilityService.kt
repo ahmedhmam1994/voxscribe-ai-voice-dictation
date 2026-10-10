@@ -9,6 +9,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 
 /**
  * Powers floating-bubble mode (see BubblePermissions.kt): works with whichever
@@ -71,6 +72,25 @@ class VoxScribeAccessibilityService : AccessibilityService() {
                 lastWrittenText = null
             }
         }
+        refreshBubbleVisibility()
+    }
+
+    /**
+     * Shows the floating bubble only while the user is editing a text box with
+     * the keyboard open, and hides it otherwise.
+     */
+    fun refreshBubbleVisibility() {
+        val bubble = BubbleService.instance ?: return
+        // Null while windows are switching; keep the current state then.
+        val root = rootInActiveWindow ?: return
+        val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+        val editing = focused?.isEditable == true
+        focused.recycleCompat()
+        val allWindows = windows
+        // If the phone does not report windows, fall back to focus alone.
+        val keyboardOpen = allWindows.isEmpty() ||
+            allWindows.any { it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        bubble.setFieldFocused(editing && keyboardOpen)
     }
 
     override fun onInterrupt() {
@@ -129,8 +149,13 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         // showing outright, and only a later dictation in the same
         // uninterrupted focus session appends.
         node.refresh()
-        val existing = lastWrittenText ?: ""
-        val newText = existing + text
+        // Compare with what the field really holds now: our remembered text is
+        // only trusted while the field still starts with it (see DictationText).
+        val newText = DictationText.compose(
+            current = node.text?.toString().orEmpty(),
+            lastWritten = lastWrittenText,
+            dictated = text,
+        )
 
         val setTextArgs = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)

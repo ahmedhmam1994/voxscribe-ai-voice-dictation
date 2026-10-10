@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:voxscribe_app/app/app.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 
 import 'support/fake_setup_platform.dart';
-import 'support/scripted_engine.dart';
+import 'support/test_app.dart';
 
 Future<FakeSetupPlatform> _openSetup(
   WidgetTester tester,
   SetupStatus status,
 ) async {
   final platform = FakeSetupPlatform(status);
-  await tester.pumpWidget(
-    VoxScribeApp(engine: ScriptedEngine(), setupPlatform: platform),
-  );
-  await tester.tap(find.text('Setup'));
+  await tester.pumpWidget(buildTestApp(setup: platform));
+  await openTab(tester, 'Settings');
+  await tester.tap(find.text('Floating button and permissions'));
   await tester.pumpAndSettle();
   return platform;
 }

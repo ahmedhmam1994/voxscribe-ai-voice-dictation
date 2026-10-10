@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:voxscribe_app/app/app.dart';
 
-import 'support/fake_setup_platform.dart';
 import 'support/scripted_engine.dart';
+import 'support/test_app.dart';
 
 void main() {
   testWidgets('shows the empty state before any dictation', (tester) async {
-    await tester.pumpWidget(
-      VoxScribeApp(
-        engine: ScriptedEngine(),
-        setupPlatform: FakeSetupPlatform(),
-      ),
-    );
+    await tester.pumpWidget(buildTestApp());
 
     expect(find.text('Ready'), findsOneWidget);
     expect(find.text('Hold to dictate'), findsOneWidget);
@@ -24,9 +18,7 @@ void main() {
     tester,
   ) async {
     final engine = ScriptedEngine();
-    await tester.pumpWidget(
-      VoxScribeApp(engine: engine, setupPlatform: FakeSetupPlatform()),
-    );
+    await tester.pumpWidget(buildTestApp(engine: engine));
 
     final gesture = await tester.startGesture(
       tester.getCenter(find.text('Hold to dictate')),
@@ -55,12 +47,7 @@ void main() {
   testWidgets('copy and clear are disabled until there is a transcript', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      VoxScribeApp(
-        engine: ScriptedEngine(),
-        setupPlatform: FakeSetupPlatform(),
-      ),
-    );
+    await tester.pumpWidget(buildTestApp());
 
     final copy = tester.widget<ButtonStyleButton>(
       find.ancestor(
@@ -74,26 +61,20 @@ void main() {
   testWidgets('the other sections are reachable from the bottom bar', (
     tester,
   ) async {
-    await tester.pumpWidget(
-      VoxScribeApp(
-        engine: ScriptedEngine(),
-        setupPlatform: FakeSetupPlatform(),
-      ),
-    );
+    await tester.pumpWidget(buildTestApp());
 
-    await tester.tap(find.text('Insights'));
-    await tester.pump();
+    await openTab(tester, 'Insights');
+    expect(find.textContaining('Counted on this phone only'), findsOneWidget);
 
-    expect(find.text('Insights comes next.'), findsOneWidget);
+    await openTab(tester, 'Settings');
+    expect(find.text('Floating button and permissions'), findsOneWidget);
   });
 
   testWidgets('the language chip shows English and switches to Arabic', (
     tester,
   ) async {
     final engine = ScriptedEngine();
-    await tester.pumpWidget(
-      VoxScribeApp(engine: engine, setupPlatform: FakeSetupPlatform()),
-    );
+    await tester.pumpWidget(buildTestApp(engine: engine));
     await tester.pumpAndSettle();
     expect(find.text('English'), findsOneWidget);
 
