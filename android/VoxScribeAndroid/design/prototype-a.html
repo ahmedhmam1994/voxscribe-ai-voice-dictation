@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxScribe Android: Paper and Ink prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F3EEE4;
+    --raised: #EBE5D8;
+    --rule: #CFC7B6;
+    --ink: #1B1A17;
+    --muted: #6B665B;
+    --stamp: #D8341F;
+    --desk: #DDD6C6;
+  }
+  :root[data-theme="dark"] {
+    --paper: #14130F;
+    --raised: #1D1B16;
+    --rule: #35322A;
+    --ink: #E9E3D6;
+    --muted: #9A9486;
+    --stamp: #FF5A3F;
+    --desk: #0C0B09;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--desk);
+    color: var(--ink);
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    min-height: 100vh;
+    padding: 28px 16px 56px;
+  }
+  .bar-top {
+    max-width: 1280px; margin: 0 auto 24px;
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  }
+  .bar-top h1 { font-size: 20px; font-weight: 500; margin: 0; }
+  .bar-top p { margin: 0; color: var(--muted); font-size: 15px; font-style: italic; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+  .toggle {
+    font: inherit; background: none; color: var(--ink); border: 1px solid var(--rule);
+    padding: 10px 14px; cursor: pointer; min-height: 44px;
+  }
+  .toggle:focus-visible, .key:focus-visible, .link:focus-visible, .nav button:focus-visible, .search:focus-visible {
+    outline: 2px solid var(--ink); outline-offset: 2px;
+  }
+  .phones {
+    max-width: 1280px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 390px)); gap: 28px; justify-content: center;
+  }
+  .label { color: var(--muted); margin: 0 0 10px; }
+  .phone {
+    width: 100%; max-width: 390px; height: 780px;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 28px;
+    display: flex; flex-direction: column; overflow: hidden; position: relative;
+  }
+  .status { display: flex; justify-content: space-between; padding: 18px 24px 0; color: var(--muted); }
+  .status .state { color: var(--ink); }
+  .status .state.rec { color: var(--stamp); }
+  .nav { display: flex; gap: 22px; padding: 18px 24px 0; }
+  .nav button {
+    font: inherit; background: none; border: 0; color: var(--muted); padding: 10px 0 8px; cursor: pointer;
+    border-bottom: 1px solid transparent; min-height: 44px;
+  }
+  .nav button[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+  .body { flex: 1; padding: 20px 24px 0; overflow: hidden; display: flex; flex-direction: column; }
+  .kicker { color: var(--muted); margin: 0 0 14px; }
+  .transcript {
+    font-size: 28px; line-height: 1.22; font-weight: 400; margin: 0 0 16px; letter-spacing: -.005em;
+    font-variation-settings: "opsz" 48;
+  }
+  .caret { display: inline-block; width: 2px; height: .95em; background: var(--ink); vertical-align: -.1em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .meta { color: var(--muted); }
+  .level { margin-top: auto; padding-bottom: 20px; }
+  .level svg { display: block; width: 100%; height: 72px; }
+  .level path { fill: none; stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+  .level.rec path { stroke: var(--stamp); }
+  .key {
+    font: inherit; width: 100%; height: 72px; border: 0; border-top: 1px solid var(--ink);
+    background: var(--ink); color: var(--paper); cursor: pointer; touch-action: none; user-select: none;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font-size: 13px;
+    transition: background-color 80ms linear, color 80ms linear;
+  }
+  .key.rec { background: var(--stamp); color: #fff; border-top-color: var(--stamp); }
+  .key .hint { opacity: .75; }
+  .key.plain:active { background: var(--stamp); border-top-color: var(--stamp); color: #fff; }
+  h2.display {
+    font-size: 44px; line-height: 1.02; font-weight: 400; margin: 6px 0 12px; letter-spacing: -.015em; font-variation-settings: "opsz" 72;
+  }
+  .lede { font-size: 17px; line-height: 1.4; color: var(--muted); margin: 0 0 22px; }
+  .ledger { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+  .ledger li { padding: 16px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: baseline; }
+  .ledger .n { color: var(--muted); }
+  .ledger .t { font-size: 20px; line-height: 1.2; }
+  .ledger .d { grid-column: 2 / 4; color: var(--muted); font-size: 16px; line-height: 1.35; margin: 4px 0 0; }
+  .ledger .done { color: var(--muted); }
+  .ledger .todo { color: var(--ink); border-bottom: 1px solid var(--ink); }
+  .ledger li.off .t { color: var(--muted); }
+  .foot { margin-top: auto; padding: 0 0 20px; color: var(--muted); font-size: 15px; font-style: italic; }
+  .search {
+    font: inherit; font-size: 17px; width: 100%; background: none; color: var(--ink); border: 0; border-bottom: 1px solid var(--ink);
+    padding: 12px 0; margin-bottom: 6px; border-radius: 0;
+  }
+  .search::placeholder { color: var(--muted); font-style: italic; }
+  .day { color: var(--muted); margin: 18px 0 0; padding-bottom: 8px; }
+  .entries { overflow: hidden; }
+  .entry { display: grid; grid-template-columns: 52px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--rule); }
+  .entry time { color: var(--muted); padding-top: 4px; }
+  .entry p { margin: 0; font-size: 18px; line-height: 1.3; }
+  .entry .sub { color: var(--muted); margin-top: 6px; display: block; }
+  .entry .tag { color: var(--stamp); }
+  .tc { margin: 8px 0 0; display: grid; gap: 4px; color: var(--muted); }
+  .tc span { font-family: "Newsreader", serif; text-transform: none; letter-spacing: 0; font-size: 16px; color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } .key { transition: none; } }
+  .note { max-width: 1280px; margin: 28px auto 0; color: var(--muted); font-size: 15px; font-style: italic; text-align: center; }
+</style>
+</head>
+<body>
+<div class="bar-top">
+  <h1>VoxScribe Android, Paper and Ink</h1>
+  <p>Press and hold the bottom bar on Dictate to try the recording flow.</p>
+  <button class="toggle mono" id="theme" type="button">Switch to carbon paper</button>
+</div>
+
+<div class="phones">
+  <!-- DICTATE -->
+  <div>
+    <p class="label mono">1 Dictate</p>
+    <section class="phone" aria-label="Dictate screen">
+      <div class="status mono"><span class="state" id="state">Ready</span><span>Small model, offline</span></div>
+      <nav class="nav mono" aria-label="Sections">
+        <button type="button" aria-current="page">Dictate</button><button type="button">History</button><button type="button">Settings</button>
+      </nav>
+      <div class="body">
+        <p class="kicker mono" id="kicker">Last dictation, 14:32</p>
+        <p class="transcript" id="text">Running ten minutes late, start without me and I will catch up on the second item.</p>
+        <p class="meta mono" id="meta">14 words, 3.1 s</p>
+        <div class="level" id="level">
+          <svg viewBox="0 0 342 72" preserveAspectRatio="none" aria-hidden="true"><path id="line" d="M0 36 L342 36"/></svg>
+        </div>
+      </div>
+      <button class="key mono" id="hold" type="button" aria-label="Hold to dictate. Release to type the text.">
+        <span id="keyLabel">Hold to dictate</span><span class="hint" id="keyHint">Anywhere you type</span>
+      </button>
+    </section>
+  </div>
+
+  <!-- SETUP -->
+  <div>
+    <p class="label mono">2 Setup</p>
+    <section class="phone" aria-label="Setup screen">
+      <div class="status mono"><span class="state">Setup</span><span>Step 2 of 2</span></div>
+      <div class="body" style="padding-top:34px">
+        <h2 class="display">Two steps.</h2>
+        <p class="lede">Then hold the key anywhere you type. Your voice stays on this phone.</p>
+        <ol class="ledger">
+          <li><span class="n mono">01</span><span class="t">Allow the microphone</span><span class="mono done">Done</span></li>
+          <li><span class="n mono">02</span><span class="t">Choose VoxScribe as a keyboard</span><span class="mono todo">To do</span>
+            <p class="d">Android will ask you to switch input method. Pick VoxScribe, then come back.</p></li>
+          <li class="off"><span class="n mono">03</span><span class="t">Floating bubble</span><span class="mono done">Optional</span>
+            <p class="d">A small key that floats over other apps, if you would rather not switch keyboards.</p></li>
+        </ol>
+        <p class="foot">Nothing is uploaded. The model runs on the device, even in airplane mode.</p>
+      </div>
+      <button class="key mono plain" type="button"><span>Open keyboard settings</span><span class="hint">Step 2</span></button>
+    </section>
+  </div>
+
+  <!-- HISTORY -->
+  <div>
+    <p class="label mono">3 History</p>
+    <section class="phone" aria-label="History screen">
+      <div class="status mono"><span class="state">History</span><span>31 entries</span></div>
+      <nav class="nav mono" aria-label="Sections">
+        <button type="button">Dictate</button><button type="button" aria-current="page">History</button><button type="button">Settings</button>
+      </nav>
+      <div class="body">
+        <input class="search" type="search" placeholder="Search your dictations" aria-label="Search your dictations">
+        <p class="day mono">Today</p>
+        <div class="entries">
+          <div class="entry"><time class="mono">14:32</time><div><p>Running ten minutes late, start without me and I will catch up on the second item.</p></div></div>
+          <div class="entry"><time class="mono">11:05</time><div><p>Remind me to renew the passport before the end of the month.</p><span class="sub mono tag">Held, window changed. Tap to copy.</span></div></div>
+          <div class="entry"><time class="mono">09:48</time><div><p><em>interview-clip.mp3</em></p>
+            <div class="tc mono"><div>00:00:04 to 00:00:09 <span>So how did you start?</span></div><div>00:00:09 to 00:00:15 <span>It was an accident, honestly.</span></div></div>
+            <span class="sub mono">Saved as interview-clip.srt</span></div></div>
+        </div>
+      </div>
+      <button class="key mono plain" type="button"><span>Import audio file</span><span class="hint">Makes an .srt</span></button>
+    </section>
+  </div>
+</div>
+<p class="note">Prototype only. In the real app these screens are Flutter, and the keyboard and bubble are native Kotlin using the same colors and fonts.</p>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var themeBtn = document.getElementById('theme');
+  themeBtn.addEventListener('click', function () {
+    var dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    themeBtn.textContent = dark ? 'Switch to carbon paper' : 'Switch to paper';
+  });
+
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var key = document.getElementById('hold');
+  var keyLabel = document.getElementById('keyLabel');
+  var keyHint = document.getElementById('keyHint');
+  var state = document.getElementById('state');
+  var line = document.getElementById('line');
+  var level = document.getElementById('level');
+  var text = document.getElementById('text');
+  var meta = document.getElementById('meta');
+  var kicker = document.getElementById('kicker');
+
+  var W = 342, H = 72, N = 96, mid = H / 2;
+  var samples = new Array(N).fill(0);
+  var raf = null, hot = false, busy = false, phase = 0;
+
+  var sentences = [
+    'Can you move the review to Thursday morning? I need the extra day to finish the numbers.',
+    'Buy oat milk, batteries, and the thing for the bathroom door that squeaks.',
+    'The offline model took about two seconds for that sentence, which is fine by me.'
+  ];
+  var idx = 0;
+
+  function draw() {
+    var d = 'M0 ' + mid;
+    for (var i = 0; i < N; i++) {
+      var x = (i / (N - 1)) * W;
+      var y = mid + samples[i] * (i % 2 ? -1 : 1);
+      d += ' L' + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    line.setAttribute('d', d);
+  }
+  function flat() { samples.fill(0); line.setAttribute('d', 'M0 ' + mid + ' L' + W + ' ' + mid); }
+
+  function tick() {
+    phase += 0.09;
+    var amp = 6 + 22 * Math.abs(Math.sin(phase * 0.7) * Math.sin(phase * 1.9 + 0.6)) + Math.random() * 8;
+    samples.shift(); samples.push(amp);
+    draw();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setState(label, rec) {
+    state.textContent = label;
+    state.classList.toggle('rec', !!rec);
+  }
+
+  function start() {
+    if (hot || busy) return;
+    hot = true;
+    key.classList.add('rec'); level.classList.add('rec');
+    keyLabel.textContent = 'Release to type'; keyHint.textContent = 'Recording';
+    setState('Rec', true);
+    if (navigator.vibrate) navigator.vibrate(10);
+    tick();
+  }
+
+  function stop() {
+    if (!hot) return;
+    hot = false; busy = true;
+    cancelAnimationFrame(raf);
+    key.classList.remove('rec'); level.classList.remove('rec');
+    keyLabel.textContent = 'Typing'; keyHint.textContent = 'On device';
+    setState('Transcribing', false);
+    flat();
+    if (navigator.vibrate) navigator.vibrate(10);
+    var out = sentences[idx++ % sentences.length];
+    kicker.textContent = 'Now';
+    meta.textContent = 'Transcribing';
+    if (reduce) { finish(out); return; }
+    text.innerHTML = '<span class="caret"></span>';
+    var i = 0;
+    var typer = setInterval(function () {
+      i += 2;
+      text.textContent = out.slice(0, i);
+      var c = document.createElement('span'); c.className = 'caret'; text.appendChild(c);
+      if (i >= out.length) { clearInterval(typer); finish(out); }
+    }, 24);
+  }
+
+  function finish(out) {
+    text.textContent = out;
+    var words = out.split(/\s+/).length;
+    meta.textContent = words + ' words, ' + (1.6 + words * 0.09).toFixed(1) + ' s';
+    kicker.textContent = 'Last dictation, just now';
+    keyLabel.textContent = 'Hold to dictate'; keyHint.textContent = 'Anywhere you type';
+    setState('Ready', false);
+    busy = false;
+  }
+
+  key.addEventListener('pointerdown', function (e) { e.preventDefault(); key.setPointerCapture(e.pointerId); start(); });
+  key.addEventListener('pointerup', stop);
+  key.addEventListener('pointercancel', stop);
+  key.addEventListener('keydown', function (e) { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); start(); } });
+  key.addEventListener('keyup', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); stop(); } });
+  flat();
+})();
+</script>
+</body>
+</html>

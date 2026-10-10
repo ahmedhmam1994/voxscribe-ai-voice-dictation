@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoxScribe Android: desktop identity prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #121319; --card: #1b1d27; --card-hi: #22242f; --border: #2b2e3b; --soft: #242631;
+    --text: #eceef4; --muted: #8b8d9c; --faint: #5c5e6c;
+    --accent: #3ecf8e; --accent-press: #269e69; --accent-ink: #3ecf8e; --on-accent: #0b2418;
+    --amber: #f0a54a; --red: #f0546b; --desk: #0a0b0f;
+  }
+:root[data-theme="light"] {
+    --bg: #F3F4F7; --card: #FFFFFF; --card-hi: #E9ECF2; --border: #DADDE6; --soft: #E6E8EF;
+    --text: #14161C; --muted: #5B5F6E; --faint: #8A8EA0;
+    --accent: #3ecf8e; --accent-press: #2DB77C; --accent-ink: #0F7A52; --on-accent: #0b2418;
+    --amber: #94570A; --red: #D4304A; --desk: #E3E5EB;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--desk); color: var(--text); font-family: "Inter", "Segoe UI", system-ui, sans-serif; padding: 28px 16px 56px; -webkit-font-smoothing: antialiased; }
+  .top { max-width: 1280px; margin: 0 auto 22px; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+  .top h1 { font-size: 18px; font-weight: 700; margin: 0; }
+  .top p { margin: 0; color: var(--muted); font-size: 14px; }
+  .phones { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 390px)); gap: 28px; justify-content: center; }
+  .label { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 10px; }
+  .phone { width: 100%; max-width: 390px; height: 800px; background: var(--bg); border: 1px solid var(--border); border-radius: 30px; display: flex; flex-direction: column; overflow: hidden; }
+  svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+  /* app bar */
+  .appbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 6px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -.01em; }
+  .mark { display: flex; align-items: center; gap: 2px; height: 20px; }
+  .mark i { display: block; width: 3px; border-radius: 2px; background: var(--accent-ink); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--card); border-radius: 10px; padding: 8px 12px; min-height: 40px; }
+  .chip .i { width: 14px; height: 14px; }
+  .scroll { flex: 1; overflow-y: auto; padding: 8px 20px 16px; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  /* status pill */
+  .pill { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--soft); border-radius: 999px; padding: 0 16px; height: 40px; font-size: 14px; font-weight: 500; width: fit-content; max-width: 100%; transition: border-color 120ms linear; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .pill.rec { border-color: color-mix(in srgb, var(--accent-ink) 45%, transparent); }
+  .pill.rec .dot { background: var(--accent-ink); }
+  .pill.busy { border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+  .pill.busy .dot { background: var(--amber); }
+  .meter { display: none; align-items: center; gap: 2px; height: 18px; }
+  .pill.rec .meter { display: flex; }
+  .meter i { display: block; width: 3px; border-radius: 2px; background: var(--accent-ink); height: 4px; }
+  .sec { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin: 22px 0 10px; display: flex; justify-content: space-between; align-items: baseline; }
+  .sec a { color: var(--accent-ink); text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; text-decoration: none; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; }
+  .transcript { padding: 16px; min-height: 124px; font-size: 17px; line-height: 1.5; }
+  .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--accent-ink); vertical-align: -.15em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 12px; height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+  .btn.line { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent-ink) 55%, transparent); background: transparent; }
+  .btn.quiet { background: transparent; border-color: transparent; color: var(--muted); }
+  .entry { display: grid; grid-template-columns: 62px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--soft); font-size: 15px; line-height: 1.45; }
+  .entry:first-of-type { border-top: 0; }
+  .entry time { color: var(--muted); font-size: 13px; font-weight: 500; padding-top: 1px; font-variant-numeric: tabular-nums; }
+  .entry .meta { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .model { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; padding: 12px 14px; }
+  .model .i { color: var(--accent-ink); width: 16px; height: 16px; }
+  /* record dock */
+  .dock { padding: 12px 20px 10px; background: linear-gradient(to top, var(--bg) 70%, transparent); }
+  .rec-btn { font: inherit; width: 100%; height: 60px; border: 0; border-radius: 16px; background: var(--accent); color: var(--on-accent); font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; touch-action: none; user-select: none; transition: background-color 80ms linear, transform 80ms linear; }
+  .rec-btn .i { width: 22px; height: 22px; stroke-width: 2; }
+  .rec-btn.down { background: var(--accent-press); transform: scale(.985); }
+  .rec-btn:focus-visible, .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--soft); background: var(--bg); padding: 4px 8px 10px; }
+  .tab { font: inherit; background: none; border: 0; color: var(--muted); font-size: 12px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0 4px; min-height: 56px; cursor: pointer; }
+  .tab[aria-current="page"] { color: var(--accent-ink); }
+  .tab .i { width: 22px; height: 22px; }
+  /* insights */
+  h2.title { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 14px 0 4px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 18px; line-height: 1.4; }
+  .big { padding: 18px; }
+  .big .num { font-size: 52px; font-weight: 800; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .big .cap { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .pair .card { padding: 14px 16px; }
+  .pair .num { font-size: 28px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .pair .cap { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .week { padding: 16px 16px 12px; }
+  .bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; align-items: end; height: 120px; }
+  .bars div { background: var(--card-hi); border-radius: 6px 6px 3px 3px; min-height: 6px; }
+  .bars div.today { background: var(--accent-ink); }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 8px; color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; }
+  .days .today { color: var(--text); }
+  /* setup */
+  .step { padding: 16px; margin-bottom: 10px; }
+  .step .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .step h3 { margin: 0; font-size: 17px; font-weight: 700; }
+  .step p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
+  .state { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border-radius: 999px; padding: 5px 10px; white-space: nowrap; }
+  .state.ok { color: var(--accent-ink); background: color-mix(in srgb, var(--accent-ink) 14%, transparent); }
+  .state.todo { color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+  .state.opt { color: var(--muted); background: var(--soft); }
+  .step.active { border-color: color-mix(in srgb, var(--accent-ink) 55%, transparent); }
+  .note { display: flex; gap: 10px; align-items: flex-start; color: var(--muted); font-size: 14px; line-height: 1.45; margin-top: 16px; }
+  .note .i { color: var(--accent-ink); margin-top: 1px; }
+  .foot { max-width: 1280px; margin: 26px auto 0; text-align: center; color: var(--faint); font-size: 13px; }
+  @media (prefers-reduced-motion: reduce) { .caret { animation: none; } .rec-btn { transition: none; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></symbol>
+    <symbol id="i-bars" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  </defs>
+</svg>
+
+<div class="top">
+  <h1>VoxScribe Android, desktop identity</h1>
+  <p>Press and hold the green button on Dictation to try the flow.</p>
+  <button class="chip" id="theme" type="button" style="cursor:pointer">Theme: Dark</button>
+</div>
+
+<div class="phones">
+  <!-- DICTATION -->
+  <div>
+    <p class="label">1 Dictation</p>
+    <section class="phone" aria-label="Dictation screen">
+      <div class="appbar">
+        <div class="brand"><span class="mark" aria-hidden="true"><i style="height:8px"></i><i style="height:16px"></i><i style="height:20px"></i><i style="height:12px"></i></span>VoxScribe</div>
+        <span class="chip"><svg class="i"><use href="#i-globe"/></svg>English</span>
+      </div>
+      <div class="scroll">
+        <div class="pill" id="pill"><span class="dot"></span><span class="meter" id="meter" aria-hidden="true"></span><span id="pillText">Typed into active window</span></div>
+
+        <div class="sec">Transcript</div>
+        <div class="card transcript" id="transcript">Running ten minutes late, start without me and I will catch up on the second item.</div>
+        <div class="actions">
+          <button class="btn line" type="button"><svg class="i"><use href="#i-down"/></svg>Save</button>
+          <button class="btn" type="button"><svg class="i"><use href="#i-copy"/></svg>Copy</button>
+          <button class="btn quiet" type="button"><svg class="i"><use href="#i-trash"/></svg>Clear</button>
+        </div>
+
+        <div class="sec">Today <a href="#">See all</a></div>
+        <div id="today">
+          <div class="entry"><time>11:05 AM</time><div>Remind me to renew the passport before the end of the month.<span class="meta">11 words, 2.4 s</span></div></div>
+          <div class="entry"><time>9:48 AM</time><div>Draft a reply saying Thursday works, but only after lunch.<span class="meta">10 words, 2.1 s</span></div></div>
+          <div class="entry"><time>8:12 AM</time><div>Pick up the parcel from the neighbour and return the drill.<span class="meta">11 words, 2.6 s</span></div></div>
+        </div>
+
+        <div class="card model" style="margin-top:14px"><svg class="i"><use href="#i-check"/></svg>Small model, on this phone. Works in airplane mode.</div>
+      </div>
+      <div class="dock">
+        <button class="rec-btn" id="hold" type="button" aria-label="Hold to dictate. Release to type the text."><svg class="i"><use href="#i-mic"/></svg><span id="holdLabel">Hold to dictate</span></button>
+      </div>
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab" type="button" aria-current="page"><svg class="i"><use href="#i-mic"/></svg>Dictation</button>
+        <button class="tab" type="button"><svg class="i"><use href="#i-bars"/></svg>Insights</button>
+        <button class="tab" type="button"><svg class="i"><use href="#i-sliders"/></svg>Settings</button>
+      </nav>
+    </section>
+  </div>
+
+  <!-- INSIGHTS -->
+  <div>
+    <p class="label">2 Insights</p>
+    <section class="phone" aria-label="Insights screen">
+      <div class="appbar">
+        <div class="brand"><span class="mark" aria-hidden="true"><i style="height:8px"></i><i style="height:16px"></i><i style="height:20px"></i><i style="height:12px"></i></span>VoxScribe</div>
+      </div>
+      <div class="scroll">
+        <h2 class="title">Insights</h2>
+        <p class="sub">Counted on this phone only. Nothing leaves it.</p>
+        <div class="card big"><div class="num">12,480</div><div class="cap">words dictated, all time</div></div>
+        <div class="pair">
+          <div class="card"><div class="num">142</div><div class="cap">words per minute</div></div>
+          <div class="card"><div class="num">6 days</div><div class="cap">current streak</div></div>
+        </div>
+        <div class="sec">This week</div>
+        <div class="card week">
+          <div class="bars" aria-label="Words per day this week">
+            <div style="height:38%"></div><div style="height:62%"></div><div style="height:30%"></div><div style="height:78%"></div><div style="height:54%"></div><div style="height:90%"></div><div class="today" style="height:46%"></div>
+          </div>
+          <div class="days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">S</span></div>
+        </div>
+        <div class="sec">Longest dictation</div>
+        <div class="card" style="padding:14px 16px;font-size:15px;line-height:1.45;color:var(--muted)"><span style="color:var(--text)">214 words</span>, 1 min 38 s, on Tuesday.</div>
+      </div>
+      <nav class="tabs" aria-label="Sections">
+        <button class="tab" type="button"><svg class="i"><use href="#i-mic"/></svg>Dictation</button>
+        <button class="tab" type="button" aria-current="page"><svg class="i"><use href="#i-bars"/></svg>Insights</button>
+        <button class="tab" type="button"><svg class="i"><use href="#i-sliders"/></svg>Settings</button>
+      </nav>
+    </section>
+  </div>
+
+  <!-- SETUP -->
+  <div>
+    <p class="label">3 Setup</p>
+    <section class="phone" aria-label="Setup screen">
+      <div class="appbar">
+        <div class="brand"><span class="mark" aria-hidden="true"><i style="height:8px"></i><i style="height:16px"></i><i style="height:20px"></i><i style="height:12px"></i></span>VoxScribe</div>
+        <span class="chip">Step 2 of 2</span>
+      </div>
+      <div class="scroll">
+        <h2 class="title">Two quick steps</h2>
+        <p class="sub">Then hold the floating button over any app. Your own keyboard stays exactly as it is.</p>
+        <div class="card step">
+          <div class="row"><h3>Allow the microphone</h3><span class="state ok">Done</span></div>
+        </div>
+        <div class="card step active">
+          <div class="row"><h3>Turn on VoxScribe in Accessibility</h3><span class="state todo">To do</span></div>
+          <p>Android requires this to let an app type into other apps. VoxScribe only watches which text box is focused, so it can put your dictation there.</p>
+        </div>
+        <div class="card step">
+          <div class="row"><h3>Show the floating button</h3><span class="state todo">To do</span></div>
+          <p>Allow display over other apps. A small button floats above your keyboard. Hold it to talk, release to type.</p>
+        </div>
+        <div class="note"><svg class="i"><use href="#i-lock"/></svg><span>Your voice is transcribed on this phone. It is never uploaded, and the model works in airplane mode.</span></div>
+      </div>
+      <div class="dock"><button class="rec-btn" type="button" style="font-size:16px">Open accessibility settings</button></div>
+    </section>
+  </div>
+</div>
+<p class="foot">Prototype only. The real app is Flutter for these screens, with the floating button and typing service in native Kotlin.</p>
+
+<script>
+(function () {
+  var root = document.documentElement, tbtn = document.getElementById('theme');
+  tbtn.addEventListener('click', function () {
+    var light = root.getAttribute('data-theme') === 'light';
+    root.setAttribute('data-theme', light ? 'dark' : 'light');
+    tbtn.textContent = 'Theme: ' + (light ? 'Dark' : 'Light');
+  });
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var btn = document.getElementById('hold'), label = document.getElementById('holdLabel');
+  var pill = document.getElementById('pill'), pillText = document.getElementById('pillText');
+  var meter = document.getElementById('meter'), transcript = document.getElementById('transcript'), today = document.getElementById('today');
+  for (var i = 0; i < 14; i++) meter.appendChild(document.createElement('i'));
+  var bars = meter.children, raf = null, hot = false, busy = false, t = 0;
+  var lines = [
+    'Can you move the review to Thursday morning? I need the extra day to finish the numbers.',
+    'Buy oat milk, batteries, and the thing for the bathroom door that squeaks.',
+    'The offline model took about two seconds for that sentence, which is fine by me.'
+  ];
+  var n = 0;
+  function frame() {
+    t += 0.18;
+    for (var i = 0; i < bars.length; i++) {
+      var h = 4 + 14 * Math.abs(Math.sin(t + i * 0.7) * Math.sin(t * 0.6 + i * 0.3)) + Math.random() * 3;
+      bars[i].style.height = h.toFixed(1) + 'px';
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    if (hot || busy) return; hot = true;
+    btn.classList.add('down'); label.textContent = 'Release to type';
+    pill.className = 'pill rec'; pillText.textContent = 'Listening';
+    if (navigator.vibrate) navigator.vibrate(10);
+    frame();
+  }
+  function stop() {
+    if (!hot) return; hot = false; busy = true;
+    cancelAnimationFrame(raf);
+    btn.classList.remove('down'); label.textContent = 'Typing in...';
+    pill.className = 'pill busy'; pillText.textContent = 'Transcribing';
+    if (navigator.vibrate) navigator.vibrate(10);
+    var out = lines[n++ % lines.length];
+    if (reduce) { done(out); return; }
+    transcript.innerHTML = '<span class="caret"></span>';
+    var i = 0, id = setInterval(function () {
+      i += 2; transcript.textContent = out.slice(0, i);
+      var c = document.createElement('span'); c.className = 'caret'; transcript.appendChild(c);
+      if (i >= out.length) { clearInterval(id); done(out); }
+    }, 24);
+  }
+  function done(out) {
+    transcript.textContent = out;
+    var w = out.split(/\s+/).length;
+    var e = document.createElement('div'); e.className = 'entry';
+    e.innerHTML = '<time>Just now</time><div></div>';
+    e.lastChild.textContent = out;
+    var m = document.createElement('span'); m.className = 'meta'; m.textContent = w + ' words, ' + (1.4 + w * 0.09).toFixed(1) + ' s';
+    e.lastChild.appendChild(m);
+    today.insertBefore(e, today.firstChild);
+    pill.className = 'pill'; pillText.textContent = 'Typed into active window';
+    label.textContent = 'Hold to dictate'; busy = false;
+  }
+  btn.addEventListener('pointerdown', function (e) { e.preventDefault(); try { btn.setPointerCapture(e.pointerId); } catch (x) {} start(); });
+  btn.addEventListener('pointerup', stop);
+  btn.addEventListener('pointercancel', stop);
+  btn.addEventListener('keydown', function (e) { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); start(); } });
+  btn.addEventListener('keyup', function (e) { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); stop(); } });
+})();
+</script>
+</body>
+</html>
