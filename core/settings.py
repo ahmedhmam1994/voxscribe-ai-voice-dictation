@@ -370,6 +370,33 @@ def set_telemetry_enabled(enabled: bool) -> None:
     _settings().setValue("telemetry_enabled", "true" if enabled else "false")
 
 
+def _get_flag(key: str) -> bool:
+    value = _settings().value(key, False)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def get_code_dictation_enabled() -> bool:
+    """Pro. Default off: spoken "camel case ..." and "open paren" are turned into
+    code instead of prose. See core/code_dictation.py."""
+    return _get_flag("code_dictation_enabled")
+
+
+def set_code_dictation_enabled(enabled: bool) -> None:
+    _settings().setValue("code_dictation_enabled", "true" if enabled else "false")
+
+
+def get_offline_mode_enabled() -> bool:
+    """Pro. Default off: blocks all network use by VoxScribe. See
+    core/network_guard.py."""
+    return _get_flag("offline_mode_enabled")
+
+
+def set_offline_mode_enabled(enabled: bool) -> None:
+    _settings().setValue("offline_mode_enabled", "true" if enabled else "false")
+
+
 def get_stats() -> tuple[int, int]:
     """(sessions, words) -- both 0 if VoxScribe has never transcribed
     anything since this setting was introduced. Purely local counters, never

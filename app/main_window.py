@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -61,7 +62,15 @@ from PySide6.QtWidgets import (
 from app.floating_indicator import FloatingIndicator
 from app.version import __version__
 from app.whats_new import whats_new_text
-from core import history, replacements, snippets
+from core import (
+    code_dictation,
+    history,
+    network_guard,
+    replacements,
+    snippets,
+    templates,
+    vocab_learner,
+)
 from core import license as hotkey_license
 from core import settings as hotkey_settings
 from core.audio_capture import (
@@ -956,6 +965,8 @@ class MainWindow(QMainWindow):
         self._hotkey = hotkey_settings.get_hotkey()
         self._hotkey_key_down = False
         self._hotkey_active_session = False
+        self._template_session: templates.TemplateSession | None = None
+        self._template_last_turn = 0.0
         self._hold_gate: HoldGate | None = None
         self._hold_other_hook = None
 
@@ -1874,6 +1885,107 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_snippets_lock_state)
         license_remove_button.clicked.connect(_update_snippets_lock_state)
 
+        templates_label = QLabel("FILL-IN TEMPLATES (PRO)")
+        templates_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(templates_label)
+
+        templates_edit = QTextEdit()
+        templates_edit.setPlainText(templates.format_lines(templates.get_templates()))
+        templates_edit.setPlaceholderText("bug report => Title: {title}\\nSteps: {steps}")
+        templates_edit.setFixedHeight(90)
+        layout.addWidget(templates_edit)
+
+        templates_hint = QLabel(
+            "One per line: name => text with {slots}. Use \\n for a line break. "
+            'Say "template <name>" and VoxScribe asks for each slot in turn; say '
+            '"skip" to leave one empty or "cancel" to stop. {date} and {time} '
+            "fill themselves in."
+        )
+        templates_hint.setObjectName("settingsHint")
+        templates_hint.setWordWrap(True)
+        layout.addWidget(templates_hint)
+
+        pro_tools_label = QLabel("PRO TOOLS")
+        pro_tools_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(pro_tools_label)
+
+        code_checkbox = QCheckBox("Code dictation")
+        code_checkbox.setChecked(hotkey_settings.get_code_dictation_enabled())
+        layout.addWidget(code_checkbox)
+
+        code_hint = QLabel(
+            'Say "camel case user name" to type userName, or "snake case", "pascal '
+            'case", "kebab case", "constant case". Symbols by voice: "open paren", '
+            '"equals", "dot", "new line". Turns off filler cleanup and capital '
+            "letters while it is on."
+        )
+        code_hint.setObjectName("settingsHint")
+        code_hint.setWordWrap(True)
+        layout.addWidget(code_hint)
+
+        offline_checkbox = QCheckBox("Offline mode: block all network use")
+        offline_checkbox.setChecked(hotkey_settings.get_offline_mode_enabled())
+        layout.addWidget(offline_checkbox)
+
+        offline_hint = QLabel(
+            "While on, VoxScribe cannot reach the internet at all: no launch ping, "
+            "no update check, no model download. The connection log shows every "
+            "outside connection VoxScribe has tried."
+        )
+        offline_hint.setObjectName("settingsHint")
+        offline_hint.setWordWrap(True)
+        layout.addWidget(offline_hint)
+
+        pro_buttons = QHBoxLayout()
+        log_button = QPushButton("View connection log")
+        learn_button = QPushButton("Learn vocabulary from a folder...")
+        pro_buttons.addWidget(log_button)
+        pro_buttons.addWidget(learn_button)
+        layout.addLayout(pro_buttons)
+
+        def _show_connection_log() -> None:
+            self._open_connection_log(dialog)
+
+        def _learn_vocabulary() -> None:
+            folder = QFileDialog.getExistingDirectory(dialog, "Choose a folder of your files")
+            if not folder:
+                return
+            learned = vocab_learner.learn_from_folder(folder)
+            current = [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
+            merged = vocab_learner.merge_vocabulary(current, learned)
+            added = len(merged) - len(current)
+            vocab_edit.setText(", ".join(merged))
+            QMessageBox.information(
+                dialog,
+                "Learn vocabulary",
+                (
+                    f"Added {added} term{'s' if added != 1 else ''} to your custom "
+                    "vocabulary. Review them above, then press Save."
+                    if added
+                    else "No new terms found. Files are read on this PC only."
+                ),
+            )
+
+        log_button.clicked.connect(_show_connection_log)
+        learn_button.clicked.connect(_learn_vocabulary)
+
+        def _update_pro_tools_lock_state() -> None:
+            unlocked = hotkey_license.is_pro()
+            for widget in (
+                templates_edit,
+                code_checkbox,
+                offline_checkbox,
+                log_button,
+                learn_button,
+            ):
+                widget.setEnabled(unlocked)
+            if not unlocked:
+                templates_hint.setText("Unlock Pro above to use templates and Pro tools.")
+
+        _update_pro_tools_lock_state()
+        license_unlock_button.clicked.connect(_update_pro_tools_lock_state)
+        license_remove_button.clicked.connect(_update_pro_tools_lock_state)
+
         cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
         cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
         layout.addWidget(cleanup_checkbox)
@@ -2069,6 +2181,31 @@ class MainWindow(QMainWindow):
                     f"Snippets updated ({len(new_snippets)})."
                     if new_snippets
                     else "Snippets cleared."
+                )
+
+        if hotkey_license.is_pro():
+            new_templates = templates.parse_lines(templates_edit.toPlainText())
+            if new_templates != templates.get_templates():
+                templates.set_templates(new_templates)
+                changes.append(
+                    f"Templates updated ({len(new_templates)})."
+                    if new_templates
+                    else "Templates cleared."
+                )
+
+            new_code = code_checkbox.isChecked()
+            if new_code != hotkey_settings.get_code_dictation_enabled():
+                hotkey_settings.set_code_dictation_enabled(new_code)
+                changes.append("Code dictation on." if new_code else "Code dictation off.")
+
+            new_offline = offline_checkbox.isChecked()
+            if new_offline != hotkey_settings.get_offline_mode_enabled():
+                hotkey_settings.set_offline_mode_enabled(new_offline)
+                network_guard.set_blocking(new_offline)
+                changes.append(
+                    "Offline mode on: VoxScribe will not use the network."
+                    if new_offline
+                    else "Offline mode off."
                 )
 
         new_cleanup_enabled = cleanup_checkbox.isChecked()
@@ -2724,14 +2861,66 @@ class MainWindow(QMainWindow):
             self._handle_editing_command(editing_mode)
             return
 
-        if text and hotkey_settings.get_cleanup_enabled():
-            text = clean_transcript(text)
-        if text and hotkey_settings.get_voice_commands_enabled():
-            text = apply_voice_commands(text)
+        pro = hotkey_license.is_pro()
+        if text and pro and self._handle_template_turn(text):
+            return
+
+        if text and pro and hotkey_settings.get_code_dictation_enabled():
+            # Code is not prose: no capitalizing, no full stops, no filler cleanup.
+            text = code_dictation.to_code(text)
+        else:
+            if text and hotkey_settings.get_cleanup_enabled():
+                text = clean_transcript(text)
+            if text and hotkey_settings.get_voice_commands_enabled():
+                text = apply_voice_commands(text)
         if text:
             text = replacements.apply_replacements(text)
-        if text and hotkey_license.is_pro():
+        if text and pro:
             text = snippets.expand_snippet(text)
+        self._deliver_text(text)
+
+    # How long a half-filled template waits for the next answer before it is dropped.
+    _TEMPLATE_TIMEOUT_SEC = 120
+
+    def _handle_template_turn(self, text: str) -> bool:
+        """Pro. Starts a spoken template, or takes the next answer for one in
+        progress. Returns True when the utterance was consumed by a template."""
+        session = self._template_session
+        if session is not None and time.monotonic() - self._template_last_turn > (
+            self._TEMPLATE_TIMEOUT_SEC
+        ):
+            session = self._template_session = None
+
+        if session is None:
+            template = templates.find_template(text, templates.get_templates())
+            if template is None:
+                return False
+            session = templates.TemplateSession(template)
+            if session.finished:
+                self._deliver_text(session.result())
+                return True
+            self._template_session = session
+        elif session.feed(text) == "cancel":
+            self._template_session = None
+            self._deliver_text("")
+            self._set_status("Template cancelled", "ready")
+            return True
+
+        self._template_last_turn = time.monotonic()
+        if session.finished:
+            self._template_session = None
+            self._deliver_text(session.result())
+            return True
+
+        prompt = session.prompt or ""
+        self.record_button.setEnabled(True)
+        self.import_button.setEnabled(True)
+        self._set_status(f'Template "{session.name}": say {prompt}', "ready")
+        self._indicator.show_status(f"Say: {prompt[:14]}")
+        return True
+
+    def _deliver_text(self, text: str) -> None:
+        """Shows the finished text and types it into the focused window."""
         self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
         self.import_button.setEnabled(True)
@@ -2749,6 +2938,41 @@ class MainWindow(QMainWindow):
             self._set_status("Typed into active window", "ready")
         else:
             self._set_status("Ready", "ready")
+
+    def _open_connection_log(self, parent: QWidget) -> None:
+        """Shows every outside connection VoxScribe has tried, newest first."""
+        log_dialog = QDialog(parent)
+        log_dialog.setWindowTitle("Connection log")
+        log_dialog.setStyleSheet(SETTINGS_DIALOG_STYLESHEET)
+        log_dialog.resize(520, 360)
+        log_layout = QVBoxLayout(log_dialog)
+
+        view = QTextEdit()
+        view.setReadOnly(True)
+        log_layout.addWidget(view)
+
+        def refresh() -> None:
+            entries = network_guard.recent(200)
+            view.setPlainText(
+                "\n".join(
+                    f"{datetime.fromtimestamp(e.when):%Y-%m-%d %H:%M:%S}  "
+                    f"{'BLOCKED' if e.blocked else 'allowed'}  {e.host}"
+                    for e in entries
+                )
+                or "No outside connections have been made."
+            )
+
+        refresh()
+        buttons = QHBoxLayout()
+        clear_button = QPushButton("Clear log")
+        close_button = QPushButton("Close")
+        buttons.addWidget(clear_button)
+        buttons.addStretch(1)
+        buttons.addWidget(close_button)
+        log_layout.addLayout(buttons)
+        clear_button.clicked.connect(lambda: (network_guard.clear_log(), refresh()))
+        close_button.clicked.connect(log_dialog.accept)
+        log_dialog.exec()
 
     def _switch_page(self, index: int) -> None:
         self._pages.setCurrentIndex(index)
