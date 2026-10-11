@@ -6,7 +6,9 @@ from PySide6.QtCore import QSharedMemory
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.main_window import MainWindow
-from core import crash_reporter, telemetry
+from core import crash_reporter, network_guard, telemetry
+from core import license as hotkey_license
+from core import settings as hotkey_settings
 
 # Fixed key -- create() fails with AlreadyExists if another VoxScribe process
 # already holds this segment. Catches a second launch (e.g. the old instance
@@ -29,6 +31,13 @@ def main() -> int:
             "VoxScribe is already running. Check the system tray.",
         )
         return 0
+
+    # Logs every outside connection, and blocks them all when Pro's offline mode
+    # is on. Installed before anything else can reach the network.
+    network_guard.install()
+    network_guard.set_blocking(
+        hotkey_settings.get_offline_mode_enabled() and hotkey_license.is_pro()
+    )
 
     # Only past the single-instance guard, so a duplicate-launch race (e.g.
     # a double-click) doesn't send two pings for what's really one launch.
