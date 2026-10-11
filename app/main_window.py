@@ -47,7 +47,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
-    QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -629,6 +628,21 @@ QLineEdit {{
 }}
 QLineEdit:focus {{
     border: 1px solid {ACCENT};
+}}
+QSpinBox {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+}}
+QSpinBox:focus {{
+    border: 1px solid {ACCENT};
+}}
+QSpinBox::up-button, QSpinBox::down-button {{
+    width: 0px;
+    border: none;
 }}
 QTextEdit {{
     background: {BG_CARD};
@@ -2088,14 +2102,17 @@ class MainWindow(QMainWindow):
         layout.addWidget(speakers_label)
 
         speakers_row = QHBoxLayout()
-        speaker_count_spin = QSpinBox()
-        speaker_count_spin.setRange(0, 8)
-        speaker_count_spin.setSpecialValueText("Detect")
-        speaker_count_spin.setValue(hotkey_settings.get_speaker_count())
+        speaker_count_combo = _NoWheelComboBox()
+        speaker_count_combo.addItem("Detect", 0)
+        for count in range(2, 9):
+            speaker_count_combo.addItem(f"{count} speakers", count)
+        speaker_count_combo.setCurrentIndex(
+            max(0, speaker_count_combo.findData(hotkey_settings.get_speaker_count()))
+        )
         speaker_names_edit = QLineEdit()
         speaker_names_edit.setPlaceholderText("Names in order of first speaking, e.g. Sam, Alex")
         speaker_names_edit.setText(", ".join(hotkey_settings.get_speaker_names()))
-        speakers_row.addWidget(speaker_count_spin)
+        speakers_row.addWidget(speaker_count_combo)
         speakers_row.addWidget(speaker_names_edit, stretch=1)
         layout.addLayout(speakers_row)
 
@@ -2124,9 +2141,17 @@ class MainWindow(QMainWindow):
         pro_buttons = QHBoxLayout()
         log_button = QPushButton("View connection log")
         learn_button = QPushButton("Learn vocabulary from a folder...")
+        for button in (log_button, learn_button):
+            button.setObjectName("secondaryButton")
+            button.setCursor(Qt.PointingHandCursor)
         pro_buttons.addWidget(log_button)
         pro_buttons.addWidget(learn_button)
         layout.addLayout(pro_buttons)
+
+        learn_result = QLabel("")
+        learn_result.setObjectName("settingsHint")
+        learn_result.setWordWrap(True)
+        layout.addWidget(learn_result)
 
         def _show_connection_log() -> None:
             self._open_connection_log(dialog)
@@ -2140,15 +2165,11 @@ class MainWindow(QMainWindow):
             merged = vocab_learner.merge_vocabulary(current, learned)
             added = len(merged) - len(current)
             vocab_edit.setText(", ".join(merged))
-            QMessageBox.information(
-                dialog,
-                "Learn vocabulary",
-                (
-                    f"Added {added} term{'s' if added != 1 else ''} to your custom "
-                    "vocabulary. Review them above, then press Save."
-                    if added
-                    else "No new terms found. Files are read on this PC only."
-                ),
+            learn_result.setText(
+                f"Added {added} term{'s' if added != 1 else ''} to your custom "
+                "vocabulary above. Review them, then press Save."
+                if added
+                else "No new terms found. Files are read on this PC only."
             )
 
         log_button.clicked.connect(_show_connection_log)
@@ -2160,7 +2181,7 @@ class MainWindow(QMainWindow):
                 templates_edit,
                 code_checkbox,
                 smart_checkbox,
-                speaker_count_spin,
+                speaker_count_combo,
                 speaker_names_edit,
                 second_key_combo,
                 second_language_combo,
@@ -2413,7 +2434,7 @@ class MainWindow(QMainWindow):
                     else "Second language key off."
                 )
 
-            new_speaker_count = speaker_count_spin.value()
+            new_speaker_count = speaker_count_combo.currentData()
             new_speaker_names = [n.strip() for n in speaker_names_edit.text().split(",")]
             if new_speaker_names == [""]:
                 new_speaker_names = []
@@ -3230,6 +3251,10 @@ class MainWindow(QMainWindow):
         buttons = QHBoxLayout()
         clear_button = QPushButton("Clear log")
         close_button = QPushButton("Close")
+        clear_button.setObjectName("ghostButton")
+        close_button.setObjectName("secondaryButton")
+        for button in (clear_button, close_button):
+            button.setCursor(Qt.PointingHandCursor)
         buttons.addWidget(clear_button)
         buttons.addStretch(1)
         buttons.addWidget(close_button)
