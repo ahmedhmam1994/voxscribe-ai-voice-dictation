@@ -33,6 +33,8 @@ PySide6_Essentials==6.11.1
 pywin32-ctypes==0.2.3
 PyYAML==6.0.3
 setuptools==84.0.0
+sherpa-onnx-core==1.13.8
+sherpa-onnx==1.13.8
 shiboken6==6.11.1
 sounddevice==0.5.5
 tokenizers==0.23.1

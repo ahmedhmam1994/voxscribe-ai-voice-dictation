@@ -433,3 +433,57 @@ def get_last_seen_version() -> str | None:
 
 def set_last_seen_version(version: str) -> None:
     _settings().setValue("last_seen_version", version)
+
+
+def get_second_hotkey() -> str:
+    """Pro. A second hold-to-talk key that dictates in a different language
+    (see get_second_language). Empty means no second key. Never a key that needs
+    the hold delay, since that gate belongs to the main hotkey."""
+    value = _settings().value("second_hotkey", "")
+    return value if value in AVAILABLE_HOTKEYS and value not in HOLD_DELAY_HOTKEYS else ""
+
+
+def set_second_hotkey(key: str) -> None:
+    _settings().setValue("second_hotkey", key)
+
+
+def get_second_language() -> str | None:
+    """The language the second hotkey dictates in. None means auto-detect."""
+    value = _settings().value("second_language", "")
+    return value if value in _AVAILABLE_LANGUAGE_CODES and value else None
+
+
+def set_second_language(language: str | None) -> None:
+    _settings().setValue("second_language", "" if language is None else language)
+
+
+def get_smart_formatting_enabled() -> bool:
+    """Pro. Default off: spoken emails, web addresses and numbers are typed the
+    way they are written. See core/smart_format.py."""
+    return _get_flag("smart_formatting_enabled")
+
+
+def set_smart_formatting_enabled(enabled: bool) -> None:
+    _settings().setValue("smart_formatting_enabled", "true" if enabled else "false")
+
+
+def get_speaker_count() -> int:
+    """Pro. How many people speak in a file, for speaker labels. 0 means detect."""
+    try:
+        return max(0, min(8, int(_settings().value("speaker_count", 0))))
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_speaker_count(count: int) -> None:
+    _settings().setValue("speaker_count", max(0, min(8, count)))
+
+
+def get_speaker_names() -> list[str]:
+    """Pro. Names for "Speaker 1", "Speaker 2" ... in order of first appearance."""
+    value = _settings().value("speaker_names", "")
+    return [name.strip() for name in value.split(",")] if value else []
+
+
+def set_speaker_names(names: list[str]) -> None:
+    _settings().setValue("speaker_names", ", ".join(n.strip() for n in names))
