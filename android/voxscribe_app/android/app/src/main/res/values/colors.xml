@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The desktop and Flutter app's dark identity. The floating button is the
+         only native UI left, so these are its colors. -->
+    <color name="vox_surface">#121319</color>
+    <color name="vox_surface_container">#1B1D27</color>
+    <color name="vox_surface_container_high">#22242F</color>
+    <color name="vox_outline">#2B2E3B</color>
+    <color name="vox_on_surface">#ECEEF4</color>
+    <color name="vox_on_surface_muted">#8B8D9C</color>
+
+    <!-- Green is a fill with dark text or icons on it, never the reverse. -->
+    <color name="vox_primary">#3ECF8E</color>
+    <color name="vox_primary_pressed">#269E69</color>
+    <color name="vox_on_primary">#0B2418</color>
+    <color name="vox_primary_container">#1B3A2E</color>
+    <color name="vox_on_primary_container">#B7F0D6</color>
+
+    <color name="vox_error">#F0546B</color>
+    <color name="vox_on_error">#FFFFFF</color>
+
+    <!-- Transcribing, matching the desktop status color. -->
+    <color name="vox_transcribing">#F0A54A</color>
+</resources>

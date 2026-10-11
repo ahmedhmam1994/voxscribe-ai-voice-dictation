@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">VoxScribe</string>
+
+    <string name="setup_subtitle">Two quick one-time steps, then hold the mic button anywhere to dictate.</string>
+    <string name="setup_step1">Grant microphone permission</string>
+    <string name="setup_step2">Enable VoxScribe keyboard</string>
+    <string name="setup_step3">Switch to VoxScribe keyboard</string>
+
+    <string name="mic_button_idle">Hold to talk</string>
+    <string name="mic_button_recording">Recording… release to stop</string>
+
+    <string name="desc_mic_idle">Hold to record</string>
+    <string name="desc_mic_recording">Recording, release to stop</string>
+    <string name="desc_switch_keyboard">Switch keyboard</string>
+    <string name="desc_backspace">Backspace</string>
+    <string name="desc_enter">Enter</string>
+    <string name="desc_settings">Settings</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_status">Status</string>
+    <string name="settings_section_recognition">Recognition</string>
+    <string name="settings_section_text">Text insertion</string>
+    <string name="settings_prefer_whisper">Prefer offline Whisper</string>
+    <string name="settings_prefer_whisper_desc">Use the bundled on-device model when it\'s available. Off = always use the online/offline system recognizer instead.</string>
+    <string name="settings_fallback_language">Fallback recognizer language</string>
+    <string name="settings_cleanup">Clean up filler words</string>
+    <string name="settings_cleanup_desc">Strip "um", "uh", "like", "you know" and fix spacing/capitalization.</string>
+    <string name="settings_trailing_space">Add trailing space</string>
+    <string name="settings_trailing_space_desc">Append a space after each dictated phrase, so the next one doesn\'t run in.</string>
+    <string name="settings_test_whisper">Test Whisper (records 3s)</string>
+    <string name="settings_test_whisper_recording">Recording…</string>
+    <string name="settings_test_whisper_transcribing">Transcribing…</string>
+    <string name="settings_test_result_title">Test result</string>
+    <string name="settings_mic_permission">Microphone permission</string>
+    <string name="settings_keyboard_enabled">VoxScribe keyboard enabled</string>
+    <string name="settings_status_yes">Yes</string>
+    <string name="settings_status_no">No</string>
+
+    <string name="status_ready">Ready (online recognizer)</string>
+    <string name="status_ready_whisper">Ready (offline Whisper)</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_transcribing">Transcribing…</string>
+    <string name="status_need_permission">Microphone permission needed, open VoxScribe app to grant it</string>
+    <string name="status_no_recognizer">No speech recognizer available on this device</string>
+    <string name="status_error">Error (%1$d), try again</string>
+
+    <string name="key_space">space</string>
+
+    <!-- Shown by Android in Settings > Accessibility next to the service
+         toggle, and reviewed by Play Store: must stay precise and
+         truthful about exactly what this does and nothing more. -->
+    <string name="accessibility_service_description">Lets VoxScribe\'s floating bubble (an alternative to switching keyboards) detect which text field is focused and insert your dictated text into it directly. VoxScribe does not read, log, or transmit anything else you type.</string>
+
+    <string name="desc_bubble_idle">VoxScribe floating bubble. Drag to move, hold to talk.</string>
+    <string name="desc_bubble_recording">Recording, release to stop</string>
+    <string name="desc_bubble_transcribing">Transcribing…</string>
+
+    <string name="bubble_notification_channel_name">Floating bubble</string>
+    <string name="bubble_notification_channel_desc">Shown while VoxScribe\'s floating dictation bubble is active</string>
+    <string name="bubble_notification_title">VoxScribe bubble is active</string>
+    <string name="bubble_notification_text">Hold the bubble anywhere to dictate</string>
+    <string name="bubble_insert_failed_clipboard_fallback">Couldn\'t insert directly, copied to clipboard instead</string>
+
+    <string name="setup_bubble_section_label">FLOATING BUBBLE MODE</string>
+    <string name="setup_bubble_section_subtitle">An alternative to switching keyboards: a small bubble floats over any app. Hold it to talk, release to insert the text right where you\'re typing.</string>
+    <string name="setup_grant_overlay">1. Grant overlay permission</string>
+    <string name="setup_grant_overlay_done">1. Overlay permission ✓</string>
+    <string name="setup_enable_accessibility">2. Enable accessibility service</string>
+    <string name="setup_enable_accessibility_done">2. Accessibility service ✓</string>
+    <string name="setup_enable_accessibility_hint">Opens Accessibility settings, find and turn on \"VoxScribe\" in the list.</string>
+    <string name="setup_start_bubble">3. Start floating bubble</string>
+    <string name="setup_stop_bubble">3. Stop floating bubble</string>
+    <string name="bubble_missing_permissions">Grant overlay + accessibility permissions first (steps 1 and 2 above)</string>
+    <string name="bubble_status_running">Bubble is active, drag it anywhere, hold to talk.</string>
+</resources>

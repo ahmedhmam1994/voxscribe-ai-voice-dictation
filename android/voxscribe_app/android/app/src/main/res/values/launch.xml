@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shown while the app starts; matches the light and dark app backgrounds. -->
+    <color name="vox_launch_background">#F3F4F7</color>
+</resources>

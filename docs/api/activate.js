@@ -8,6 +8,9 @@
 // in a serverless function). Needs UPSTASH_REDIS_REST_URL and
 // UPSTASH_REDIS_REST_TOKEN set as Vercel project env vars.
 //
+// One key unlocks one Windows PC and one Android phone: each platform
+// claims its own slot, so activating on the phone never collides with the PC.
+//
 // Verifies the key's Ed25519 signature itself (same public key as
 // core/license.py) rather than trusting the client -- a request claiming
 // to hold a valid key still has to actually have one.
@@ -90,7 +93,7 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { key, hardware_id: hardwareId } = body || {};
+  const { key, hardware_id: hardwareId, platform } = body || {};
 
   const licenseId = verifyLicenseKey(key);
   if (!licenseId) {
@@ -99,7 +102,8 @@ module.exports = async (req, res) => {
   }
   const safeHardwareId = (hardwareId || "unknown").toString().slice(0, 128);
 
-  const redisKey = `license:${licenseId}`;
+  // Windows keeps the original key name so existing activations still match.
+  const redisKey = platform === "android" ? `license:${licenseId}:android` : `license:${licenseId}`;
   try {
     const existing = await upstash(["get", redisKey]);
     if (existing === null) {

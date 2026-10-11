@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The floating button: one circular ImageView. BubbleService sets the background
+  and icon tint together per state (green mic idle, darker green stop while
+  recording, amber while transcribing) so the pair always stays matched.
+-->
+<androidx.appcompat.widget.AppCompatImageView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bubble_icon"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:background="@drawable/bg_brand_mark"
+    android:backgroundTint="@color/vox_primary"
+    android:contentDescription="@string/desc_bubble_idle"
+    android:elevation="8dp"
+    android:padding="14dp"
+    android:src="@drawable/ic_mic" />
