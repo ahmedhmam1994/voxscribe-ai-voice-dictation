@@ -72,6 +72,9 @@ dependencies {
     // hand into libs/ (see libs/README.md), because it is not on Maven Central.
     implementation(files("libs/sherpa-onnx-1.13.6.aar"))
 
+    // Ed25519 for checking Pro license keys. Not in the JDK until Android 13.
+    implementation("net.i2p.crypto:eddsa:0.3.0")
+
     testImplementation("junit:junit:4.13.2")
 }
 

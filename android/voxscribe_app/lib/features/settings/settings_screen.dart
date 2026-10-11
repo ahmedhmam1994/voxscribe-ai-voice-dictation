@@ -4,12 +4,15 @@ import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_language.dart';
 import 'package:voxscribe_app/features/dictation/widgets/language_picker.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
+import 'package:voxscribe_app/features/pro/pro_controller.dart';
+import 'package:voxscribe_app/features/pro/pro_page.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/widgets/settings_group.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
+import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
 /// Language, cleanup, theme, the setup page and clearing history.
@@ -19,6 +22,8 @@ class SettingsScreen extends StatelessWidget {
     required this.setup,
     required this.dictation,
     required this.history,
+    required this.pro,
+    required this.snippets,
     super.key,
   });
 
@@ -26,11 +31,13 @@ class SettingsScreen extends StatelessWidget {
   final SetupController setup;
   final DictationController dictation;
   final HistoryController history;
+  final ProController pro;
+  final SnippetsController snippets;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([settings, setup, dictation]),
+      listenable: Listenable.merge([settings, setup, dictation, pro]),
       builder: (context, _) {
         final values = settings.settings;
         return Column(
@@ -52,6 +59,19 @@ class SettingsScreen extends StatelessWidget {
                         subtitle: _setupSummary(setup.status),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _openSetup(context),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'VoxScribe Pro',
+                    children: [
+                      SettingsRow(
+                        title: 'VoxScribe Pro',
+                        subtitle: pro.isPro
+                            ? 'Unlocked. Snippets are on.'
+                            : 'Unlock snippets with the same key as Windows.',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _openPro(context),
                       ),
                     ],
                   ),
@@ -131,6 +151,14 @@ class SettingsScreen extends StatelessWidget {
   void _openSetup(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => SetupPage(controller: setup)),
+    );
+  }
+
+  void _openPro(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProPage(pro: pro, snippets: snippets),
+      ),
     );
   }
 

@@ -30,6 +30,23 @@ void main() {
     );
   });
 
+  testWidgets('a disconnected accessibility service says to switch it off '
+      'and on', (tester) async {
+    await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: false,
+        accessibilityNeedsRestart: true,
+        overlay: true,
+        bubbleRunning: false,
+      ),
+    );
+
+    expect(find.textContaining('Android disconnected it'), findsOneWidget);
+    expect(find.text('Open accessibility settings'), findsOneWidget);
+  });
+
   testWidgets('finished steps show Done and the next one is explained', (
     tester,
   ) async {

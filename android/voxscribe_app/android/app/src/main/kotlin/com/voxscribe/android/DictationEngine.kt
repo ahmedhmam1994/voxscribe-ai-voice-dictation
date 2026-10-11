@@ -119,6 +119,9 @@ class DictationEngine(
     private fun cleanupIfEnabled(text: String): String =
         if (SettingsStore.cleanupEnabled(context)) TranscriptCleanup.clean(text) else text
 
+    /** Cleanup first, then a Pro snippet trigger becomes its longer text. */
+    private fun finish(text: String): String = SnippetStore.expandIfPro(context, cleanupIfEnabled(text))
+
     // --- Milestone 2: bundled Whisper via sherpa-onnx -----------------------------------
 
     @Suppress("MissingPermission") // RECORD_AUDIO: see class doc comment
@@ -170,8 +173,8 @@ class DictationEngine(
                     mainHandler.post { onResult("") }
                 } else {
                     val spoken = TranscriptCleanup.removeNonSpeechTags(WhisperEngine.transcribe(samples))
-                    val cleaned = cleanupIfEnabled(spoken)
-                    mainHandler.post { onResult(cleaned) }
+                    val finished = finish(spoken)
+                    mainHandler.post { onResult(finished) }
                 }
             }
         }.also { it.start() }
@@ -232,7 +235,7 @@ class DictationEngine(
         if (cancelled) return
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         val raw = matches?.firstOrNull().orEmpty()
-        onResult(cleanupIfEnabled(raw))
+        onResult(finish(raw))
     }
 
     override fun onError(error: Int) {

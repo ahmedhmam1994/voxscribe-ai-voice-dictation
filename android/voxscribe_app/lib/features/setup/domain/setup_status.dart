@@ -11,6 +11,7 @@ class SetupStatus {
     required this.accessibility,
     required this.overlay,
     required this.bubbleRunning,
+    this.accessibilityNeedsRestart = false,
   });
 
   /// Nothing granted yet.
@@ -25,6 +26,10 @@ class SetupStatus {
   final bool accessibility;
   final bool overlay;
   final bool bubbleRunning;
+
+  /// Accessibility is switched on, but Android has disconnected the service,
+  /// as it can after an app update. Switching it off and on fixes it.
+  final bool accessibilityNeedsRestart;
 
   bool isDone(SetupStep step) => switch (step) {
     SetupStep.microphone => microphone,
@@ -50,6 +55,7 @@ class SetupStatus {
       accessibility: accessibility,
       overlay: overlay,
       bubbleRunning: bubbleRunning ?? this.bubbleRunning,
+      accessibilityNeedsRestart: accessibilityNeedsRestart,
     );
   }
 }

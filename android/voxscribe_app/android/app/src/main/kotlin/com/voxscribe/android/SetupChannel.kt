@@ -44,6 +44,8 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
     private fun status(): Map<String, Boolean> = mapOf(
         "microphone" to hasMicrophone(),
         "accessibility" to BubblePermissions.isAccessibilityServiceEnabled(activity),
+        // Android can leave the service switched on but disconnected after an app update.
+        "accessibilityConnected" to (VoxScribeAccessibilityService.instance != null),
         "overlay" to BubblePermissions.hasOverlayPermission(activity),
         "bubbleRunning" to BubbleService.isRunning,
     )

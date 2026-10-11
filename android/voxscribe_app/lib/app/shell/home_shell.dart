@@ -6,10 +6,14 @@ import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
 import 'package:voxscribe_app/features/history/domain/history_repository.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/insights/insights_screen.dart';
+import 'package:voxscribe_app/features/pro/domain/pro_repository.dart';
+import 'package:voxscribe_app/features/pro/pro_controller.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/settings_screen.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
+import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
+import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
 
 /// The three top-level sections with a bottom navigation bar.
 class HomeShell extends StatefulWidget {
@@ -17,6 +21,8 @@ class HomeShell extends StatefulWidget {
     required this.engine,
     required this.setupPlatform,
     required this.historyRepository,
+    required this.proRepository,
+    required this.snippetRepository,
     required this.settings,
     super.key,
   });
@@ -24,6 +30,8 @@ class HomeShell extends StatefulWidget {
   final DictationEngine engine;
   final SetupPlatform setupPlatform;
   final HistoryRepository historyRepository;
+  final ProRepository proRepository;
+  final SnippetRepository snippetRepository;
   final SettingsController settings;
 
   @override
@@ -47,6 +55,12 @@ class _HomeShellState extends State<HomeShell> {
   late final SetupController _setup = SetupController(
     platform: widget.setupPlatform,
   );
+  late final ProController _pro = ProController(
+    repository: widget.proRepository,
+  );
+  late final SnippetsController _snippets = SnippetsController(
+    repository: widget.snippetRepository,
+  );
   late final AppLifecycleListener _lifecycle;
   var _index = 0;
 
@@ -63,6 +77,7 @@ class _HomeShellState extends State<HomeShell> {
   void _refresh() {
     _history.load();
     _setup.refresh();
+    _pro.load();
   }
 
   @override
@@ -71,6 +86,8 @@ class _HomeShellState extends State<HomeShell> {
     _dictation.dispose();
     _history.dispose();
     _setup.dispose();
+    _pro.dispose();
+    _snippets.dispose();
     super.dispose();
   }
 
@@ -89,6 +106,8 @@ class _HomeShellState extends State<HomeShell> {
               setup: _setup,
               dictation: _dictation,
               history: _history,
+              pro: _pro,
+              snippets: _snippets,
             ),
           ],
         ),

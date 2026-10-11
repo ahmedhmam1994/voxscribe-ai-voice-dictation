@@ -52,7 +52,7 @@ class _SetupScreenState extends State<SetupScreen> {
                       title: _title(step),
                       state: _state(status, step),
                       description: status.nextStep == step
-                          ? _description(step)
+                          ? _description(step, status)
                           : null,
                       highlighted: status.nextStep == step,
                     ),
@@ -97,10 +97,17 @@ class _SetupScreenState extends State<SetupScreen> {
     SetupStep.overlay => 'Allow display over other apps',
   };
 
-  static String _description(SetupStep step) => switch (step) {
+  static String _description(
+    SetupStep step,
+    SetupStatus status,
+  ) => switch (step) {
     SetupStep.microphone =>
       'VoxScribe listens only while you hold the button. Your voice is '
           'transcribed on this phone.',
+    SetupStep.accessibility when status.accessibilityNeedsRestart =>
+      'It is switched on, but Android disconnected it, which can happen '
+          'after an update. In the list, tap VoxScribe, turn it off, then on '
+          'again.',
     SetupStep.accessibility =>
       'Android requires this to let an app type into other apps. VoxScribe '
           'only watches which text box is focused, so it can put your '

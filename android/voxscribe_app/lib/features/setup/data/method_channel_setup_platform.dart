@@ -10,9 +10,12 @@ class MethodChannelSetupPlatform implements SetupPlatform {
   Future<SetupStatus> getStatus() async {
     final raw = await _channel.invokeMapMethod<String, bool>('getStatus');
     final map = raw ?? const <String, bool>{};
+    final accessibilityOn = map['accessibility'] ?? false;
+    final connected = map['accessibilityConnected'] ?? false;
     return SetupStatus(
       microphone: map['microphone'] ?? false,
-      accessibility: map['accessibility'] ?? false,
+      accessibility: accessibilityOn && connected,
+      accessibilityNeedsRestart: accessibilityOn && !connected,
       overlay: map['overlay'] ?? false,
       bubbleRunning: map['bubbleRunning'] ?? false,
     );
