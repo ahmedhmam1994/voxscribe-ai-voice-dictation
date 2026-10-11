@@ -63,12 +63,16 @@ from app.floating_indicator import FloatingIndicator
 from app.version import __version__
 from app.whats_new import whats_new_text
 from core import (
+    app_profiles,
     code_dictation,
+    diarize,
     history,
     network_guard,
     replacements,
+    smart_format,
     snippets,
     templates,
+    transcript_export,
     vocab_learner,
 )
 from core import license as hotkey_license
@@ -243,6 +247,9 @@ class HotkeyBridge(QObject):
 
     press_requested = Signal()
     release_requested = Signal()
+    # The Pro second-language key.
+    alt_press_requested = Signal()
+    alt_release_requested = Signal()
 
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
@@ -870,6 +877,7 @@ class FileTranscribeThread(QThread):
 
     done = Signal(str)
     failed = Signal(str)
+    status = Signal(str)
 
     def __init__(
         self,
@@ -879,6 +887,10 @@ class FileTranscribeThread(QThread):
         initial_prompt: str | None = None,
         task: str = "transcribe",
         export_srt: bool = False,
+        export_extras: bool = False,
+        label_speakers: bool = False,
+        speaker_count: int = 0,
+        speaker_names: list[str] | None = None,
     ) -> None:
         super().__init__()
         self.transcriber = transcriber
@@ -887,7 +899,13 @@ class FileTranscribeThread(QThread):
         self.initial_prompt = initial_prompt
         self.task = task
         self.export_srt = export_srt
+        self.export_extras = export_extras
+        self.label_speakers = label_speakers
+        self.speaker_count = speaker_count
+        self.speaker_names = speaker_names or []
+        self.speaker_error: str | None = None
         self.srt_path: str | None = None
+        self.extra_paths: list[str] = []
 
     def run(self) -> None:
         try:
@@ -901,6 +919,9 @@ class FileTranscribeThread(QThread):
             self.failed.emit(str(exc))
             return
 
+        if self.label_speakers:
+            segments = self._label_speakers(segments)
+
         if self.export_srt:
             srt_path = str(Path(self.path).with_suffix(".srt"))
             try:
@@ -912,8 +933,47 @@ class FileTranscribeThread(QThread):
                 # rather than failing the whole import over a write error.
                 pass
 
+        if self.export_extras:
+            self._write_extras(segments)
+
         text = " ".join(text.strip() for _start, _end, text in segments).strip()
         self.done.emit(text)
+
+    def _label_speakers(
+        self, segments: list[tuple[float, float, str]]
+    ) -> list[tuple[float, float, str]]:
+        """Pro: prefixes each segment with who said it. On any failure the
+        transcript is kept as is and the reason is stored in speaker_error."""
+        try:
+            if not diarize.models_ready():
+                diarize.download_models(self.status.emit)
+            from faster_whisper.audio import decode_audio
+
+            self.status.emit("Finding speakers...")
+            audio = decode_audio(self.path, sampling_rate=diarize.SAMPLE_RATE)
+            turns = diarize.diarize(audio, self.speaker_count)
+        except Exception as exc:  # noqa: BLE001
+            self.speaker_error = str(exc)
+            return segments
+        return diarize.label_segments(segments, turns, self.speaker_names)
+
+    def _write_extras(self, segments: list[tuple[float, float, str]]) -> None:
+        """Pro: WebVTT, Markdown and Word copies next to the file."""
+        base = Path(self.path)
+        title = base.stem
+        outputs = {
+            base.with_suffix(".vtt"): transcript_export.format_vtt(segments).encode("utf-8"),
+            base.with_suffix(".md"): transcript_export.format_markdown(segments, title).encode(
+                "utf-8"
+            ),
+            base.with_suffix(".docx"): transcript_export.format_docx(segments, title),
+        }
+        for path, data in outputs.items():
+            try:
+                path.write_bytes(data)
+                self.extra_paths.append(str(path))
+            except OSError:
+                continue
 
 
 class MainWindow(QMainWindow):
@@ -967,6 +1027,10 @@ class MainWindow(QMainWindow):
         self._hotkey_active_session = False
         self._template_session: templates.TemplateSession | None = None
         self._template_last_turn = 0.0
+        # (language,) while the Pro second-language key is dictating; None otherwise.
+        self._language_override: tuple[str | None] | None = None
+        # The focused program's Pro profile, read when a recording starts.
+        self._recording_profile: dict[str, object] = {}
         self._hold_gate: HoldGate | None = None
         self._hold_other_hook = None
 
@@ -1178,6 +1242,19 @@ class MainWindow(QMainWindow):
         self.export_srt_checkbox.setObjectName("exportSrtCheckbox")
         layout.addWidget(self.export_srt_checkbox)
 
+        self.export_extras_checkbox = QCheckBox(
+            "Also save .vtt, .md and Word (.docx) copies (Pro)"
+        )
+        self.export_extras_checkbox.setObjectName("exportSrtCheckbox")
+        layout.addWidget(self.export_extras_checkbox)
+
+        self.label_speakers_checkbox = QCheckBox(
+            "Label who is speaking in saved files "
+            f"(Pro, downloads {diarize.APPROX_DOWNLOAD_MB} MB once)"
+        )
+        self.label_speakers_checkbox.setObjectName("exportSrtCheckbox")
+        layout.addWidget(self.label_speakers_checkbox)
+
         transcript_label = QLabel("TRANSCRIPT")
         transcript_label.setObjectName("transcriptCaption")
         layout.addWidget(transcript_label)
@@ -1205,8 +1282,12 @@ class MainWindow(QMainWindow):
         # app's text field, hold the hotkey, talk, release it, and the
         # transcribed text gets typed directly into that field.
         self._hotkey_bridge = HotkeyBridge()
-        self._hotkey_bridge.press_requested.connect(self._handle_hotkey_press)
+        self._hotkey_bridge.press_requested.connect(self._handle_primary_press)
         self._hotkey_bridge.release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_bridge.alt_press_requested.connect(self._handle_alt_press)
+        self._hotkey_bridge.alt_release_requested.connect(self._handle_hotkey_release)
+        self._alt_press_hook = None
+        self._alt_release_hook = None
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
         self._hotkey_registration_error: str | None = None
@@ -1339,7 +1420,13 @@ class MainWindow(QMainWindow):
         """(Re)registers the global hold-to-talk hotkey as self._hotkey.
         Safe to call again after changing the hotkey (see
         _open_settings_dialog) -- unhooks the previous registration first."""
-        for hook in (self._hotkey_press_hook, self._hotkey_release_hook, self._hold_other_hook):
+        for hook in (
+            self._hotkey_press_hook,
+            self._hotkey_release_hook,
+            self._hold_other_hook,
+            self._alt_press_hook,
+            self._alt_release_hook,
+        ):
             if hook is not None:
                 try:
                     keyboard.unhook(hook)
@@ -1348,6 +1435,8 @@ class MainWindow(QMainWindow):
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
         self._hold_other_hook = None
+        self._alt_press_hook = None
+        self._alt_release_hook = None
         self._hold_gate = None
         self._hotkey_registration_error = None
 
@@ -1382,6 +1471,14 @@ class MainWindow(QMainWindow):
                 )
                 self._hotkey_release_hook = keyboard.on_release_key(
                     self._hotkey, lambda e: self._hotkey_bridge.release_requested.emit()
+                )
+            second = hotkey_settings.get_second_hotkey()
+            if second and second != self._hotkey and hotkey_license.is_pro():
+                self._alt_press_hook = keyboard.on_press_key(
+                    second, lambda e: self._hotkey_bridge.alt_press_requested.emit()
+                )
+                self._alt_release_hook = keyboard.on_release_key(
+                    second, lambda e: self._hotkey_bridge.alt_release_requested.emit()
                 )
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
@@ -1905,6 +2002,57 @@ class MainWindow(QMainWindow):
         templates_hint.setWordWrap(True)
         layout.addWidget(templates_hint)
 
+        second_label = QLabel("SECOND LANGUAGE KEY (PRO)")
+        second_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(second_label)
+
+        second_row = QHBoxLayout()
+        second_key_combo = QComboBox()
+        second_key_combo.addItem("Off", "")
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            if key not in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                second_key_combo.addItem(key.upper(), key)
+        second_key_combo.setCurrentIndex(
+            max(0, second_key_combo.findData(hotkey_settings.get_second_hotkey()))
+        )
+        second_language_combo = QComboBox()
+        for code, name in hotkey_settings.AVAILABLE_LANGUAGES:
+            second_language_combo.addItem(name, code)
+        second_language_combo.setCurrentIndex(
+            max(0, second_language_combo.findData(hotkey_settings.get_second_language()))
+        )
+        second_row.addWidget(second_key_combo)
+        second_row.addWidget(second_language_combo, stretch=1)
+        layout.addLayout(second_row)
+
+        second_hint = QLabel(
+            "Hold this key instead of the main one to dictate in the second language, "
+            "with no trip to Settings. Useful if you switch between two languages."
+        )
+        second_hint.setObjectName("settingsHint")
+        second_hint.setWordWrap(True)
+        layout.addWidget(second_hint)
+
+        profiles_label = QLabel("PER-APP PROFILES (PRO)")
+        profiles_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(profiles_label)
+
+        profiles_edit = QTextEdit()
+        profiles_edit.setPlainText(app_profiles.format_lines(app_profiles.get_profiles()))
+        profiles_edit.setPlaceholderText("code.exe => code=on, cleanup=off, language=en")
+        profiles_edit.setFixedHeight(80)
+        layout.addWidget(profiles_edit)
+
+        profiles_hint = QLabel(
+            "One per line: program.exe => option=value, ... Options: language "
+            "(a code like en or ar, or auto), cleanup, voice_commands, code, smart "
+            "(on or off). Applies while that program has focus; anything not set "
+            "uses your normal settings."
+        )
+        profiles_hint.setObjectName("settingsHint")
+        profiles_hint.setWordWrap(True)
+        layout.addWidget(profiles_hint)
+
         pro_tools_label = QLabel("PRO TOOLS")
         pro_tools_label.setObjectName("settingsSectionLabel")
         layout.addWidget(pro_tools_label)
@@ -1922,6 +2070,43 @@ class MainWindow(QMainWindow):
         code_hint.setObjectName("settingsHint")
         code_hint.setWordWrap(True)
         layout.addWidget(code_hint)
+
+        smart_checkbox = QCheckBox("Smart formatting")
+        smart_checkbox.setChecked(hotkey_settings.get_smart_formatting_enabled())
+        layout.addWidget(smart_checkbox)
+
+        smart_hint = QLabel(
+            'Spoken emails, web addresses and numbers typed as written: "john at '
+            'gmail dot com" becomes john@gmail.com, "twenty five percent" becomes 25%.'
+        )
+        smart_hint.setObjectName("settingsHint")
+        smart_hint.setWordWrap(True)
+        layout.addWidget(smart_hint)
+
+        speakers_label = QLabel("SPEAKER LABELS (PRO)")
+        speakers_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(speakers_label)
+
+        speakers_row = QHBoxLayout()
+        speaker_count_spin = QSpinBox()
+        speaker_count_spin.setRange(0, 8)
+        speaker_count_spin.setSpecialValueText("Detect")
+        speaker_count_spin.setValue(hotkey_settings.get_speaker_count())
+        speaker_names_edit = QLineEdit()
+        speaker_names_edit.setPlaceholderText("Names in order of first speaking, e.g. Sam, Alex")
+        speaker_names_edit.setText(", ".join(hotkey_settings.get_speaker_names()))
+        speakers_row.addWidget(speaker_count_spin)
+        speakers_row.addWidget(speaker_names_edit, stretch=1)
+        layout.addLayout(speakers_row)
+
+        speakers_hint = QLabel(
+            "Used when you tick \"Label who is speaking\" while importing a file. "
+            "Set the number of speakers if the automatic count is wrong. Names "
+            "replace Speaker 1, Speaker 2 in the order each person first speaks."
+        )
+        speakers_hint.setObjectName("settingsHint")
+        speakers_hint.setWordWrap(True)
+        layout.addWidget(speakers_hint)
 
         offline_checkbox = QCheckBox("Offline mode: block all network use")
         offline_checkbox.setChecked(hotkey_settings.get_offline_mode_enabled())
@@ -1974,6 +2159,12 @@ class MainWindow(QMainWindow):
             for widget in (
                 templates_edit,
                 code_checkbox,
+                smart_checkbox,
+                speaker_count_spin,
+                speaker_names_edit,
+                second_key_combo,
+                second_language_combo,
+                profiles_edit,
                 offline_checkbox,
                 log_button,
                 learn_button,
@@ -2192,6 +2383,46 @@ class MainWindow(QMainWindow):
                     if new_templates
                     else "Templates cleared."
                 )
+
+            new_profiles = app_profiles.parse_lines(profiles_edit.toPlainText())
+            if new_profiles != app_profiles.get_profiles():
+                app_profiles.set_profiles(new_profiles)
+                changes.append(
+                    f"App profiles updated ({len(new_profiles)})."
+                    if new_profiles
+                    else "App profiles cleared."
+                )
+
+            new_smart = smart_checkbox.isChecked()
+            if new_smart != hotkey_settings.get_smart_formatting_enabled():
+                hotkey_settings.set_smart_formatting_enabled(new_smart)
+                changes.append("Smart formatting on." if new_smart else "Smart formatting off.")
+
+            new_second_key = second_key_combo.currentData()
+            new_second_language = second_language_combo.currentData()
+            if (
+                new_second_key != hotkey_settings.get_second_hotkey()
+                or new_second_language != hotkey_settings.get_second_language()
+            ):
+                hotkey_settings.set_second_hotkey(new_second_key)
+                hotkey_settings.set_second_language(new_second_language)
+                self._register_global_hotkey()
+                changes.append(
+                    f"Second language key set to {new_second_key.upper()}."
+                    if new_second_key
+                    else "Second language key off."
+                )
+
+            new_speaker_count = speaker_count_spin.value()
+            new_speaker_names = [n.strip() for n in speaker_names_edit.text().split(",")]
+            if new_speaker_names == [""]:
+                new_speaker_names = []
+            if new_speaker_count != hotkey_settings.get_speaker_count():
+                hotkey_settings.set_speaker_count(new_speaker_count)
+                changes.append("Speaker count updated.")
+            if new_speaker_names != hotkey_settings.get_speaker_names():
+                hotkey_settings.set_speaker_names(new_speaker_names)
+                changes.append("Speaker names updated.")
 
             new_code = code_checkbox.isChecked()
             if new_code != hotkey_settings.get_code_dictation_enabled():
@@ -2688,6 +2919,17 @@ class MainWindow(QMainWindow):
 
     # -- hold-to-talk hotkey handlers ------------------------------------
 
+    def _handle_primary_press(self) -> None:
+        if not self._hotkey_key_down:
+            self._language_override = None
+        self._handle_hotkey_press()
+
+    def _handle_alt_press(self) -> None:
+        """Pro: the second key dictates in its own language."""
+        if not self._hotkey_key_down:
+            self._language_override = (hotkey_settings.get_second_language(),)
+        self._handle_hotkey_press()
+
     def _handle_hotkey_press(self) -> None:
         if self._hotkey_key_down:
             # Key-repeat guard: holding a key down can fire repeated
@@ -2758,6 +3000,9 @@ class MainWindow(QMainWindow):
             self._set_status(f"Dictation disabled for {excluded_process}", "error")
             return
 
+        self._recording_profile = (
+            app_profiles.profile_for(excluded_process) if hotkey_license.is_pro() else {}
+        )
         self._chunks = []
         # Falls back to auto-detection if the user's chosen device (Settings
         # -> Microphone) has been unplugged/disconnected since it was picked.
@@ -2847,17 +3092,33 @@ class MainWindow(QMainWindow):
         self._worker = TranscribeThread(
             self.transcriber,
             audio,
-            hotkey_settings.get_language(),
+            self._effective_language(),
             hotkey_settings.custom_vocabulary_prompt(),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
+        self._language_override = None
         self._worker.done.connect(self._on_transcribed)
         self._worker.failed.connect(self._on_transcribe_failed)
         self._worker.start()
 
+    def _effective_language(self) -> str | None:
+        """The second key's language, else the focused app's profile, else Settings."""
+        if self._language_override is not None:
+            return self._language_override[0]
+        if "language" in self._recording_profile:
+            return self._recording_profile["language"]  # type: ignore[return-value]
+        return hotkey_settings.get_language()
+
+    def _option(self, name: str, default: bool) -> bool:
+        """A setting as the focused app's profile sees it."""
+        return bool(self._recording_profile.get(name, default))
+
     def _on_transcribed(self, text: str) -> None:
+        voice_commands_on = self._option(
+            "voice_commands", hotkey_settings.get_voice_commands_enabled()
+        )
         editing_mode = get_editing_command(text) if text else None
-        if editing_mode and hotkey_settings.get_voice_commands_enabled():
+        if editing_mode and voice_commands_on:
             self._handle_editing_command(editing_mode)
             return
 
@@ -2865,14 +3126,17 @@ class MainWindow(QMainWindow):
         if text and pro and self._handle_template_turn(text):
             return
 
-        if text and pro and hotkey_settings.get_code_dictation_enabled():
+        if text and pro and self._option("code", hotkey_settings.get_code_dictation_enabled()):
             # Code is not prose: no capitalizing, no full stops, no filler cleanup.
             text = code_dictation.to_code(text)
         else:
-            if text and hotkey_settings.get_cleanup_enabled():
+            if text and self._option("cleanup", hotkey_settings.get_cleanup_enabled()):
                 text = clean_transcript(text)
-            if text and hotkey_settings.get_voice_commands_enabled():
+            if text and voice_commands_on:
                 text = apply_voice_commands(text)
+            smart_on = self._option("smart", hotkey_settings.get_smart_formatting_enabled())
+            if text and pro and smart_on:
+                text = smart_format.smart_format(text)
         if text:
             text = replacements.apply_replacements(text)
         if text and pro:
@@ -3234,7 +3498,12 @@ class MainWindow(QMainWindow):
             hotkey_settings.custom_vocabulary_prompt(),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
             self.export_srt_checkbox.isChecked(),
+            self.export_extras_checkbox.isChecked() and hotkey_license.is_pro(),
+            self.label_speakers_checkbox.isChecked() and hotkey_license.is_pro(),
+            hotkey_settings.get_speaker_count(),
+            hotkey_settings.get_speaker_names(),
         )
+        self._file_worker.status.connect(lambda message: self._set_status(message, "transcribing"))
         self._file_worker.done.connect(lambda text, p=path: self._on_file_transcribed(text, p))
         self._file_worker.failed.connect(
             lambda message, p=path: self._on_file_transcribe_failed(message, p)
@@ -3250,6 +3519,13 @@ class MainWindow(QMainWindow):
         self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
         if self._file_worker is not None and self._file_worker.srt_path:
             self.transcript_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
+        if self._file_worker is not None and self._file_worker.speaker_error:
+            self.transcript_area.append(
+                f"  could not label speakers: {self._file_worker.speaker_error}"
+            )
+        if self._file_worker is not None and self._file_worker.extra_paths:
+            names = ", ".join(Path(p).name for p in self._file_worker.extra_paths)
+            self.transcript_area.append(f"  saved: {names}")
         self._process_next_import_file()
 
     def _on_file_transcribe_failed(self, message: str, path: str) -> None:
