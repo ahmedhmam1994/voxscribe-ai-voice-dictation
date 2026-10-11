@@ -9,6 +9,23 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.6.9": (
+        "- New (Pro): code dictation. Say \"camel case user name\" to type userName, "
+        "or use snake, pascal, kebab and constant case and spoken symbols.\n"
+        "- New (Pro): fill-in templates. Say \"template bug report\" and answer each "
+        "part by voice.\n"
+        "- New (Pro): smart formatting for spoken emails, web addresses and numbers.\n"
+        "- New (Pro): a second hotkey that dictates in a second language.\n"
+        "- New (Pro): per-app profiles, so code, cleanup and language can differ "
+        "by program.\n"
+        "- New (Pro): learn your vocabulary from a folder of your own files, on "
+        "this PC only.\n"
+        "- New (Pro): offline mode blocks all network use, with a log of every "
+        "outside connection VoxScribe has tried.\n"
+        "- New (Pro): importing a file can also save .vtt, .md and Word copies, "
+        "and label who is speaking (a one-time 35 MB download).\n"
+        "- New: the Android app can use the same Pro key."
+    ),
     "1.6.8": (
         "- Fixed: if the window you dictated into closes or changes before the "
         "text is ready, VoxScribe now holds the text instead of typing it "
