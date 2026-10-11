@@ -49,6 +49,19 @@ scoop install voxscribe
 
 The installer does not require admin rights (per-user install). On first launch, VoxScribe downloads the Whisper speech model (a few hundred MB) from Hugging Face. This requires an internet connection once; after that, transcription works fully offline.
 
+## Android
+
+VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
+
+**Install:** download `VoxScribe-Android-0.1.0.apk` from the [Releases page](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+
+- Android 8 or newer, 64-bit phone (almost every phone from the last several years)
+- The speech model is bundled in the app, so the file is large (about 200 MB) and works in airplane mode
+- Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
+- The same Pro key as Windows unlocks Snippets on the phone
+
+The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutter for the app screens, Kotlin for the floating button, typing service and speech engine.
+
 ## Requirements
 
 - Windows 10 or 11
