@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 import shutil
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -270,19 +271,33 @@ class Transcriber:
         language: str | None = "en",
         initial_prompt: str | None = None,
         task: str = "transcribe",
+        on_progress: Callable[[float], None] | None = None,
+        control: Callable[[], bool] | None = None,
     ) -> list[tuple[float, float, str]]:
         """Like `transcribe_file()`, but keeps each segment's start/end time
         (in seconds) instead of flattening to one string -- what SRT caption
         export needs that plain transcription doesn't.
+
+        `on_progress` gets the percent done after each segment. `control` is
+        called after each segment too: it may block (pause) and returns True
+        to stop, which raises InterruptedError.
         """
-        segments, _info = self.model.transcribe(
+        segments, info = self.model.transcribe(
             path,
             language=language,
             initial_prompt=initial_prompt,
             task=task,
             vad_filter=True,
         )
-        return [(seg.start, seg.end, seg.text.strip()) for seg in segments]
+        duration = float(getattr(info, "duration", 0) or 0)
+        out: list[tuple[float, float, str]] = []
+        for seg in segments:
+            out.append((seg.start, seg.end, seg.text.strip()))
+            if on_progress is not None and duration > 0:
+                on_progress(min(100.0, seg.end / duration * 100))
+            if control is not None and control():
+                raise InterruptedError("cancelled")
+        return out
 
 
 class SegmentingTranscriber:

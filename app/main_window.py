@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QProgressBar,
     QPushButton,
     QScrollArea,
@@ -62,6 +63,7 @@ from app.version import __version__
 from app.whats_new import whats_new_text
 from core import (
     app_profiles,
+    batch,
     code_dictation,
     diarize,
     history,
@@ -905,6 +907,8 @@ class FileTranscribeThread(QThread):
     done = Signal(str)
     failed = Signal(str)
     status = Signal(str)
+    progress = Signal(int)
+    cancelled = Signal()
 
     def __init__(
         self,
@@ -933,8 +937,26 @@ class FileTranscribeThread(QThread):
         self.speaker_names = speaker_names or []
         self.caption_line_chars = caption_line_chars
         self.speaker_error: str | None = None
+        self._run_gate = threading.Event()
+        self._run_gate.set()
+        self._stop_requested = False
         self.srt_path: str | None = None
         self.extra_paths: list[str] = []
+
+    def set_paused(self, paused: bool) -> None:
+        if paused:
+            self._run_gate.clear()
+        else:
+            self._run_gate.set()
+
+    def request_stop(self) -> None:
+        self._stop_requested = True
+        self._run_gate.set()
+
+    def _control(self) -> bool:
+        """Blocks while paused; True once a stop was asked for."""
+        self._run_gate.wait()
+        return self._stop_requested
 
     def run(self) -> None:
         try:
@@ -943,7 +965,12 @@ class FileTranscribeThread(QThread):
                 language=self.language,
                 initial_prompt=self.initial_prompt,
                 task=self.task,
+                on_progress=lambda pct: self.progress.emit(int(pct)),
+                control=self._control,
             )
+        except InterruptedError:
+            self.cancelled.emit()
+            return
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
             return
@@ -1048,6 +1075,8 @@ class MainWindow(QMainWindow):
         self._balloon_action = None
         self._held_text: str | None = None
         self._import_queue: list[str] = []
+        self._batch: dict | None = None
+        self.setAcceptDrops(True)
 
         # Hold-to-talk state for the global hotkey (configurable -- see
         # core/settings.py -- F9 by default):
@@ -1244,6 +1273,17 @@ class MainWindow(QMainWindow):
         self.import_button.clicked.connect(self.import_audio_file)
         button_row.addWidget(self.import_button)
 
+        self.import_folder_button = QPushButton("Import Folder")
+        self.import_folder_button.setObjectName("secondaryButton")
+        self.import_folder_button.setEnabled(False)
+        self.import_folder_button.setMinimumHeight(38)
+        self.import_folder_button.setCursor(Qt.PointingHandCursor)
+        self.import_folder_button.setToolTip(
+            "Transcribe every audio and video file in a folder (Pro, 2 free runs)"
+        )
+        self.import_folder_button.clicked.connect(self.import_folder)
+        button_row.addWidget(self.import_folder_button)
+
         self.save_button = QPushButton("Save Transcript")
         self.save_button.setObjectName("primaryOutlineButton")
         self.save_button.setEnabled(False)
@@ -1293,6 +1333,45 @@ class MainWindow(QMainWindow):
         self.label_speakers_checkbox.setObjectName("exportSrtCheckbox")
         layout.addWidget(self.label_speakers_checkbox)
 
+        self._batch_bar = QWidget()
+        batch_layout = QVBoxLayout(self._batch_bar)
+        batch_layout.setContentsMargins(0, 0, 0, 0)
+        batch_layout.setSpacing(6)
+        self._batch_label = QLabel("")
+        batch_layout.addWidget(self._batch_label)
+        self._batch_progress = QProgressBar()
+        self._batch_progress.setRange(0, 100)
+        self._batch_progress.setTextVisible(False)
+        self._batch_progress.setFixedHeight(8)
+        self._batch_progress.setStyleSheet(
+            f"QProgressBar {{ background: {BG_CARD}; border: 1px solid {BORDER};"
+            " border-radius: 4px; }"
+            f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 3px; }}"
+        )
+        batch_layout.addWidget(self._batch_progress)
+        batch_buttons = QHBoxLayout()
+        batch_buttons.setSpacing(8)
+        self._batch_pause_button = QPushButton("Pause")
+        self._batch_pause_button.setObjectName("secondaryButton")
+        self._batch_pause_button.setCursor(Qt.PointingHandCursor)
+        self._batch_pause_button.clicked.connect(self._toggle_import_pause)
+        self._batch_cancel_button = QPushButton("Cancel")
+        self._batch_cancel_button.setObjectName("ghostButton")
+        self._batch_cancel_button.setCursor(Qt.PointingHandCursor)
+        self._batch_cancel_button.clicked.connect(self._cancel_import)
+        self._batch_open_button = QPushButton("Open folder")
+        self._batch_open_button.setObjectName("primaryOutlineButton")
+        self._batch_open_button.setCursor(Qt.PointingHandCursor)
+        self._batch_open_button.clicked.connect(self._open_batch_folder)
+        batch_buttons.addWidget(self._batch_pause_button)
+        batch_buttons.addWidget(self._batch_cancel_button)
+        batch_buttons.addWidget(self._batch_open_button)
+        batch_buttons.addStretch(1)
+        batch_layout.addLayout(batch_buttons)
+        self._batch_bar.hide()
+        self._batch_folder: str | None = None
+        layout.addWidget(self._batch_bar)
+
         transcript_label = QLabel("TRANSCRIPT")
         transcript_label.setObjectName("transcriptCaption")
         layout.addWidget(transcript_label)
@@ -1306,6 +1385,7 @@ class MainWindow(QMainWindow):
             "Click Start Recording, speak, then click Stop Recording. "
             "Your transcribed text will appear here."
         )
+        self.transcript_area.setAcceptDrops(False)
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
 
@@ -3113,7 +3193,7 @@ class MainWindow(QMainWindow):
         self.record_button.setText("Start Recording")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
+        self._set_import_enabled(True)
 
     def _on_model_load_failed(self, message: str) -> None:
         self._model_failed = True
@@ -3212,6 +3292,10 @@ class MainWindow(QMainWindow):
             self._hotkey_active_session = False
             self._stop_recording()
 
+    def _set_import_enabled(self, enabled: bool) -> None:
+        self.import_button.setEnabled(enabled)
+        self.import_folder_button.setEnabled(enabled)
+
     def _import_active(self) -> bool:
         worker = getattr(self, "_file_worker", None)
         return bool(self._import_queue) or (worker is not None and worker.isRunning())
@@ -3246,7 +3330,7 @@ class MainWindow(QMainWindow):
             self.stream = self._ready_stream
             self.record_button.setText("Stop Recording")
             self._set_record_button_recording(True)
-            self.import_button.setEnabled(False)
+            self._set_import_enabled(False)
             self._set_status("Recording...", "recording")
             self._indicator.show_status("recording")
             _play_start_sound()
@@ -3277,7 +3361,7 @@ class MainWindow(QMainWindow):
             return
         self.record_button.setText("Stop Recording")
         self._set_record_button_recording(True)
-        self.import_button.setEnabled(False)
+        self._set_import_enabled(False)
         self._set_status("Recording...", "recording")
         self._indicator.show_status("recording")
         _play_start_sound()
@@ -3403,7 +3487,7 @@ class MainWindow(QMainWindow):
 
         prompt = session.prompt or ""
         self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
+        self._set_import_enabled(True)
         self._set_status(f'Template "{session.name}": say {prompt}', "ready")
         self._indicator.show_status(f"Say: {prompt[:14]}")
         return True
@@ -3412,7 +3496,7 @@ class MainWindow(QMainWindow):
         """Shows the finished text and types it into the focused window."""
         self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
+        self._set_import_enabled(True)
         self._indicator.hide_indicator()
 
         if text:
@@ -3642,7 +3726,7 @@ class MainWindow(QMainWindow):
         whatever's left rather than clearing it outright (except for "all"),
         so a second "delete last word" in a row keeps peeling words off."""
         self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
+        self._set_import_enabled(True)
         self._indicator.hide_indicator()
 
         if not self._last_typed_text:
@@ -3676,7 +3760,7 @@ class MainWindow(QMainWindow):
         self.transcript_area.append(f"[error] {message}")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
-        self.import_button.setEnabled(True)
+        self._set_import_enabled(True)
         self._indicator.hide_indicator()
 
     # -- import existing audio/video file ---------------------------------
@@ -3689,29 +3773,195 @@ class MainWindow(QMainWindow):
             "Audio/Video Files (*.wav *.mp3 *.m4a *.mp4 *.mov *.flac *.ogg *.wma *.aac *.webm);;"
             "All Files (*)",
         )
-        if not paths:
-            return
+        if paths:
+            self._begin_import(paths)
 
-        self._import_queue = paths
+    def import_folder(self) -> None:
+        folder = QFileDialog.getExistingDirectory(
+            self, "Choose a folder of audio or video files"
+        )
+        if folder:
+            self._begin_import([folder])
+
+    def dragEnterEvent(self, event) -> None:  # noqa: N802, ANN001
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event) -> None:  # noqa: N802, ANN001
+        paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
+        if paths:
+            event.acceptProposedAction()
+            self._begin_import(paths)
+
+    def _begin_import(self, paths: list[str]) -> None:
+        """Starts an import from picked files, a picked folder or a drop. One
+        file is free; several files or a folder is a batch: Pro, with a couple
+        of free runs so it can be tried first."""
+        if not self.import_button.isEnabled() or self._import_active():
+            self._set_status("Wait for the current job to finish", "error")
+            return
+        files = batch.collect_media(paths)
+        if not files:
+            self._set_status("No audio or video files found", "error")
+            return
+        is_batch = len(files) > 1 or any(os.path.isdir(p) for p in paths)
+
+        trial_note = ""
+        if is_batch and not hotkey_license.is_pro():
+            if hotkey_settings.get_batch_trials_left() <= 0:
+                self._offer_batch_pro(files)
+                return
+            left = hotkey_settings.use_batch_trial()
+            trial_note = (
+                f"Free batch run used, {left} left. Batch import is a Pro feature."
+                if left
+                else "Last free batch run used. Batch import is a Pro feature."
+            )
+
+        skipped: list[str] = []
+        if is_batch and self.export_srt_checkbox.isChecked():
+            files, skipped = batch.split_done(files)
+            if not files:
+                self._set_status("Every file there already has an .srt", "ready")
+                return
+
+        if trial_note:
+            self.transcript_area.append(trial_note)
+        self._import_queue = list(files)
+        self._batch = (
+            {
+                "total": len(files),
+                "done": 0,
+                "failed": 0,
+                "skipped": len(skipped),
+                "saved": 0,
+                "paths": list(files),
+                "cancelled": False,
+                "paused": False,
+            }
+            if is_batch
+            else None
+        )
+        self._batch_folder = None
+        if is_batch:
+            self._batch_progress.setValue(0)
+            self._batch_progress.show()
+            self._batch_pause_button.setText("Pause")
+            self._batch_pause_button.show()
+            self._batch_cancel_button.show()
+            self._batch_open_button.hide()
+            self._batch_label.setText(f"Starting {len(files)} files...")
+            self._batch_bar.show()
+        else:
+            self._batch_bar.hide()
         self.record_button.setEnabled(False)
-        self.import_button.setEnabled(False)
+        self._set_import_enabled(False)
         self._process_next_import_file()
+
+    def _offer_batch_pro(self, files: list[str]) -> None:
+        box = QMessageBox(self)
+        box.setWindowTitle("Batch import is a Pro feature")
+        box.setText(
+            f"That is {len(files)} files. Importing several files or a folder at once "
+            "is part of VoxScribe Pro, and your 2 free batch runs are used up."
+        )
+        box.setInformativeText(
+            "You can still import one file at a time for free, or get Pro once for $14."
+        )
+        pro_button = box.addButton("Get Pro", QMessageBox.AcceptRole)
+        first_button = box.addButton("Import first file only", QMessageBox.ActionRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.exec()
+        if box.clickedButton() is pro_button:
+            webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
+        elif box.clickedButton() is first_button:
+            self._begin_import(files[:1])
+
+    def _toggle_import_pause(self) -> None:
+        if self._batch is None or self._file_worker is None:
+            return
+        paused = not self._batch["paused"]
+        self._batch["paused"] = paused
+        self._file_worker.set_paused(paused)
+        self._batch_pause_button.setText("Resume" if paused else "Pause")
+        self._refresh_batch_label(None)
+
+    def _cancel_import(self) -> None:
+        if self._batch is None:
+            return
+        self._batch["cancelled"] = True
+        self._import_queue = []
+        self._batch_label.setText("Stopping after this part...")
+        if self._file_worker is not None:
+            self._file_worker.request_stop()
+
+    def _open_batch_folder(self) -> None:
+        if self._batch_folder and os.path.isdir(self._batch_folder):
+            os.startfile(self._batch_folder)  # noqa: S606
+
+    def _refresh_batch_label(self, percent: int | None) -> None:
+        if self._batch is None:
+            return
+        b = self._batch
+        number = min(b["total"], b["done"] + b["failed"] + 1)
+        text = f"File {number} of {b['total']}"
+        if b["paused"]:
+            text += " (paused)"
+        elif percent is not None:
+            text += f", {percent}%"
+        self._batch_label.setText(text)
+
+    def _on_import_progress(self, percent: int) -> None:
+        if self._batch is None:
+            return
+        b = self._batch
+        self._batch_progress.setValue(
+            batch.overall_percent(b["done"] + b["failed"], b["total"], percent)
+        )
+        self._refresh_batch_label(percent)
+
+    def _on_import_cancelled(self) -> None:
+        self._finish_import()
+
+    def _finish_import(self) -> None:
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        self._set_status("Ready", "ready")
+        self._indicator.hide_indicator()
+        b = self._batch
+        self._batch = None
+        if b is None:
+            return
+        summary = batch.format_summary(
+            b["total"], b["done"], b["failed"], b["skipped"], b["saved"], b["cancelled"]
+        )
+        self.transcript_area.append(summary)
+        self._batch_label.setText(summary)
+        if not b["cancelled"]:
+            self._batch_progress.setValue(100)
+        self._batch_pause_button.hide()
+        self._batch_cancel_button.hide()
+        self._batch_folder = batch.common_folder(b["paths"])
+        self._batch_open_button.setVisible(bool(self._batch_folder))
+        if self.tray_icon is not None:
+            self._tray_notify("VoxScribe", summary, QSystemTrayIcon.MessageIcon.Information, 5000)
 
     def _process_next_import_file(self) -> None:
         if not self._import_queue:
-            self.record_button.setEnabled(True)
-            self.import_button.setEnabled(True)
-            self._set_status("Ready", "ready")
-            self._indicator.hide_indicator()
+            self._finish_import()
             return
 
         path = self._import_queue.pop(0)
         remaining = len(self._import_queue)
-        status = (
-            f"Transcribing file... ({remaining} more queued)"
-            if remaining
-            else "Transcribing file..."
-        )
+        if self._batch is not None:
+            status = f"Transcribing {Path(path).name}..."
+            self._refresh_batch_label(0)
+        else:
+            status = (
+                f"Transcribing file... ({remaining} more queued)"
+                if remaining
+                else "Transcribing file..."
+            )
         self._set_status(status, "transcribing")
         self._indicator.show_status("transcribing")
 
@@ -3736,7 +3986,11 @@ class MainWindow(QMainWindow):
             hotkey_settings.get_speaker_names(),
             hotkey_settings.get_caption_line_chars(),
         )
+        if self._batch is not None and self._batch["paused"]:
+            self._file_worker.set_paused(True)
         self._file_worker.status.connect(lambda message: self._set_status(message, "transcribing"))
+        self._file_worker.progress.connect(self._on_import_progress)
+        self._file_worker.cancelled.connect(self._on_import_cancelled)
         self._file_worker.done.connect(lambda text, p=path: self._on_file_transcribed(text, p))
         self._file_worker.failed.connect(
             lambda message, p=path: self._on_file_transcribe_failed(message, p)
@@ -3750,6 +4004,10 @@ class MainWindow(QMainWindow):
             text = replacements.apply_replacements(text)
         label = f"[{Path(path).name}]"
         self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
+        if self._batch is not None:
+            self._batch["done"] += 1
+            if self._file_worker is not None and self._file_worker.srt_path:
+                self._batch["saved"] += 1
         if self._file_worker is not None and self._file_worker.srt_path:
             self.transcript_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
         if self._file_worker is not None and self._file_worker.speaker_error:
@@ -3763,4 +4021,6 @@ class MainWindow(QMainWindow):
 
     def _on_file_transcribe_failed(self, message: str, path: str) -> None:
         self.transcript_area.append(f"[{Path(path).name}] [error] {message}")
+        if self._batch is not None:
+            self._batch["failed"] += 1
         self._process_next_import_file()

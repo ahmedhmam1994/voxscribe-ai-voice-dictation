@@ -335,6 +335,27 @@ def set_sound_enabled(enabled: bool) -> None:
     _settings().setValue("sound_enabled", enabled)
 
 
+FREE_BATCH_TRIALS = 2
+
+
+def get_batch_trials_left() -> int:
+    """Free batch imports (several files or a folder) left for users without
+    Pro. A single file import is always free."""
+    try:
+        used = int(_settings().value("batch_trials_used", 0))
+    except (TypeError, ValueError):
+        used = 0
+    return max(0, FREE_BATCH_TRIALS - max(0, used))
+
+
+def use_batch_trial() -> int:
+    """Spends one free batch import and returns how many are left."""
+    left = get_batch_trials_left()
+    if left > 0:
+        _settings().setValue("batch_trials_used", FREE_BATCH_TRIALS - left + 1)
+    return max(0, left - 1)
+
+
 DEFAULT_CAPTION_LINE_CHARS = 42
 MIN_CAPTION_LINE_CHARS = 20
 MAX_CAPTION_LINE_CHARS = 80

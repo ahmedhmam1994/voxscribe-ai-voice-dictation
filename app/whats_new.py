@@ -9,6 +9,14 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.7.1": (
+        "- New: imported captions are split into cards of two lines of 42 "
+        "characters (Settings, Files).\n"
+        "- New (Pro): import a whole folder, or drop files and folders onto the "
+        "window, with progress per file, pause and cancel, and a summary with an "
+        "Open folder button. Free users get 2 batch runs to try it; importing one "
+        "file is always free."
+    ),
     "1.7.0": (
         "- New: Settings is now a full page instead of a box, with sections for "
         "General, Audio, Text, Pro, Files, Privacy and About.\n"

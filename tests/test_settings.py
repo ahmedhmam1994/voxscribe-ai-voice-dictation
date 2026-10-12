@@ -72,3 +72,21 @@ def test_typing_delay_ignores_garbage_values(monkeypatch, tmp_path):
     _use_temp_settings(monkeypatch, tmp_path)
     settings._settings().setValue("typing_delay_ms", "not a number")
     assert settings.get_typing_delay_ms() == settings.DEFAULT_TYPING_DELAY_MS
+
+
+def test_batch_trials_run_out_after_two(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_batch_trials_left() == 2
+    assert settings.use_batch_trial() == 1
+    assert settings.use_batch_trial() == 0
+    assert settings.use_batch_trial() == 0
+    assert settings.get_batch_trials_left() == 0
+
+
+def test_caption_line_chars_default_range_and_off(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_caption_line_chars() == 42
+    settings.set_caption_line_chars(0)
+    assert settings.get_caption_line_chars() == 0
+    settings.set_caption_line_chars(500)
+    assert settings.get_caption_line_chars() == settings.MAX_CAPTION_LINE_CHARS
