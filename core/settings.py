@@ -335,6 +335,29 @@ def set_sound_enabled(enabled: bool) -> None:
     _settings().setValue("sound_enabled", enabled)
 
 
+DEFAULT_CAPTION_LINE_CHARS = 42
+MIN_CAPTION_LINE_CHARS = 20
+MAX_CAPTION_LINE_CHARS = 80
+
+
+def get_caption_line_chars() -> int:
+    """Longest caption line in characters for imported .srt/.vtt files.
+    0 turns splitting off and keeps Whisper's own segments."""
+    try:
+        value = int(_settings().value("caption_line_chars", DEFAULT_CAPTION_LINE_CHARS))
+    except (TypeError, ValueError):
+        return DEFAULT_CAPTION_LINE_CHARS
+    if value <= 0:
+        return 0
+    return max(MIN_CAPTION_LINE_CHARS, min(MAX_CAPTION_LINE_CHARS, value))
+
+
+def set_caption_line_chars(chars: int) -> None:
+    chars = int(chars)
+    clamped = 0 if chars <= 0 else max(MIN_CAPTION_LINE_CHARS, min(MAX_CAPTION_LINE_CHARS, chars))
+    _settings().setValue("caption_line_chars", clamped)
+
+
 DEFAULT_TYPING_DELAY_MS = 30
 MIN_TYPING_DELAY_MS = 5
 MAX_TYPING_DELAY_MS = 200

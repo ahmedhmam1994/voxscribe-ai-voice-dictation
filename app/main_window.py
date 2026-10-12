@@ -84,6 +84,7 @@ from core.audio_capture import (
     resample_to_16k,
     resolve_input_device,
 )
+from core.captions import split_segments
 from core.chime import make_chime
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
@@ -917,6 +918,7 @@ class FileTranscribeThread(QThread):
         label_speakers: bool = False,
         speaker_count: int = 0,
         speaker_names: list[str] | None = None,
+        caption_line_chars: int = 0,
     ) -> None:
         super().__init__()
         self.transcriber = transcriber
@@ -929,6 +931,7 @@ class FileTranscribeThread(QThread):
         self.label_speakers = label_speakers
         self.speaker_count = speaker_count
         self.speaker_names = speaker_names or []
+        self.caption_line_chars = caption_line_chars
         self.speaker_error: str | None = None
         self.srt_path: str | None = None
         self.extra_paths: list[str] = []
@@ -948,11 +951,13 @@ class FileTranscribeThread(QThread):
         if self.label_speakers:
             segments = self._label_speakers(segments)
 
+        cards = split_segments(segments, self.caption_line_chars)
+
         if self.export_srt:
             srt_path = str(Path(self.path).with_suffix(".srt"))
             try:
                 with open(srt_path, "w", encoding="utf-8") as f:
-                    f.write(format_srt(segments))
+                    f.write(format_srt(cards))
                 self.srt_path = srt_path
             except OSError:
                 # Transcription itself succeeded -- still hand the text back
@@ -960,7 +965,7 @@ class FileTranscribeThread(QThread):
                 pass
 
         if self.export_extras:
-            self._write_extras(segments)
+            self._write_extras(segments, cards)
 
         text = " ".join(text.strip() for _start, _end, text in segments).strip()
         self.done.emit(text)
@@ -983,12 +988,16 @@ class FileTranscribeThread(QThread):
             return segments
         return diarize.label_segments(segments, turns, self.speaker_names)
 
-    def _write_extras(self, segments: list[tuple[float, float, str]]) -> None:
+    def _write_extras(
+        self,
+        segments: list[tuple[float, float, str]],
+        cards: list[tuple[float, float, str]],
+    ) -> None:
         """Pro: WebVTT, Markdown and Word copies next to the file."""
         base = Path(self.path)
         title = base.stem
         outputs = {
-            base.with_suffix(".vtt"): transcript_export.format_vtt(segments).encode("utf-8"),
+            base.with_suffix(".vtt"): transcript_export.format_vtt(cards).encode("utf-8"),
             base.with_suffix(".md"): transcript_export.format_markdown(segments, title).encode(
                 "utf-8"
             ),
@@ -2222,6 +2231,27 @@ class MainWindow(QMainWindow):
         layout.addWidget(smart_hint)
 
         layout = files
+        caption_label = QLabel("CAPTION LINE LENGTH")
+        caption_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(caption_label)
+
+        caption_spin = _NoWheelSpinBox()
+        caption_spin.setRange(0, hotkey_settings.MAX_CAPTION_LINE_CHARS)
+        caption_spin.setSpecialValueText("Off (keep Whisper's segments)")
+        caption_spin.setValue(hotkey_settings.get_caption_line_chars())
+        caption_spin.setSuffix(" characters")
+        caption_spin.setMinimumHeight(36)
+        layout.addWidget(caption_spin)
+
+        caption_hint = QLabel(
+            "Long captions in an imported .srt or .vtt are split into cards of at most "
+            "two lines this long, with the timing shared out by text length. 42 is the "
+            "usual guideline for YouTube and broadcast. Free, no Pro needed."
+        )
+        caption_hint.setObjectName("settingsHint")
+        caption_hint.setWordWrap(True)
+        layout.addWidget(caption_hint)
+
         speakers_label = QLabel("SPEAKER LABELS (PRO)")
         speakers_label.setObjectName("settingsSectionLabel")
         layout.addWidget(speakers_label)
@@ -2621,6 +2651,17 @@ class MainWindow(QMainWindow):
                     "Recording sounds enabled."
                     if new_sound_enabled
                     else "Recording sounds disabled."
+                )
+
+            new_caption_chars = caption_spin.value()
+            if 0 < new_caption_chars < hotkey_settings.MIN_CAPTION_LINE_CHARS:
+                new_caption_chars = hotkey_settings.MIN_CAPTION_LINE_CHARS
+            if new_caption_chars != hotkey_settings.get_caption_line_chars():
+                hotkey_settings.set_caption_line_chars(new_caption_chars)
+                changes.append(
+                    "Caption splitting off."
+                    if new_caption_chars == 0
+                    else f"Caption lines capped at {new_caption_chars} characters."
                 )
 
             new_typing_delay = typing_delay_spin.value()
@@ -3693,6 +3734,7 @@ class MainWindow(QMainWindow):
             self.label_speakers_checkbox.isChecked() and hotkey_license.is_pro(),
             hotkey_settings.get_speaker_count(),
             hotkey_settings.get_speaker_names(),
+            hotkey_settings.get_caption_line_chars(),
         )
         self._file_worker.status.connect(lambda message: self._set_status(message, "transcribing"))
         self._file_worker.done.connect(lambda text, p=path: self._on_file_transcribed(text, p))
