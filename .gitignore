@@ -28,3 +28,6 @@ license_signing_key.raw
 # Personal sales ledger (scripts/generate_license_key.py) -- buyer names +
 # issued keys, never meant to be public or shipped with the app.
 sold_keys.csv
+
+fulfilled_sales.json
+fulfilled/

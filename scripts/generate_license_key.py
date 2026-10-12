@@ -1,6 +1,7 @@
 """Dev-only: issue a new VoxScribe Pro license key.
 
-Run this yourself after a sale to generate the key you send the buyer.
+Run this yourself after a sale to generate the key you send the buyer (or let
+scripts/fulfill_sales.py do it for new Gumroad sales).
 Requires license_signing_key.raw at the repo root (gitignored, never
 shipped with the app -- see core/license.py's module docstring). Losing
 that file means you can never issue new keys again; regenerate a fresh
@@ -38,7 +39,8 @@ _KEY_FILE = Path(__file__).resolve().parent.parent / "license_signing_key.raw"
 _SALES_LOG = Path(__file__).resolve().parent.parent / "sold_keys.csv"
 
 
-def _log_sale(buyer: str, key: str) -> None:
+def log_sale(buyer: str, key: str) -> None:
+    """Appends a row to sold_keys.csv, the personal sales record."""
     is_new = not _SALES_LOG.exists()
     with _SALES_LOG.open("a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
@@ -47,22 +49,28 @@ def _log_sale(buyer: str, key: str) -> None:
         writer.writerow([datetime.now(timezone.utc).isoformat(timespec="seconds"), buyer, key])
 
 
-def main() -> None:
-    if not _KEY_FILE.exists():
-        print(f"Missing {_KEY_FILE} -- see this script's docstring.")
-        raise SystemExit(1)
-
+def issue_key() -> str:
+    """Signs a fresh license id with the private key and returns the typeable key.
+    Raises FileNotFoundError if license_signing_key.raw is missing."""
     private_key = Ed25519PrivateKey.from_private_bytes(_KEY_FILE.read_bytes())
     license_id = os.urandom(8)
     signature = private_key.sign(license_id)
     key = format_key(license_id + signature)
-
     assert verify_license_key(key), "generated key failed its own verification -- bug"
+    return key
+
+
+def main() -> None:
+    try:
+        key = issue_key()
+    except FileNotFoundError:
+        print(f"Missing {_KEY_FILE} -- see this script's docstring.")
+        raise SystemExit(1) from None
     print(key)
 
     buyer = " ".join(sys.argv[1:]).strip()
     if buyer:
-        _log_sale(buyer, key)
+        log_sale(buyer, key)
         print(f"Logged to {_SALES_LOG.name} for buyer: {buyer}")
 
 
