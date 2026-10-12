@@ -1573,8 +1573,8 @@ class MainWindow(QMainWindow):
         # label, which triggers an unwanted horizontal scrollbar inside the
         # QScrollArea below -- confirmed via an actual screenshot, not
         # assumed.
-        dialog.setFixedWidth(420)
-        dialog.resize(420, 600)
+        dialog.setFixedWidth(448)
+        dialog.resize(448, 600)
 
         outer_layout = QVBoxLayout(dialog)
         outer_layout.setContentsMargins(0, 0, 0, 0)
@@ -2138,9 +2138,10 @@ class MainWindow(QMainWindow):
         offline_hint.setWordWrap(True)
         layout.addWidget(offline_hint)
 
-        pro_buttons = QHBoxLayout()
+        pro_buttons = QVBoxLayout()
+        pro_buttons.setSpacing(8)
         log_button = QPushButton("View connection log")
-        learn_button = QPushButton("Learn vocabulary from a folder...")
+        learn_button = QPushButton("Learn vocabulary from a folder")
         for button in (log_button, learn_button):
             button.setObjectName("secondaryButton")
             button.setCursor(Qt.PointingHandCursor)
