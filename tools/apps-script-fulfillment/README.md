@@ -12,7 +12,7 @@ own Google account, for free. It is separate from the website and from `scripts/
    (a copy goes to `OWNER_EMAIL`). Each sale is recorded, so a repeated ping sends nothing.
 4. If the email fails, the key is kept and a timer retries every 10 minutes with the same key.
 
-The signing code is in `Ed25519.gs` (about 100 lines, no third-party library) and is tested
+The signing code is in `Ed25519.gs` (about 250 lines, plain numbers, no third-party library) and is tested
 against the RFC 8032 test vector, Node's own Ed25519, and the Python verifier the Windows
 app uses. Run the tests from the repo root with `python -m pytest tests/test_apps_script_fulfillment.py`.
 
