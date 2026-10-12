@@ -9,6 +9,11 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.7.0": (
+        "- New: Settings is now a full page instead of a box, with sections for "
+        "General, Audio, Text, Pro, Files, Privacy and About.\n"
+        "- Changes are saved with Save changes; Cancel leaves everything as it was."
+    ),
     "1.6.9": (
         "- New (Pro): code dictation. Say \"camel case user name\" to type userName, "
         "or use snake, pascal, kebab and constant case and spoken symbols.\n"

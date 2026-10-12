@@ -39,7 +39,6 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
-    QDialogButtonBox,
     QFileDialog,
     QGraphicsDropShadowEffect,
     QHBoxLayout,
@@ -571,8 +570,21 @@ QLabel#statCardLabel {{
 """
 
 SETTINGS_DIALOG_STYLESHEET = f"""
-QDialog {{
+QDialog, QWidget#settingsPage {{
     background: {BG_WINDOW};
+}}
+QWidget#settingsNav {{
+    background: {BG_WINDOW};
+    border-right: 1px solid {BORDER_SOFT};
+}}
+QLabel#settingsPageTitle {{
+    color: {TEXT_PRIMARY};
+    font-size: 20px;
+    font-weight: 700;
+}}
+QLabel#settingsPageSubtitle {{
+    color: {TEXT_FAINT};
+    font-size: 12px;
 }}
 QLabel {{
     color: {TEXT_PRIMARY};
@@ -1121,8 +1133,11 @@ class MainWindow(QMainWindow):
         settings_nav_button.setIconSize(QSize(17, 17))
         settings_nav_button.setCursor(Qt.PointingHandCursor)
         settings_nav_button.setMinimumHeight(38)
+        settings_nav_button.setCheckable(True)
         settings_nav_button.clicked.connect(self._open_settings_dialog)
         sidebar_layout.addWidget(settings_nav_button)
+        self._settings_nav_button = settings_nav_button
+        self._settings_close = None
 
         body_row.addWidget(sidebar)
         body_row.addWidget(self._pages, stretch=1)
@@ -1556,40 +1571,140 @@ class MainWindow(QMainWindow):
         return combo
 
     def _open_settings_dialog(self) -> None:
-        """The app's Settings window, scrollable since it now covers a real
-        set of options: hotkey + talk mode, microphone, dictation language
-        + Whisper model size, custom vocabulary, filler-word cleanup and
-        recording-sound toggles, a disabled-apps list, usage statistics,
-        and "start with Windows". Reachable from the in-window gear button
-        and the tray menu's "Settings..." entry -- previously only a bare
-        hotkey combo box existed, with no other options exposed anywhere
-        in the app."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("VoxScribe Settings")
+        """Opens Settings as a full page inside the main window: a category
+        list on the left and the chosen category's controls on the right,
+        grouped by what the settings do. Reachable from the sidebar's
+        Settings button, the language badge and the tray menu. Nothing is
+        saved until "Save changes"; "Cancel" (or leaving through the sidebar)
+        discards."""
+        self._show_and_raise()
+        if getattr(self, "_settings_close", None) is not None:
+            self._settings_close(False)
+
+        dialog = QWidget()
+        dialog.setObjectName("settingsPage")
         dialog.setStyleSheet(SETTINGS_DIALOG_STYLESHEET)
-        # Fixed, not just minimum, width: with this many sections now (some
-        # with long hint text), Qt's own layout sizing otherwise overrides a
-        # plain resize() and widens the dialog to fit the longest unwrapped
-        # label, which triggers an unwanted horizontal scrollbar inside the
-        # QScrollArea below -- confirmed via an actual screenshot, not
-        # assumed.
-        dialog.setFixedWidth(448)
-        dialog.resize(448, 600)
 
         outer_layout = QVBoxLayout(dialog)
         outer_layout.setContentsMargins(0, 0, 0, 0)
         outer_layout.setSpacing(0)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.NoFrame)
-        outer_layout.addWidget(scroll, stretch=1)
+        header = QWidget()
+        header_row = QHBoxLayout(header)
+        header_row.setContentsMargins(28, 18, 28, 14)
+        header_row.setSpacing(10)
+        header_title = QLabel("Settings")
+        header_title.setObjectName("settingsPageTitle")
+        header_row.addWidget(header_title)
+        header_row.addStretch(1)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.setObjectName("ghostButton")
+        cancel_button.setCursor(Qt.PointingHandCursor)
+        save_button = QPushButton("Save changes")
+        save_button.setObjectName("primaryOutlineButton")
+        save_button.setCursor(Qt.PointingHandCursor)
+        header_row.addWidget(cancel_button)
+        header_row.addWidget(save_button)
+        outer_layout.addWidget(header)
 
-        content = QWidget()
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(24, 24, 24, 12)
-        layout.setSpacing(16)
-        scroll.setWidget(content)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        outer_layout.addLayout(body, stretch=1)
+
+        nav = QWidget()
+        nav.setObjectName("settingsNav")
+        nav.setFixedWidth(168)
+        nav_layout = QVBoxLayout(nav)
+        nav_layout.setContentsMargins(12, 4, 12, 12)
+        nav_layout.setSpacing(4)
+        body.addWidget(nav)
+
+        section_stack = QStackedWidget()
+        body.addWidget(section_stack, stretch=1)
+
+        section_buttons: list[QPushButton] = []
+
+        def _show_section(index: int) -> None:
+            section_stack.setCurrentIndex(index)
+            for i, btn in enumerate(section_buttons):
+                btn.setChecked(i == index)
+
+        def _new_section(title: str, subtitle: str) -> QVBoxLayout:
+            index = len(section_buttons)
+            btn = QPushButton(title)
+            btn.setObjectName("sidebarNavButton")
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.setCheckable(True)
+            btn.setMinimumHeight(36)
+            btn.clicked.connect(lambda: _show_section(index))
+            nav_layout.addWidget(btn)
+            section_buttons.append(btn)
+
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QScrollArea.NoFrame)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+            page_content = QWidget()
+            page_content.setMaximumWidth(620)
+            page_layout = QVBoxLayout(page_content)
+            page_layout.setContentsMargins(28, 4, 28, 24)
+            page_layout.setSpacing(14)
+            title_label = QLabel(title)
+            title_label.setObjectName("settingsPageTitle")
+            subtitle_label = QLabel(subtitle)
+            subtitle_label.setObjectName("settingsPageSubtitle")
+            subtitle_label.setWordWrap(True)
+            page_layout.addWidget(title_label)
+            page_layout.addWidget(subtitle_label)
+            page_layout.addSpacing(6)
+            page_layout.addStretch(1)
+            holder = QWidget()
+            holder_row = QHBoxLayout(holder)
+            holder_row.setContentsMargins(0, 0, 0, 0)
+            holder_row.addWidget(page_content, stretch=1)
+            holder_row.addStretch(0)
+            scroll.setWidget(holder)
+            section_stack.addWidget(scroll)
+            return page_layout
+
+        def _add(page_layout: QVBoxLayout, item) -> None:  # noqa: ANN001
+            if isinstance(item, QWidget):
+                page_layout.insertWidget(page_layout.count() - 1, item)
+            else:
+                page_layout.insertLayout(page_layout.count() - 1, item)
+
+        general_layout = _new_section("General", "Hotkey, language, model and startup.")
+        audio_layout = _new_section("Audio", "Microphone and how text is typed.")
+        text_layout = _new_section("Text", "How the transcript is cleaned and corrected.")
+        pro_layout = _new_section("Pro", "License and the Pro dictation tools.")
+        files_layout = _new_section("Files", "Importing audio and video files.")
+        privacy_layout = _new_section("Privacy", "Network use and where VoxScribe stays quiet.")
+        about_layout = _new_section("About", "Version, updates and usage.")
+        nav_layout.addStretch(1)
+        _show_section(0)
+
+        class _SectionProxy:
+            """Lets the long builder below keep calling layout.addWidget /
+            addLayout while the target section is switched with ``layout =``."""
+
+            def __init__(self, target: QVBoxLayout) -> None:
+                self._target = target
+
+            def addWidget(self, widget) -> None:  # noqa: ANN001, N802
+                _add(self._target, widget)
+
+            def addLayout(self, other) -> None:  # noqa: ANN001, N802
+                _add(self._target, other)
+
+        general = _SectionProxy(general_layout)
+        audio = _SectionProxy(audio_layout)
+        text = _SectionProxy(text_layout)
+        pro = _SectionProxy(pro_layout)
+        files = _SectionProxy(files_layout)
+        privacy = _SectionProxy(privacy_layout)
+        about = _SectionProxy(about_layout)
+        layout = pro
 
         license_section_label = QLabel("VOXSCRIBE PRO")
         license_section_label.setObjectName("settingsSectionLabel")
@@ -1703,6 +1818,7 @@ class MainWindow(QMainWindow):
         license_remove_button.clicked.connect(_remove_license)
         _refresh_license_ui()
 
+        layout = general
         hotkey_label = QLabel("HOLD-TO-TALK HOTKEY")
         hotkey_label.setObjectName("settingsSectionLabel")
         layout.addWidget(hotkey_label)
@@ -1732,6 +1848,7 @@ class MainWindow(QMainWindow):
                 break
         layout.addWidget(talk_mode_combo)
 
+        layout = audio
         mic_label = QLabel("MICROPHONE")
         mic_label.setObjectName("settingsSectionLabel")
         layout.addWidget(mic_label)
@@ -1853,8 +1970,8 @@ class MainWindow(QMainWindow):
                 _start_mic_test()
 
         mic_test_button.clicked.connect(_toggle_mic_test)
-        dialog.finished.connect(lambda _result: _stop_mic_test())
 
+        layout = general
         language_label = QLabel("DICTATION LANGUAGE")
         language_label.setObjectName("settingsSectionLabel")
         layout.addWidget(language_label)
@@ -1869,6 +1986,7 @@ class MainWindow(QMainWindow):
                 break
         layout.addWidget(language_combo)
 
+        layout = text
         translate_checkbox = QCheckBox("Translate to English")
         translate_checkbox.setChecked(hotkey_settings.get_translate_to_english_enabled())
         layout.addWidget(translate_checkbox)
@@ -1882,6 +2000,7 @@ class MainWindow(QMainWindow):
         translate_hint.setWordWrap(True)
         layout.addWidget(translate_hint)
 
+        layout = general
         model_label = QLabel("WHISPER MODEL SIZE")
         model_label.setObjectName("settingsSectionLabel")
         layout.addWidget(model_label)
@@ -1920,6 +2039,7 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_model_lock_state)
         license_remove_button.clicked.connect(_update_model_lock_state)
 
+        layout = text
         vocab_label = QLabel("CUSTOM VOCABULARY")
         vocab_label.setObjectName("settingsSectionLabel")
         layout.addWidget(vocab_label)
@@ -1959,6 +2079,7 @@ class MainWindow(QMainWindow):
         replacements_hint.setWordWrap(True)
         layout.addWidget(replacements_hint)
 
+        layout = pro
         snippets_label = QLabel("SNIPPETS (PRO)")
         snippets_label.setObjectName("settingsSectionLabel")
         layout.addWidget(snippets_label)
@@ -2016,6 +2137,7 @@ class MainWindow(QMainWindow):
         templates_hint.setWordWrap(True)
         layout.addWidget(templates_hint)
 
+        layout = general
         second_label = QLabel("SECOND LANGUAGE KEY (PRO)")
         second_label.setObjectName("settingsSectionLabel")
         layout.addWidget(second_label)
@@ -2047,6 +2169,7 @@ class MainWindow(QMainWindow):
         second_hint.setWordWrap(True)
         layout.addWidget(second_hint)
 
+        layout = pro
         profiles_label = QLabel("PER-APP PROFILES (PRO)")
         profiles_label.setObjectName("settingsSectionLabel")
         layout.addWidget(profiles_label)
@@ -2067,6 +2190,7 @@ class MainWindow(QMainWindow):
         profiles_hint.setWordWrap(True)
         layout.addWidget(profiles_hint)
 
+        layout = pro
         pro_tools_label = QLabel("PRO TOOLS")
         pro_tools_label.setObjectName("settingsSectionLabel")
         layout.addWidget(pro_tools_label)
@@ -2097,6 +2221,7 @@ class MainWindow(QMainWindow):
         smart_hint.setWordWrap(True)
         layout.addWidget(smart_hint)
 
+        layout = files
         speakers_label = QLabel("SPEAKER LABELS (PRO)")
         speakers_label.setObjectName("settingsSectionLabel")
         layout.addWidget(speakers_label)
@@ -2125,6 +2250,7 @@ class MainWindow(QMainWindow):
         speakers_hint.setWordWrap(True)
         layout.addWidget(speakers_hint)
 
+        layout = privacy
         offline_checkbox = QCheckBox("Offline mode: block all network use")
         offline_checkbox.setChecked(hotkey_settings.get_offline_mode_enabled())
         layout.addWidget(offline_checkbox)
@@ -2138,21 +2264,18 @@ class MainWindow(QMainWindow):
         offline_hint.setWordWrap(True)
         layout.addWidget(offline_hint)
 
-        pro_buttons = QVBoxLayout()
-        pro_buttons.setSpacing(8)
         log_button = QPushButton("View connection log")
         learn_button = QPushButton("Learn vocabulary from a folder")
         for button in (log_button, learn_button):
             button.setObjectName("secondaryButton")
             button.setCursor(Qt.PointingHandCursor)
-        pro_buttons.addWidget(log_button)
-        pro_buttons.addWidget(learn_button)
-        layout.addLayout(pro_buttons)
+        layout.addWidget(log_button)
 
         learn_result = QLabel("")
         learn_result.setObjectName("settingsHint")
         learn_result.setWordWrap(True)
-        layout.addWidget(learn_result)
+        text.addWidget(learn_button)
+        text.addWidget(learn_result)
 
         def _show_connection_log() -> None:
             self._open_connection_log(dialog)
@@ -2199,6 +2322,7 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_pro_tools_lock_state)
         license_remove_button.clicked.connect(_update_pro_tools_lock_state)
 
+        layout = text
         cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
         cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
         layout.addWidget(cleanup_checkbox)
@@ -2219,10 +2343,12 @@ class MainWindow(QMainWindow):
         voice_commands_hint.setWordWrap(True)
         layout.addWidget(voice_commands_hint)
 
+        layout = general
         sound_checkbox = QCheckBox("Play a sound when recording starts/stops")
         sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
         layout.addWidget(sound_checkbox)
 
+        layout = audio
         typing_delay_label = QLabel("TYPING DELAY (MS PER CHARACTER)")
         typing_delay_label.setObjectName("settingsSectionLabel")
         layout.addWidget(typing_delay_label)
@@ -2245,6 +2371,7 @@ class MainWindow(QMainWindow):
         typing_delay_hint.setWordWrap(True)
         layout.addWidget(typing_delay_hint)
 
+        layout = privacy
         telemetry_checkbox = QCheckBox("Send an anonymous launch ping (app version and OS only)")
         telemetry_checkbox.setChecked(hotkey_settings.get_telemetry_enabled())
         layout.addWidget(telemetry_checkbox)
@@ -2275,6 +2402,7 @@ class MainWindow(QMainWindow):
         excluded_hint.setWordWrap(True)
         layout.addWidget(excluded_hint)
 
+        layout = about
         stats_label = QLabel("STATISTICS")
         stats_label.setObjectName("settingsSectionLabel")
         layout.addWidget(stats_label)
@@ -2286,6 +2414,7 @@ class MainWindow(QMainWindow):
         stats_value.setObjectName("settingsHint")
         layout.addWidget(stats_value)
 
+        layout = general
         startup_label = QLabel("STARTUP")
         startup_label.setObjectName("settingsSectionLabel")
         layout.addWidget(startup_label)
@@ -2294,238 +2423,271 @@ class MainWindow(QMainWindow):
         auto_start_checkbox.setChecked(hotkey_settings.get_auto_start())
         layout.addWidget(auto_start_checkbox)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        buttons.accepted.connect(dialog.accept)
-        buttons.rejected.connect(dialog.reject)
-        button_row = QHBoxLayout()
-        button_row.setContentsMargins(24, 8, 24, 16)
-        button_row.addWidget(buttons)
-        outer_layout.addLayout(button_row)
+        layout = about
+        version_label = QLabel("VERSION")
+        version_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(version_label)
+        version_value = QLabel(f"VoxScribe {__version__}")
+        version_value.setObjectName("settingsHint")
+        layout.addWidget(version_value)
+        update_button = QPushButton("Check for updates")
+        update_button.setObjectName("secondaryButton")
+        update_button.setCursor(Qt.PointingHandCursor)
+        update_button.clicked.connect(lambda: self._start_update_check(manual=True))
+        layout.addWidget(update_button)
 
-        if dialog.exec() != QDialog.Accepted:
-            return
+        def _apply() -> None:
+            changes = []
 
-        changes = []
 
-        new_key = combo.currentData()
-        if new_key != self._hotkey:
-            self._hotkey = new_key
-            hotkey_settings.set_hotkey(new_key)
-            self._register_global_hotkey()
-            changes.append(f"Hotkey changed to {new_key.upper()}.")
-
-        new_talk_mode = talk_mode_combo.currentData()
-        if new_talk_mode != current_talk_mode:
-            hotkey_settings.set_talk_mode(new_talk_mode)
-            changes.append(f"Talk mode set to: {talk_mode_combo.currentText()}")
-
-        new_device = mic_combo.currentData()
-        if new_device != current_device:
-            hotkey_settings.set_input_device(new_device)
-            changes.append(
-                "Microphone set to auto-detect."
-                if new_device is None
-                else f"Microphone set to {mic_combo.currentText()}."
-            )
-
-        new_keep_ready = keep_ready_checkbox.isChecked()
-        if new_keep_ready != hotkey_settings.get_keep_mic_ready_enabled():
-            hotkey_settings.set_keep_mic_ready_enabled(new_keep_ready)
-            changes.append(
-                "Microphone will stay ready." if new_keep_ready else "Microphone ready mode off."
-            )
-        self._sync_ready_stream()
-
-        new_language = language_combo.currentData()
-        if new_language != current_language:
-            hotkey_settings.set_language(new_language)
-            self._refresh_language_badge()
-            changes.append(f"Dictation language set to {language_combo.currentText()}.")
-
-        new_translate_enabled = translate_checkbox.isChecked()
-        if new_translate_enabled != hotkey_settings.get_translate_to_english_enabled():
-            hotkey_settings.set_translate_to_english_enabled(new_translate_enabled)
-            changes.append(
-                "Translate to English enabled."
-                if new_translate_enabled
-                else "Translate to English disabled."
-            )
-
-        new_model_size = model_combo.currentData()
-        if new_model_size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
-            new_model_size = current_model_size
-        if new_model_size != current_model_size:
-            hotkey_settings.set_model_size(new_model_size)
-            changes.append(
-                f"Whisper model set to {model_combo.currentText()} "
-                "(takes effect after restart)."
-            )
-
-        new_vocabulary = [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
-        if new_vocabulary != hotkey_settings.get_custom_vocabulary():
-            hotkey_settings.set_custom_vocabulary(new_vocabulary)
-            changes.append(
-                f"Custom vocabulary updated ({len(new_vocabulary)} term"
-                f"{'s' if len(new_vocabulary) != 1 else ''})."
-                if new_vocabulary
-                else "Custom vocabulary cleared."
-            )
-
-        new_replacements = replacements.parse_replacements_text(replacements_edit.toPlainText())
-        if new_replacements != replacements.get_replacements():
-            replacements.set_replacements(new_replacements)
-            changes.append(
-                f"Word replacements updated ({len(new_replacements)})."
-                if new_replacements
-                else "Word replacements cleared."
-            )
-
-        if hotkey_license.is_pro():
-            new_snippets = []
-            for line in snippets_edit.toPlainText().splitlines():
-                if "=>" not in line:
-                    continue
-                trigger, _, expansion = line.partition("=>")
-                if trigger.strip():
-                    new_snippets.append((trigger.strip(), expansion.strip()))
-            if new_snippets != snippets.get_snippets():
-                snippets.set_snippets(new_snippets)
-                changes.append(
-                    f"Snippets updated ({len(new_snippets)})."
-                    if new_snippets
-                    else "Snippets cleared."
-                )
-
-        if hotkey_license.is_pro():
-            new_templates = templates.parse_lines(templates_edit.toPlainText())
-            if new_templates != templates.get_templates():
-                templates.set_templates(new_templates)
-                changes.append(
-                    f"Templates updated ({len(new_templates)})."
-                    if new_templates
-                    else "Templates cleared."
-                )
-
-            new_profiles = app_profiles.parse_lines(profiles_edit.toPlainText())
-            if new_profiles != app_profiles.get_profiles():
-                app_profiles.set_profiles(new_profiles)
-                changes.append(
-                    f"App profiles updated ({len(new_profiles)})."
-                    if new_profiles
-                    else "App profiles cleared."
-                )
-
-            new_smart = smart_checkbox.isChecked()
-            if new_smart != hotkey_settings.get_smart_formatting_enabled():
-                hotkey_settings.set_smart_formatting_enabled(new_smart)
-                changes.append("Smart formatting on." if new_smart else "Smart formatting off.")
-
-            new_second_key = second_key_combo.currentData()
-            new_second_language = second_language_combo.currentData()
-            if (
-                new_second_key != hotkey_settings.get_second_hotkey()
-                or new_second_language != hotkey_settings.get_second_language()
-            ):
-                hotkey_settings.set_second_hotkey(new_second_key)
-                hotkey_settings.set_second_language(new_second_language)
+            new_key = combo.currentData()
+            if new_key != self._hotkey:
+                self._hotkey = new_key
+                hotkey_settings.set_hotkey(new_key)
                 self._register_global_hotkey()
+                changes.append(f"Hotkey changed to {new_key.upper()}.")
+
+            new_talk_mode = talk_mode_combo.currentData()
+            if new_talk_mode != current_talk_mode:
+                hotkey_settings.set_talk_mode(new_talk_mode)
+                changes.append(f"Talk mode set to: {talk_mode_combo.currentText()}")
+
+            new_device = mic_combo.currentData()
+            if new_device != current_device:
+                hotkey_settings.set_input_device(new_device)
                 changes.append(
-                    f"Second language key set to {new_second_key.upper()}."
-                    if new_second_key
-                    else "Second language key off."
+                    "Microphone set to auto-detect."
+                    if new_device is None
+                    else f"Microphone set to {mic_combo.currentText()}."
                 )
 
-            new_speaker_count = speaker_count_combo.currentData()
-            new_speaker_names = [n.strip() for n in speaker_names_edit.text().split(",")]
-            if new_speaker_names == [""]:
-                new_speaker_names = []
-            if new_speaker_count != hotkey_settings.get_speaker_count():
-                hotkey_settings.set_speaker_count(new_speaker_count)
-                changes.append("Speaker count updated.")
-            if new_speaker_names != hotkey_settings.get_speaker_names():
-                hotkey_settings.set_speaker_names(new_speaker_names)
-                changes.append("Speaker names updated.")
-
-            new_code = code_checkbox.isChecked()
-            if new_code != hotkey_settings.get_code_dictation_enabled():
-                hotkey_settings.set_code_dictation_enabled(new_code)
-                changes.append("Code dictation on." if new_code else "Code dictation off.")
-
-            new_offline = offline_checkbox.isChecked()
-            if new_offline != hotkey_settings.get_offline_mode_enabled():
-                hotkey_settings.set_offline_mode_enabled(new_offline)
-                network_guard.set_blocking(new_offline)
+            new_keep_ready = keep_ready_checkbox.isChecked()
+            if new_keep_ready != hotkey_settings.get_keep_mic_ready_enabled():
+                hotkey_settings.set_keep_mic_ready_enabled(new_keep_ready)
                 changes.append(
-                    "Offline mode on: VoxScribe will not use the network."
-                    if new_offline
-                    else "Offline mode off."
+                    "Microphone will stay ready."
+                    if new_keep_ready
+                    else "Microphone ready mode off."
+                )
+            self._sync_ready_stream()
+
+            new_language = language_combo.currentData()
+            if new_language != current_language:
+                hotkey_settings.set_language(new_language)
+                self._refresh_language_badge()
+                changes.append(f"Dictation language set to {language_combo.currentText()}.")
+
+            new_translate_enabled = translate_checkbox.isChecked()
+            if new_translate_enabled != hotkey_settings.get_translate_to_english_enabled():
+                hotkey_settings.set_translate_to_english_enabled(new_translate_enabled)
+                changes.append(
+                    "Translate to English enabled."
+                    if new_translate_enabled
+                    else "Translate to English disabled."
                 )
 
-        new_cleanup_enabled = cleanup_checkbox.isChecked()
-        if new_cleanup_enabled != hotkey_settings.get_cleanup_enabled():
-            hotkey_settings.set_cleanup_enabled(new_cleanup_enabled)
-            changes.append(
-                "Filler-word cleanup enabled."
-                if new_cleanup_enabled
-                else "Filler-word cleanup disabled."
-            )
-
-        new_voice_commands_enabled = voice_commands_checkbox.isChecked()
-        if new_voice_commands_enabled != hotkey_settings.get_voice_commands_enabled():
-            hotkey_settings.set_voice_commands_enabled(new_voice_commands_enabled)
-            changes.append(
-                "Voice commands enabled."
-                if new_voice_commands_enabled
-                else "Voice commands disabled."
-            )
-
-        new_sound_enabled = sound_checkbox.isChecked()
-        if new_sound_enabled != hotkey_settings.get_sound_enabled():
-            hotkey_settings.set_sound_enabled(new_sound_enabled)
-            changes.append(
-                "Recording sounds enabled." if new_sound_enabled else "Recording sounds disabled."
-            )
-
-        new_typing_delay = typing_delay_spin.value()
-        if new_typing_delay != hotkey_settings.get_typing_delay_ms():
-            hotkey_settings.set_typing_delay_ms(new_typing_delay)
-            changes.append(f"Typing delay set to {new_typing_delay} ms.")
-
-        new_telemetry_enabled = telemetry_checkbox.isChecked()
-        if new_telemetry_enabled != hotkey_settings.get_telemetry_enabled():
-            hotkey_settings.set_telemetry_enabled(new_telemetry_enabled)
-            changes.append(
-                "Launch ping enabled." if new_telemetry_enabled else "Launch ping disabled."
-            )
-
-        new_excluded_apps = [a.strip() for a in excluded_edit.text().split(",") if a.strip()]
-        if [a.lower() for a in new_excluded_apps] != hotkey_settings.get_excluded_apps():
-            hotkey_settings.set_excluded_apps(new_excluded_apps)
-            changes.append(
-                f"Disabled apps updated ({len(new_excluded_apps)})."
-                if new_excluded_apps
-                else "Disabled apps list cleared."
-            )
-
-        new_auto_start = auto_start_checkbox.isChecked()
-        if new_auto_start != hotkey_settings.get_auto_start():
-            try:
-                hotkey_settings.set_auto_start(new_auto_start)
+            new_model_size = model_combo.currentData()
+            if new_model_size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
+                new_model_size = current_model_size
+            if new_model_size != current_model_size:
+                hotkey_settings.set_model_size(new_model_size)
                 changes.append(
-                    "VoxScribe will now start with Windows."
-                    if new_auto_start
-                    else "VoxScribe will no longer start with Windows."
+                    f"Whisper model set to {model_combo.currentText()} "
+                    "(takes effect after restart)."
                 )
-            except OSError as exc:
-                changes.append(f"Couldn't update the startup setting: {exc}")
 
-        if changes and self.tray_icon is not None:
-            self._tray_notify(
-                "VoxScribe",
-                " ".join(changes),
-                QSystemTrayIcon.MessageIcon.Information,
-                4000,
-            )
+            new_vocabulary = [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
+            if new_vocabulary != hotkey_settings.get_custom_vocabulary():
+                hotkey_settings.set_custom_vocabulary(new_vocabulary)
+                changes.append(
+                    f"Custom vocabulary updated ({len(new_vocabulary)} term"
+                    f"{'s' if len(new_vocabulary) != 1 else ''})."
+                    if new_vocabulary
+                    else "Custom vocabulary cleared."
+                )
+
+            new_replacements = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            if new_replacements != replacements.get_replacements():
+                replacements.set_replacements(new_replacements)
+                changes.append(
+                    f"Word replacements updated ({len(new_replacements)})."
+                    if new_replacements
+                    else "Word replacements cleared."
+                )
+
+            if hotkey_license.is_pro():
+                new_snippets = []
+                for line in snippets_edit.toPlainText().splitlines():
+                    if "=>" not in line:
+                        continue
+                    trigger, _, expansion = line.partition("=>")
+                    if trigger.strip():
+                        new_snippets.append((trigger.strip(), expansion.strip()))
+                if new_snippets != snippets.get_snippets():
+                    snippets.set_snippets(new_snippets)
+                    changes.append(
+                        f"Snippets updated ({len(new_snippets)})."
+                        if new_snippets
+                        else "Snippets cleared."
+                    )
+
+            if hotkey_license.is_pro():
+                new_templates = templates.parse_lines(templates_edit.toPlainText())
+                if new_templates != templates.get_templates():
+                    templates.set_templates(new_templates)
+                    changes.append(
+                        f"Templates updated ({len(new_templates)})."
+                        if new_templates
+                        else "Templates cleared."
+                    )
+
+                new_profiles = app_profiles.parse_lines(profiles_edit.toPlainText())
+                if new_profiles != app_profiles.get_profiles():
+                    app_profiles.set_profiles(new_profiles)
+                    changes.append(
+                        f"App profiles updated ({len(new_profiles)})."
+                        if new_profiles
+                        else "App profiles cleared."
+                    )
+
+                new_smart = smart_checkbox.isChecked()
+                if new_smart != hotkey_settings.get_smart_formatting_enabled():
+                    hotkey_settings.set_smart_formatting_enabled(new_smart)
+                    changes.append("Smart formatting on." if new_smart else "Smart formatting off.")
+
+                new_second_key = second_key_combo.currentData()
+                new_second_language = second_language_combo.currentData()
+                if (
+                    new_second_key != hotkey_settings.get_second_hotkey()
+                    or new_second_language != hotkey_settings.get_second_language()
+                ):
+                    hotkey_settings.set_second_hotkey(new_second_key)
+                    hotkey_settings.set_second_language(new_second_language)
+                    self._register_global_hotkey()
+                    changes.append(
+                        f"Second language key set to {new_second_key.upper()}."
+                        if new_second_key
+                        else "Second language key off."
+                    )
+
+                new_speaker_count = speaker_count_combo.currentData()
+                new_speaker_names = [n.strip() for n in speaker_names_edit.text().split(",")]
+                if new_speaker_names == [""]:
+                    new_speaker_names = []
+                if new_speaker_count != hotkey_settings.get_speaker_count():
+                    hotkey_settings.set_speaker_count(new_speaker_count)
+                    changes.append("Speaker count updated.")
+                if new_speaker_names != hotkey_settings.get_speaker_names():
+                    hotkey_settings.set_speaker_names(new_speaker_names)
+                    changes.append("Speaker names updated.")
+
+                new_code = code_checkbox.isChecked()
+                if new_code != hotkey_settings.get_code_dictation_enabled():
+                    hotkey_settings.set_code_dictation_enabled(new_code)
+                    changes.append("Code dictation on." if new_code else "Code dictation off.")
+
+                new_offline = offline_checkbox.isChecked()
+                if new_offline != hotkey_settings.get_offline_mode_enabled():
+                    hotkey_settings.set_offline_mode_enabled(new_offline)
+                    network_guard.set_blocking(new_offline)
+                    changes.append(
+                        "Offline mode on: VoxScribe will not use the network."
+                        if new_offline
+                        else "Offline mode off."
+                    )
+
+            new_cleanup_enabled = cleanup_checkbox.isChecked()
+            if new_cleanup_enabled != hotkey_settings.get_cleanup_enabled():
+                hotkey_settings.set_cleanup_enabled(new_cleanup_enabled)
+                changes.append(
+                    "Filler-word cleanup enabled."
+                    if new_cleanup_enabled
+                    else "Filler-word cleanup disabled."
+                )
+
+            new_voice_commands_enabled = voice_commands_checkbox.isChecked()
+            if new_voice_commands_enabled != hotkey_settings.get_voice_commands_enabled():
+                hotkey_settings.set_voice_commands_enabled(new_voice_commands_enabled)
+                changes.append(
+                    "Voice commands enabled."
+                    if new_voice_commands_enabled
+                    else "Voice commands disabled."
+                )
+
+            new_sound_enabled = sound_checkbox.isChecked()
+            if new_sound_enabled != hotkey_settings.get_sound_enabled():
+                hotkey_settings.set_sound_enabled(new_sound_enabled)
+                changes.append(
+                    "Recording sounds enabled."
+                    if new_sound_enabled
+                    else "Recording sounds disabled."
+                )
+
+            new_typing_delay = typing_delay_spin.value()
+            if new_typing_delay != hotkey_settings.get_typing_delay_ms():
+                hotkey_settings.set_typing_delay_ms(new_typing_delay)
+                changes.append(f"Typing delay set to {new_typing_delay} ms.")
+
+            new_telemetry_enabled = telemetry_checkbox.isChecked()
+            if new_telemetry_enabled != hotkey_settings.get_telemetry_enabled():
+                hotkey_settings.set_telemetry_enabled(new_telemetry_enabled)
+                changes.append(
+                    "Launch ping enabled." if new_telemetry_enabled else "Launch ping disabled."
+                )
+
+            new_excluded_apps = [a.strip() for a in excluded_edit.text().split(",") if a.strip()]
+            if [a.lower() for a in new_excluded_apps] != hotkey_settings.get_excluded_apps():
+                hotkey_settings.set_excluded_apps(new_excluded_apps)
+                changes.append(
+                    f"Disabled apps updated ({len(new_excluded_apps)})."
+                    if new_excluded_apps
+                    else "Disabled apps list cleared."
+                )
+
+            new_auto_start = auto_start_checkbox.isChecked()
+            if new_auto_start != hotkey_settings.get_auto_start():
+                try:
+                    hotkey_settings.set_auto_start(new_auto_start)
+                    changes.append(
+                        "VoxScribe will now start with Windows."
+                        if new_auto_start
+                        else "VoxScribe will no longer start with Windows."
+                    )
+                except OSError as exc:
+                    changes.append(f"Couldn't update the startup setting: {exc}")
+
+            if changes and self.tray_icon is not None:
+                self._tray_notify(
+                    "VoxScribe",
+                    " ".join(changes),
+                    QSystemTrayIcon.MessageIcon.Information,
+                    4000,
+                )
+
+        # The page sits in the main window's stack and is rebuilt each time
+        # Settings opens, so every control starts from the saved values.
+        page_index = self._pages.addWidget(dialog)
+        previous_index = self._pages.currentIndex()
+        if previous_index == page_index:
+            previous_index = 0
+
+        def _close(accepted: bool) -> None:
+            self._settings_close = None
+            _stop_mic_test()
+            if accepted:
+                _apply()
+            self._pages.removeWidget(dialog)
+            dialog.deleteLater()
+            self._settings_nav_button.setChecked(False)
+            self._switch_page(previous_index)
+
+        self._settings_close = _close
+        cancel_button.clicked.connect(lambda: _close(False))
+        save_button.clicked.connect(lambda: _close(True))
+        for btn in self._nav_buttons.values():
+            btn.setChecked(False)
+        self._settings_nav_button.setChecked(True)
+        self._pages.setCurrentIndex(page_index)
 
     # -- system tray ------------------------------------------------------
 
@@ -3265,6 +3427,9 @@ class MainWindow(QMainWindow):
         log_dialog.exec()
 
     def _switch_page(self, index: int) -> None:
+        if getattr(self, "_settings_close", None) is not None:
+            # Leaving an open Settings page through the sidebar discards it.
+            self._settings_close(False)
         self._pages.setCurrentIndex(index)
         for i, btn in self._nav_buttons.items():
             btn.setChecked(i == index)
