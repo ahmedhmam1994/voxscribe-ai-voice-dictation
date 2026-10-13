@@ -84,3 +84,20 @@ def format_summary(
     if skipped:
         parts.append(f"{skipped} skipped (already had an .srt)")
     return ", ".join(parts) + "."
+
+
+def unused_base(source: str, suffixes: list[str]) -> Path:
+    """Where to save the outputs for `source` without replacing anything.
+
+    Returns a path without a suffix: the file's own name when none of the
+    wanted outputs exist yet, otherwise "name (2)", "name (3)" and so on, so a
+    hand corrected .srt is never overwritten. One base is used for every
+    output of a file, so the .srt, .vtt, .md and .docx stay together.
+    """
+    base = Path(source).with_suffix("")
+    n = 1
+    candidate = base
+    while any(candidate.with_name(candidate.name + s).exists() for s in suffixes):
+        n += 1
+        candidate = base.with_name(f"{base.name} ({n})")
+    return candidate

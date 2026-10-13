@@ -53,3 +53,28 @@ def test_summary_text():
         "1 skipped (already had an .srt)."
     )
     assert batch.format_summary(5, 2, 0, 0, 0, True) == "Batch stopped: 2 of 5 files transcribed."
+
+
+def test_unused_base_keeps_the_name_when_free(tmp_path):
+    src = _touch(tmp_path / "talk.mp3")
+    assert batch.unused_base(src, [".srt"]) == tmp_path / "talk"
+
+
+def test_unused_base_never_replaces_an_existing_srt(tmp_path):
+    src = _touch(tmp_path / "talk.mp3")
+    _touch(tmp_path / "talk.srt")
+    assert batch.unused_base(src, [".srt"]) == tmp_path / "talk (2)"
+    _touch(tmp_path / "talk (2).srt")
+    assert batch.unused_base(src, [".srt"]) == tmp_path / "talk (3)"
+
+
+def test_unused_base_keeps_all_outputs_together(tmp_path):
+    src = _touch(tmp_path / "talk.mp3")
+    _touch(tmp_path / "talk.docx")
+    assert batch.unused_base(src, [".srt", ".docx"]) == tmp_path / "talk (2)"
+
+
+def test_unused_base_with_dots_in_the_name(tmp_path):
+    src = _touch(tmp_path / "my.talk.v2.mp3")
+    _touch(tmp_path / "my.talk.v2.srt")
+    assert batch.unused_base(src, [".srt"]) == tmp_path / "my.talk.v2 (2)"

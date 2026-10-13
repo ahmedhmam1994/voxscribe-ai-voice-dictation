@@ -980,8 +980,15 @@ class FileTranscribeThread(QThread):
 
         cards = split_segments(segments, self.caption_line_chars)
 
+        # Never replace a file that is already there (it may be a hand
+        # corrected caption): save under "name (2)" instead.
+        wanted = ([".srt"] if self.export_srt else []) + (
+            [".vtt", ".md", ".docx"] if self.export_extras else []
+        )
+        out_base = batch.unused_base(self.path, wanted) if wanted else None
+
         if self.export_srt:
-            srt_path = str(Path(self.path).with_suffix(".srt"))
+            srt_path = str(out_base.with_name(out_base.name + ".srt"))
             try:
                 with open(srt_path, "w", encoding="utf-8") as f:
                     f.write(format_srt(cards))
@@ -992,7 +999,7 @@ class FileTranscribeThread(QThread):
                 pass
 
         if self.export_extras:
-            self._write_extras(segments, cards)
+            self._write_extras(segments, cards, out_base)
 
         text = " ".join(text.strip() for _start, _end, text in segments).strip()
         self.done.emit(text)
@@ -1019,16 +1026,18 @@ class FileTranscribeThread(QThread):
         self,
         segments: list[tuple[float, float, str]],
         cards: list[tuple[float, float, str]],
+        base: Path,
     ) -> None:
         """Pro: WebVTT, Markdown and Word copies next to the file."""
-        base = Path(self.path)
-        title = base.stem
+        title = Path(self.path).stem
+
+        def named(suffix: str) -> Path:
+            return base.with_name(base.name + suffix)
+
         outputs = {
-            base.with_suffix(".vtt"): transcript_export.format_vtt(cards).encode("utf-8"),
-            base.with_suffix(".md"): transcript_export.format_markdown(segments, title).encode(
-                "utf-8"
-            ),
-            base.with_suffix(".docx"): transcript_export.format_docx(segments, title),
+            named(".vtt"): transcript_export.format_vtt(cards).encode("utf-8"),
+            named(".md"): transcript_export.format_markdown(segments, title).encode("utf-8"),
+            named(".docx"): transcript_export.format_docx(segments, title),
         }
         for path, data in outputs.items():
             try:
