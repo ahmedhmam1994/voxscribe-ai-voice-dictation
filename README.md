@@ -25,12 +25,29 @@ Free and privacy-first: your voice audio is never uploaded anywhere.
   <sub>Curious how it works? Read <a href="https://dev.to/ahmed_ibrahim_1994/what-broke-when-i-shipped-a-local-whisper-dictation-app-to-real-windows-hardware-11kg">what broke when I shipped it to real Windows hardware</a>.</sub>
 </p>
 
+## Screenshots
+
+**Caption a whole folder in one run.** Drop in a folder of episodes and VoxScribe writes an .srt next to each file. It never overwrites an existing caption file, reports what it saved, skipped and failed, and flags cards that look too fast to read or follow a long silence. Failed files can be retried with one click.
+
+<p align="center">
+  <img src="docs/assets/screenshot-batch-report.png" alt="VoxScribe batch import report: 3 of 4 files transcribed, 1 failed, 1 skipped, with review notes for two caption cards" width="720">
+</p>
+
+**Fix the words the model keeps getting wrong.** Add a short vocabulary list for names and jargon, and word replacements for anything it mishears the same way every time.
+
+<p align="center">
+  <img src="docs/assets/screenshot-settings-text.png" alt="VoxScribe settings, Text page: custom vocabulary, word replacements and filler word cleanup" width="720">
+</p>
+
 ## Features
 
 - **Hold-to-talk hotkey (F9 by default, changeable):** works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
 - **Direct typing into the focused window:** not clipboard/paste, so it never overwrites what you've copied
 - **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU; your audio never leaves your machine
 - **Rule-based text cleanup:** strips filler words ("um", "uh", "like", "you know") without calling any paid AI API
+- **Spoken commands:** say "period", "new line" or "question mark" for symbols, and "scratch that" or "delete last word" to take back what you just typed
+- **Custom vocabulary and word replacements:** teach it names and jargon, and fix words it mishears the same way every time
+- **Audio and video to captions:** import a file or a whole folder and get an .srt next to each one, capped at two short lines, timed from the word timestamps and cut at pauses. It never overwrites an existing caption file, and a report lists what was saved, skipped or failed, with a retry. Folder import has 2 free runs, then it is a Pro feature
 - **Floating status indicator:** small pill shows Recording/Transcribing state
 - **Runs from the system tray:** starts hidden, stays out of your way
 
@@ -53,12 +70,13 @@ The installer does not require admin rights (per-user install). On first launch,
 
 VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
 
-**Install:** download `VoxScribe-Android-0.1.0.apk` from the [Releases page](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+**Install:** download `VoxScribe-Android-1.0.0.apk` from the [Android 1.0.0 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
 
 - Android 8 or newer, 64-bit phone (almost every phone from the last several years)
 - The speech model is bundled in the app, so the file is large (about 200 MB) and works in airplane mode
 - Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
-- The same Pro key as Windows unlocks Snippets on the phone
+- Spoken commands ("period", "new line", "scratch that"), word replacements, smart formatting, code dictation, fill-in templates and per-app profiles are in Text tools. The same Pro key as Windows unlocks the Pro ones, and Snippets
+- When a newer Android release is published, the app shows an update banner with a download button
 
 The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutter for the app screens, Kotlin for the floating button, typing service and speech engine.
 
@@ -73,12 +91,6 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 1. Hold **F9** (or your chosen hotkey, see the tray menu's "Change Hotkey...")
 2. Speak
 3. Release the hotkey. The transcribed, cleaned-up text is typed into whatever app you're focused in
-
-<p align="center">
-  <img src="docs/assets/screenshot-ready.png" width="32%" alt="VoxScribe ready to record">
-  <img src="docs/assets/screenshot-recording.png" width="32%" alt="VoxScribe recording">
-  <img src="docs/assets/screenshot-transcript.png" width="32%" alt="VoxScribe with a transcript">
-</p>
 
 ## Privacy
 
