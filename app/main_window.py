@@ -3885,6 +3885,13 @@ class MainWindow(QMainWindow):
                 else "Last free batch run used. Batch import is a Pro feature."
             )
 
+        if is_batch and not self.export_srt_checkbox.isChecked():
+            # A batch that saves no files would only fill the transcript box.
+            self.export_srt_checkbox.setChecked(True)
+            trial_note = (trial_note + " " if trial_note else "") + (
+                "Save .srt captions was turned on so the batch saves a file for each one."
+            )
+
         skipped: list[str] = []
         if is_batch and self.export_srt_checkbox.isChecked():
             files, skipped = batch.split_done(files)
