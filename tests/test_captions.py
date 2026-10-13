@@ -91,3 +91,115 @@ def test_clean_cards_have_no_flags():
     from core.captions import review_flags
 
     assert review_flags([(0.0, 3.0, "A normal caption"), (3.2, 6.0, "And another one")]) == []
+
+
+def _words(text, start, per_word=0.4, gap_after=None):
+    out, t = [], start
+    for i, w in enumerate(text.split()):
+        out.append((t, t + per_word, w))
+        t += per_word
+        if gap_after and i in gap_after:
+            t += gap_after[i]
+    return out
+
+
+def test_timed_cards_follow_the_words():
+    from core.captions import split_segments_timed
+
+    text = "So the first thing you want to do is open the folder, and then you pick every file you want to run."
+    words = _words(text, 10.0, 0.3, {11: 2.0})
+    cards = split_segments_timed([(10.0, words[-1][1], text, words)], 42)
+    assert len(cards) > 1
+    assert cards[0][0] == 10.0
+    for (_s1, e1, _t1), (s2, _e2, _t2) in zip(cards, cards[1:], strict=False):
+        assert e1 <= s2 + 1e-9
+    spoken_again = [w for w in words if w[0] > 10 + 12 * 0.3 + 1.5][0][0]
+    assert any(abs(s - spoken_again) < 0.05 for s, _e, _t in cards)
+
+
+def test_timed_card_does_not_hang_through_a_silence():
+    from core.captions import split_segments_timed
+
+    first = _words("costs fourteen dollars", 0.0, 0.4)
+    last = _words("Thanks.", 8.0, 0.4)
+    text = "costs fourteen dollars Thanks."
+    cards = split_segments_timed([(0.0, 8.4, text, first + last)], 12)
+    assert cards[0][1] < 3.0
+    assert cards[-1][0] == 8.0
+    assert cards[-1][2] == "Thanks."
+
+
+def test_timed_cards_last_at_least_a_second_when_there_is_room():
+    from core.captions import MIN_CARD_SECONDS, split_segments_timed
+
+    words = _words("Yes.", 5.0, 0.2)
+    card = split_segments_timed([(5.0, 5.2, "Yes.", words)], 42)[0]
+    assert card[1] - card[0] >= MIN_CARD_SECONDS
+
+
+def test_timed_split_falls_back_when_words_do_not_match_the_text():
+    from core.captions import split_segments_timed
+
+    text = "Speaker 1: " + "word " * 20
+    words = _words("word " * 20, 0.0, 0.3)
+    cards = split_segments_timed([(0.0, 6.0, text.strip(), words)], 42)
+    assert len(cards) >= 2
+    assert cards[0][0] == 0.0 and abs(cards[-1][1] - 6.0) < 0.5
+
+
+def test_timed_zero_turns_it_off():
+    from core.captions import split_segments_timed
+
+    words = _words("hi there", 1.0)
+    assert split_segments_timed([(1.0, 2.0, "hi there", words)], 0) == [(1.0, 2.0, "hi there")]
+
+
+def test_review_flags_a_card_that_stays_far_too_long():
+    from core.captions import review_flags
+
+    flags = review_flags([(0.0, 9.4, "The new release is out and the upgrade costs fourteen dollars.")])
+    assert any("longer than the speech needs" in reason for _n, reason in flags)
+
+
+def test_timed_split_copes_with_words_that_carry_leading_spaces():
+    from core.captions import split_segments_timed
+
+    text = "So the first thing you want to do is open the folder and then you pick every file you want to run overnight."
+    words = [(i * 0.3, i * 0.3 + 0.25, " " + w) for i, w in enumerate(text.split())]
+    cards = split_segments_timed([(0.0, 8.0, text, words)], 42)
+    assert len(cards) > 1
+    assert all("  " not in t for _s, _e, t in cards)
+    assert max(e - s for s, e, _t in cards) < 7.0
+
+
+def test_a_very_long_segment_is_cut_into_cards_that_all_fit():
+    text = (
+        "Well, the first thing we did was write down every service. Then we ranked them by "
+        "risk. Great. The new release is version 1.7.2, and the pro upgrade costs $14. Thanks."
+    )
+    cards = split_segments([(0.0, 18.0, text)], 42)
+    assert len(cards) >= 2
+    for _s, _e, t in cards:
+        assert len(t.split("\n")) <= 2
+        assert all(len(line) <= 42 for line in t.split("\n"))
+
+
+def test_timed_cards_for_a_long_segment_with_pauses_stay_short():
+    from core.captions import split_segments_timed
+
+    words = []
+    t = 28.2
+    for w in "Well, the first thing we did was write down every service.".split():
+        words.append((t, t + 0.3, w)); t += 0.3
+    t += 1.0
+    for w in "Then we ranked them by risk.".split():
+        words.append((t, t + 0.3, w)); t += 0.3
+    t += 2.0
+    for w in "Great. The new release is version 1.7.2, and the pro upgrade costs $14.".split():
+        words.append((t, t + 0.3, w)); t += 0.3
+    t += 2.7
+    words.append((t, t + 0.5, "Thanks."))
+    text = " ".join(w[2] for w in words)
+    cards = split_segments_timed([(28.2, t + 0.5, text, words)], 42)
+    assert max(e - s for s, e, _t in cards) < 7.0
+    assert cards[-1][2] == "Thanks."

@@ -86,7 +86,7 @@ from core.audio_capture import (
     resample_to_16k,
     resolve_input_device,
 )
-from core.captions import review_flags, split_segments
+from core.captions import review_flags, split_segments_timed
 from core.chime import make_chime
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
@@ -962,7 +962,7 @@ class FileTranscribeThread(QThread):
 
     def run(self) -> None:
         try:
-            segments = self.transcriber.transcribe_file_segments(
+            detailed = self.transcriber.transcribe_file_detailed(
                 self.path,
                 language=self.language,
                 initial_prompt=self.initial_prompt,
@@ -977,10 +977,19 @@ class FileTranscribeThread(QThread):
             self.failed.emit(str(exc))
             return
 
+        segments = [(start, end, text) for start, end, text, _words in detailed]
         if self.label_speakers:
-            segments = self._label_speakers(segments)
+            labeled = self._label_speakers(segments)
+            if len(labeled) == len(detailed):
+                # Labelled text no longer matches the words, so those segments
+                # fall back to the even split inside split_segments_timed.
+                detailed = [
+                    (start, end, text, old[3])
+                    for (start, end, text), old in zip(labeled, detailed, strict=True)
+                ]
+            segments = labeled
 
-        cards = split_segments(segments, self.caption_line_chars)
+        cards = split_segments_timed(detailed, self.caption_line_chars)
         if self.export_srt or self.export_extras:
             # Flags only: nothing is changed, the user decides.
             flags = review_flags(cards)

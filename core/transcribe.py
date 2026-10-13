@@ -282,17 +282,44 @@ class Transcriber:
         called after each segment too: it may block (pause) and returns True
         to stop, which raises InterruptedError.
         """
+        detailed = self.transcribe_file_detailed(
+            path, language, initial_prompt, task, on_progress, control, word_timestamps=False
+        )
+        return [(start, end, text) for start, end, text, _words in detailed]
+
+    def transcribe_file_detailed(
+        self,
+        path: str,
+        language: str | None = "en",
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+        on_progress: Callable[[float], None] | None = None,
+        control: Callable[[], bool] | None = None,
+        word_timestamps: bool = True,
+    ) -> list[tuple[float, float, str, list[tuple[float, float, str]]]]:
+        """Segments with the start and end of every word (empty lists when
+        `word_timestamps` is off), so captions can be timed to the voice."""
         segments, info = self.model.transcribe(
             path,
             language=language,
             initial_prompt=initial_prompt,
             task=task,
             vad_filter=True,
+            word_timestamps=word_timestamps,
         )
         duration = float(getattr(info, "duration", 0) or 0)
-        out: list[tuple[float, float, str]] = []
+        out = []
         for seg in segments:
-            out.append((seg.start, seg.end, seg.text.strip()))
+            words: list[tuple[float, float, str]] = []
+            for w in getattr(seg, "words", None) or []:
+                # A token with no leading space continues the previous word
+                # ("1", ".7", ".2," is one word, "1.7.2,").
+                if words and not w.word.startswith(" ") and w.word.strip():
+                    prev = words[-1]
+                    words[-1] = (prev[0], w.end, prev[2] + w.word.strip())
+                elif w.word.strip():
+                    words.append((w.start, w.end, w.word.strip()))
+            out.append((seg.start, seg.end, seg.text.strip(), words))
             if on_progress is not None and duration > 0:
                 on_progress(min(100.0, seg.end / duration * 100))
             if control is not None and control():
