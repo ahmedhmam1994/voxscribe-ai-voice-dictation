@@ -1063,8 +1063,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("VoxScribe")
         screen = QApplication.primaryScreen()
         tall = screen.availableGeometry().height() - 60 if screen else 820
-        self.resize(980, max(660, min(840, tall)))
-        self.setMinimumSize(900, 640)
+        self.resize(1120, max(720, min(900, tall)))
+        self.setMinimumSize(960, 720)
         self.setStyleSheet(MAIN_STYLESHEET)
         if ICON_PATH.exists():
             icon = QIcon(str(ICON_PATH))
@@ -1203,8 +1203,8 @@ class MainWindow(QMainWindow):
 
         content = QWidget()
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(32, 26, 32, 24)
-        layout.setSpacing(10)
+        layout.setContentsMargins(36, 26, 36, 22)
+        layout.setSpacing(14)
         # Scrolls instead of overlapping when the window is shorter than the page.
         page_scroll = QScrollArea()
         page_scroll.setWidgetResizable(True)
@@ -1219,26 +1219,26 @@ class MainWindow(QMainWindow):
 
         hero = QWidget()
         hero.setObjectName("heroBanner")
-        hero.setFixedHeight(80)
-        hero_layout = QVBoxLayout(hero)
-        hero_layout.setContentsMargins(24, 14, 24, 14)
-        hero_layout.setSpacing(2)
+        hero.setFixedHeight(84)
+        hero_row = QHBoxLayout(hero)
+        hero_row.setContentsMargins(24, 10, 18, 10)
+        hero_row.setSpacing(12)
+        hero_text = QVBoxLayout()
+        hero_text.setSpacing(2)
+        hero_text.addStretch(1)
         hero_title = QLabel("Hold to talk, anywhere")
         hero_title.setObjectName("heroTitle")
-        hero_layout.addWidget(hero_title)
+        hero_text.addWidget(hero_title)
         hero_subtitle = QLabel(
             "Speak, release, and it's typed straight into whatever you're focused on."
         )
         hero_subtitle.setObjectName("heroSubtitle")
-        hero_layout.addWidget(hero_subtitle)
-        hero_layout.addStretch(1)
-        layout.addWidget(hero)
-        layout.addSpacing(6)
+        hero_text.addWidget(hero_subtitle)
+        hero_text.addStretch(1)
+        hero_row.addLayout(hero_text, stretch=1)
 
-        status_row = QHBoxLayout()
         self.status_pill = StatusPill()
-        status_row.addWidget(self.status_pill)
-        status_row.addStretch(1)
+        hero_row.addWidget(self.status_pill, alignment=Qt.AlignVCenter)
 
         self.language_badge = QPushButton()
         self.language_badge.setObjectName("languageBadge")
@@ -1248,10 +1248,8 @@ class MainWindow(QMainWindow):
         self.language_badge.setToolTip("Dictation language -- click to change")
         self.language_badge.clicked.connect(self._open_settings_dialog)
         self._refresh_language_badge()
-        status_row.addWidget(self.language_badge)
-
-        layout.addLayout(status_row)
-        layout.addSpacing(6)
+        hero_row.addWidget(self.language_badge, alignment=Qt.AlignVCenter)
+        layout.addWidget(hero)
 
         # Icons drawn once and reused (see _icon_* helpers above) rather
         # than regenerated per state change.
@@ -1263,11 +1261,15 @@ class MainWindow(QMainWindow):
         self.record_button.setProperty("recording", False)
         self.record_button.setEnabled(False)
         self.record_button.setMinimumHeight(56)
+        self.record_button.setMaximumHeight(56)
         self.record_button.setCursor(Qt.PointingHandCursor)
         self.record_button.setIcon(self._mic_icon)
         self.record_button.setIconSize(QSize(20, 20))
         self.record_button.clicked.connect(self.toggle_recording)
-        layout.addWidget(self.record_button)
+        record_row = QHBoxLayout()
+        record_row.setSpacing(12)
+        record_row.addWidget(self.record_button, stretch=1)
+        layout.addLayout(record_row)
 
         # Soft glow beneath the record button -- violet at rest, shifting to
         # green and pulsing while actively recording -- so the primary
@@ -1320,44 +1322,32 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(hint_row)
 
-        layout.addSpacing(18)
+        layout.addSpacing(6)
 
-        import_header = QHBoxLayout()
-        import_caption = QLabel("IMPORT FILES")
-        import_caption.setObjectName("transcriptCaption")
-        import_header.addWidget(import_caption)
-        import_header.addStretch(1)
-        import_drop_hint = QLabel("or drop files or a folder anywhere on this window")
-        import_drop_hint.setObjectName("hotkeyHint")
-        import_header.addWidget(import_drop_hint)
-        layout.addLayout(import_header)
-        layout.addSpacing(2)
-
-        button_row = QHBoxLayout()
-        button_row.setSpacing(12)
+        button_row = record_row
         self.import_button = QPushButton("Import Audio")
         self.import_button.setObjectName("secondaryButton")
         self.import_button.setEnabled(False)
-        self.import_button.setMinimumHeight(38)
+        self.import_button.setFixedSize(150, 56)
         self.import_button.setCursor(Qt.PointingHandCursor)
         self.import_button.setIcon(_icon_upload(16, TEXT_PRIMARY))
         self.import_button.setIconSize(QSize(15, 15))
+        self.import_button.setToolTip(
+            "Transcribe an audio or video file. You can also drop files here."
+        )
         self.import_button.clicked.connect(self.import_audio_file)
         button_row.addWidget(self.import_button)
 
         self.import_folder_button = QPushButton("Import Folder")
         self.import_folder_button.setObjectName("secondaryButton")
         self.import_folder_button.setEnabled(False)
-        self.import_folder_button.setMinimumHeight(38)
+        self.import_folder_button.setFixedSize(150, 56)
         self.import_folder_button.setCursor(Qt.PointingHandCursor)
         self.import_folder_button.setToolTip(
             "Transcribe every audio and video file in a folder (Pro, 2 free runs)"
         )
         self.import_folder_button.clicked.connect(self.import_folder)
         button_row.addWidget(self.import_folder_button)
-        button_row.addStretch(1)
-        layout.addLayout(button_row)
-        layout.addSpacing(2)
 
         options_row = QHBoxLayout()
         options_row.setSpacing(24)
@@ -1427,7 +1417,7 @@ class MainWindow(QMainWindow):
         self._batch_folder: str | None = None
         layout.addWidget(self._batch_bar)
 
-        layout.addSpacing(18)
+        layout.addSpacing(6)
 
         transcript_header = QHBoxLayout()
         transcript_header.setSpacing(8)
@@ -1477,14 +1467,15 @@ class MainWindow(QMainWindow):
         self.transcript_area.setFrameShape(QTextEdit.NoFrame)
         self.transcript_area.setPlaceholderText(
             "Click Start Recording, speak, then click Stop Recording. "
+            "Or import audio, or drop files or a folder on this window. "
             "Your transcribed text will appear here."
         )
         self.transcript_area.setAcceptDrops(False)
-        self.transcript_area.setMinimumHeight(220)
+        self.transcript_area.setMinimumHeight(200)
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
 
-        layout.addSpacing(18)
+        layout.addSpacing(6)
 
 
         self.setCentralWidget(central)
@@ -1516,7 +1507,7 @@ class MainWindow(QMainWindow):
         history_scroll.setObjectName("historyScroll")
         history_scroll.setWidgetResizable(True)
         history_scroll.setFrameShape(QScrollArea.NoFrame)
-        history_scroll.setFixedHeight(110)
+        history_scroll.setFixedHeight(96)
         history_content = QWidget()
         self._history_feed_layout = QVBoxLayout(history_content)
         self._history_feed_layout.setContentsMargins(0, 0, 0, 0)
