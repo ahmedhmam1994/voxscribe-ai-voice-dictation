@@ -31,3 +31,6 @@ sold_keys.csv
 
 fulfilled_sales.json
 fulfilled/
+
+# Account recovery codes: never commit.
+github-recovery-codes.txt
