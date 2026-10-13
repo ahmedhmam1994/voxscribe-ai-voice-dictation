@@ -13,8 +13,8 @@
   gtag('config', 'G-J19HV65Q6T');
 </script>
 <meta name="google-site-verification" content="smSR5YQ-xXXxhAXEZAcA3EPUOY-xN0kxTL2z_FA7f4g" />
-<title>VoxScribe: Free Offline Voice Dictation for Windows (Open Source)</title>
-<meta name="description" content="Free, open-source voice typing for Windows. Hold a hotkey, speak, and Whisper types the text into any app. Runs offline on your PC, no subscription.">
+<title>VoxScribe: Free Offline Voice Typing for Windows and Android</title>
+<meta name="description" content="Free, open-source voice typing for Windows and Android. Hold a hotkey or a floating button, speak, and Whisper types it into any app. Offline, no subscription.">
 
 <link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -42,13 +42,15 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"VoxScribe","applicationCategory":"UtilitiesApplication","operatingSystem":"Windows 10, Windows 11","description":"Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.","url":"https://voxscribe-ai-voice-dictation.vercel.app/","downloadUrl":"https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest","softwareVersion":"1.7.2","license":"https://opensource.org/licenses/MIT","isAccessibleForFree":true,"offers":[{"@type":"Offer","price":"0","priceCurrency":"USD","name":"Free"},{"@type":"Offer","price":"14","priceCurrency":"USD","name":"Pro (one-time)"}],"image":"https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
 </script>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11 only, for now."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}]}
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
 <style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
   :root {
     --bg-window: #06060f;
     --bg-card: #12121f;
@@ -413,6 +415,9 @@
     th, td { padding: 10px 12px; }
   }
 </style>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0", "softwareVersion": "1.0.0", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
+</script>
 </head>
 <body>
 
@@ -479,8 +484,9 @@
         Download for Windows
       </a>
       <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View on GitHub</a>
+      <a class="btn btn-secondary" href="free-offline-voice-typing-android.html">Android app</a>
     </div>
-    <p class="fine-print">Free &amp; open source (MIT) &middot; runs 100% locally &middot; Windows 10/11 &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.7.2">v1.7.2</a></p>
+    <p class="fine-print">Free &amp; open source (MIT) &middot; runs 100% locally &middot; Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.7.2">v1.7.2</a></p>
 
     <div class="proof-shell">
       <div class="proof-label"><span class="rec-dot"></span> Real recording, not a mockup</div>
@@ -536,6 +542,27 @@
         </div>
         <h3>Free filler-word cleanup</h3>
         <p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p>
+      </div>
+      <div class="card" data-reveal style="transition-delay: 320ms;">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 6h14M5 12h9M5 18h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Spoken commands and undo</h3>
+        <p>Say "period" or "new line" for symbols, and "scratch that" or "delete last word" to take back what you just typed.</p>
+      </div>
+      <div class="card" data-reveal style="transition-delay: 400ms;">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 10.5h6M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Audio and video to captions</h3>
+        <p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p>
+      </div>
+      <div class="card" data-reveal style="transition-delay: 480ms;">
+        <div class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="2.5" width="10" height="19" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Android app</h3>
+        <p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p>
       </div>
     </div>
   </div>
@@ -707,7 +734,7 @@
       </div>
       <div class="faq-item">
         <h3>What platforms does it support?</h3>
-        <p>Windows 10 and 11 only, for now.</p>
+        <p>Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet.</p>
       </div>
       <div class="faq-item">
         <h3>Does it work with any microphone?</h3>
@@ -742,9 +769,10 @@
       <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>
       <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>
       <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>
+      <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>
       <a href="https://dev.to/ahmed_ibrahim_1994/what-broke-when-i-shipped-a-local-whisper-dictation-app-to-real-windows-hardware-11kg">Behind the Audio Bugs (dev.to)</a>
     </div>
-    <p>VoxScribe: free and open source under the MIT license.</p>
+    <p>VoxScribe: free and open source under the MIT license. This website uses Google Analytics; see the <a href="privacy.html">privacy policy</a>.</p>
     <a href="https://www.producthunt.com/products/voxscribe-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-voxscribe-2" target="_blank" rel="noopener" style="display:inline-block;margin-top:16px;">
       <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1262788&theme=dark" alt="VoxScribe - Free, offline voice dictation for any Windows app | Product Hunt" style="width:200px;height:43px;" width="200" height="43" />
     </a>

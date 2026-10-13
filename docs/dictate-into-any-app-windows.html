@@ -12,8 +12,8 @@
 
   gtag('config', 'G-J19HV65Q6T');
 </script>
-<title>How to Dictate Text Into Any Windows App With a Hotkey: VoxScribe</title>
-<meta name="description" content="A global hotkey that turns your voice into typed text in any Windows app: browser, chat, code editor, or document. No cloud upload, no clipboard hijacking, works with any microphone.">
+<title>Dictate Into Any Windows App With a Hotkey: VoxScribe</title>
+<meta name="description" content="A global hotkey that turns your voice into typed text in any Windows app. No cloud upload, no clipboard hijacking, works with any microphone.">
 <link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/dictate-into-any-app-windows.html">
 
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -31,10 +31,7 @@
 <meta name="twitter:description" content="Hold a hotkey anywhere on Windows, talk, release. VoxScribe types the transcribed text directly into whatever app has focus.">
 <meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Dictate Into Any App Guide", "item": "https://voxscribe-ai-voice-dictation.vercel.app/dictate-into-any-app-windows.html"}]}
 </script>
@@ -63,6 +60,11 @@
 </script>
 
 <style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
   :root {
     --bg-window: #06060f;
     --bg-card: #12121f;
@@ -71,8 +73,8 @@
     --text-primary: #f3f3fb;
     --text-muted: #9797ac;
     --text-faint: #5c5c72;
-    --accent-hover: #a996ff;
-    --cyan: #22d3ee;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
     --green: #34d399;
     --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
   }
@@ -89,7 +91,7 @@
   .eyebrow {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 6px 14px; border-radius: 999px;
-    background: rgba(139,124,246,0.1); border: 1px solid rgba(139,124,246,0.25);
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
     color: var(--accent-hover); font-size: 12px; font-weight: 700;
     letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
   }
@@ -159,6 +161,8 @@
   <h2>Works with whatever microphone you have</h2>
   <p>VoxScribe auto-detects your system's default input device (including Bluetooth headsets) and records at that device's native sample rate rather than assuming a fixed one, then converts it for the speech model afterward. That avoids a common class of bug where forcing an unsupported sample rate on a given driver just crashes the recording.</p>
 
+  <p style="text-align:center;"><img src="demo-real.webp" width="680" height="345" loading="lazy" style="max-width:100%;height:auto;border-radius:12px;border:1px solid var(--border-soft);" alt="Screen recording of VoxScribe typing real transcribed text into Notepad, character by character"></p>
+
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
     <h3>Does Windows have a built-in way to dictate into any app?</h3>
@@ -177,7 +181,8 @@
     <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
     <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
   </div>
-  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>.</p>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
 </div>
 </body>
 </html>

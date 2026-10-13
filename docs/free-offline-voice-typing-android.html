@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Free Offline Voice Typing App for Android: VoxScribe</title>
+<meta name="description" content="A free floating voice typing button for Android. Hold it in any app, talk, and Whisper types the text on your phone. Offline, no account, open source.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Free Offline Voice Typing App for Android">
+<meta property="og:description" content="A floating button that types your voice into any Android app. Transcribed on your phone with Whisper, free and open source.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Offline Voice Typing App for Android">
+<meta name="twitter:description" content="A floating button that types your voice into any Android app. Transcribed on your phone with Whisper, free and open source.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-pressed: #059669;
+    --cyan: #5eead4;
+    --magenta: #34d399;
+    --green: #34d399;
+    --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 10px; border-radius: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ul { padding-left: 20px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--text-faint); }
+  td.first { color: var(--text-primary); font-weight: 600; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+</style>
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Android Voice Typing", "item": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html"}]}
+</script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is there a free offline voice typing app for Android?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe for Android is free and open source (MIT). Transcription runs on the phone with a Whisper model bundled in the app, so it works in airplane mode and your audio is not uploaded."}}, {"@type": "Question", "name": "Is VoxScribe a keyboard?", "acceptedAnswer": {"@type": "Answer", "text": "No. It is a small floating button that appears above whichever keyboard you already use when you tap a text field. Hold it, talk, release, and the text is typed into the box."}}, {"@type": "Question", "name": "Why does it need the Accessibility service?", "acceptedAnswer": {"@type": "Answer", "text": "Android only lets an app type into other apps through an accessibility service. VoxScribe uses it to find the focused text field and put your dictation there, and nothing else. The privacy policy lists exactly what it reads and does."}}, {"@type": "Question", "name": "Is it on the Play Store?", "acceptedAnswer": {"@type": "Answer", "text": "Not yet. Download the APK from the GitHub release and open it. Android asks once to allow installs from your browser or files app."}}]}
+</script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0", "softwareVersion": "1.0.0", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Android</span>
+  <h1>Free, Offline Voice Typing for Android</h1>
+  <p class="subhead">Tap any text box, hold a small floating button, talk, and let go. Your words are transcribed on the phone and typed into the box, in any app, with whichever keyboard you already use. No account, no subscription, and your voice is not uploaded.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Download the APK (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/tree/main/android/voxscribe_app">View the source</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Android 8 or newer, 64-bit &middot; about 230 MB &middot; version 1.0.0</p>
+
+  <h2>How it works</h2>
+  <p>When you tap a text field and the keyboard opens, a small button appears above it. Hold it to record, release to stop, and the text appears in the field. The button stays out of the way otherwise: it is hidden when no text box is focused, and you can drag it anywhere.</p>
+
+  <h2>Transcription happens on your phone</h2>
+  <p>The speech model ships inside the app, so there is nothing to download and it works in airplane mode. Audio is processed on the phone and discarded. If you turn the bundled model off, Android's own recognizer is used instead, and the <a href="privacy.html">privacy policy</a> says exactly when that can involve Google's service.</p>
+
+  <h2>More than typing</h2>
+  <ul>
+    <li><strong>Spoken commands.</strong> Say "period", "comma" or "new line" and get the symbol, and say "scratch that" or "delete last word" to take back what you just typed.</li>
+    <li><strong>Word replacements and smart formatting.</strong> Fix names and jargon the model keeps mishearing, and have spoken emails, links and numbers written the way you would type them.</li>
+    <li><strong>Code dictation, fill-in templates and per-app profiles.</strong> Dictate symbols for code, fill a template by answering its prompts, and set different behavior for different apps.</li>
+    <li><strong>History and Insights.</strong> Recent dictations stay on the phone so you can copy one back.</li>
+  </ul>
+  <p>The core is free. The same optional one-time Pro key as the Windows app unlocks the heavier text tools.</p>
+
+  <h2>What it asks for, and why</h2>
+  <p>Setup takes three permissions, and the app walks you through them: the microphone, display over other apps (to draw the button), and the Accessibility service. Android requires the Accessibility service for any app that types into other apps. VoxScribe uses it to find the focused text field and add your dictation to it, and the <a href="privacy.html">privacy policy</a> lists exactly what it reads and does not do.</p>
+
+  <h2>Install</h2>
+  <p>Download the APK from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Android 1.0.0 release</a> and open it. Android will ask you to allow installs from your browser or files app once. VoxScribe is not on the Play Store yet. When a newer version is published, the app shows an update banner with a download button.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Is there a free offline voice typing app for Android?</h3>
+    <p>Yes. VoxScribe for Android is free and open source (MIT). Transcription runs on the phone with a Whisper model bundled in the app, so it works in airplane mode and your audio is not uploaded.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is VoxScribe a keyboard?</h3>
+    <p>No. It is a small floating button that appears above whichever keyboard you already use when you tap a text field. Hold it, talk, release, and the text is typed into the box.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Why does it need the Accessibility service?</h3>
+    <p>Android only lets an app type into other apps through an accessibility service. VoxScribe uses it to find the focused text field and put your dictation there, and nothing else. The privacy policy lists exactly what it reads and does.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is it on the Play Store?</h3>
+    <p>Not yet. Download the APK from the GitHub release and open it. Android asks once to allow installs from your browser or files app.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Download the APK (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>

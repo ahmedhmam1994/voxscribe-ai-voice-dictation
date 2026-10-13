@@ -96,7 +96,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, an anonymous launch ping (app version and OS only, can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://getvoxscribe.vercel.app/privacy.html) for details
+- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, an anonymous launch ping (app version and OS only, can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
 
 ## Building from source
 

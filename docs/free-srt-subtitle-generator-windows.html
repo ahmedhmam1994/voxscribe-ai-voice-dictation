@@ -12,8 +12,8 @@
 
   gtag('config', 'G-J19HV65Q6T');
 </script>
-<title>Free Offline Subtitle (.srt) Generator for Windows: VoxScribe</title>
-<meta name="description" content="Turn any audio or video file into an .srt subtitle file on your own PC. Free, open source, runs offline with Whisper, nothing is uploaded. Batch several files at once.">
+<title>Free Offline .srt Subtitle Generator for Windows: VoxScribe</title>
+<meta name="description" content="Turn any audio or video file into an .srt subtitle file on your own PC. Free, open source, offline with Whisper. Batch a whole folder at once.">
 <link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/free-srt-subtitle-generator-windows.html">
 
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -31,10 +31,7 @@
 <meta name="twitter:description" content="Audio or video in, .srt subtitles out, all on your own PC. Free and open source, nothing is uploaded.">
 <meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Free .srt Subtitle Generator", "item": "https://voxscribe-ai-voice-dictation.vercel.app/free-srt-subtitle-generator-windows.html"}]}
 </script>
@@ -73,6 +70,11 @@
 </script>
 
 <style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
   :root {
     --bg-window: #06060f;
     --bg-card: #12121f;
@@ -190,6 +192,11 @@ Each line covers one spoken segment.</pre>
     <strong>Be realistic about the result:</strong> accuracy depends on audio quality and the model size, and each subtitle line covers one spoken segment rather than single words. It is a strong first draft for captions, but skim the file before publishing, especially for names and technical terms. You can add those to the custom vocabulary or word replacement lists in Settings to fix repeat mistakes.
   </div>
 
+  <h2>Captions that follow the voice</h2>
+  <p>Each caption card holds at most two short lines of about 42 characters, so it stays readable on a phone. Cards are timed from the word timestamps and cut at pauses, so a card appears when the voice resumes after a silence, not on an even split of the clip. On a 47 second labeled test clip the worst card start was 1.3 seconds from the voice, against 8.2 seconds with an even split. That clip is synthesized speech on one machine, so real recordings will vary.</p>
+  <p>VoxScribe never overwrites an existing .srt, .vtt, .md or .docx file next to your audio. A folder run ends with a report of what was saved, skipped and failed, with a one click retry for the failures, and any card that stays on screen too long or follows a long silence is flagged for you to check. Nothing is changed behind your back. Folder import is free for two runs, then it is a Pro feature.</p>
+  <p style="text-align:center;"><img src="assets/screenshot-batch-report.png" width="1400" height="980" loading="lazy" style="max-width:100%;height:auto;border-radius:12px;border:1px solid var(--border-soft);" alt="VoxScribe batch import report: 3 of 4 files transcribed, 1 failed, 1 skipped, with review notes for two caption cards and Retry and Open folder buttons"></p>
+
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
     <h3>Is my video or audio uploaded anywhere?</h3>
@@ -216,7 +223,8 @@ Each line covers one spoken segment.</pre>
     <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
     <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
   </div>
-  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>.</p>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
 </div>
 </body>
 </html>
