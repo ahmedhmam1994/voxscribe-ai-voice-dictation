@@ -9,6 +9,18 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.7.2": (
+        "- Fixed: importing a file never replaces an existing .srt, .vtt, .md or "
+        ".docx any more. A hand corrected caption file is kept and the new one is "
+        "saved as \"name (2)\".\n"
+        "- New: after a batch there is a report of every file, which failed and "
+        "where each .srt went, and a button to retry just the failed ones.\n"
+        "- New: caption cards are split evenly, and cards that are too fast to "
+        "read, overlap or follow a long silence are flagged for review. Nothing is "
+        "changed for you.\n"
+        "- New: the Dictation page is reorganised so everything fits on one screen. "
+        "A batch now always saves a .srt for each file."
+    ),
     "1.7.1": (
         "- New: imported captions are split into cards of two lines of 42 "
         "characters (Settings, Files).\n"
