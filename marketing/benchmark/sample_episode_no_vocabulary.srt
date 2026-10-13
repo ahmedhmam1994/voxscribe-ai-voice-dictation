@@ -1,0 +1,50 @@
+1
+00:00:00,000 --> 00:00:03,400
+Hello and welcome to episode 42.
+
+2
+00:00:03,400 --> 00:00:07,960
+Today I am joined by Priya
+Raghunathan and Oluwe Ziyun at Ayemi.
+
+3
+00:00:07,960 --> 00:00:11,316
+Priya, you recently
+moved the whole platform
+
+4
+00:00:11,316 --> 00:00:14,520
+to Kuvernets, and Oluwe Ziyun, you rebuilt
+
+5
+00:00:14,520 --> 00:00:17,445
+the PostgreSQL backups,
+so where did you both
+
+6
+00:00:17,445 --> 00:00:20,240
+start, and what would
+you do differently if
+
+7
+00:00:20,240 --> 00:00:25,240
+you had to begin again with only a small
+team, a tight budget, and a deadline that
+
+8
+00:00:25,240 --> 00:00:28,080
+was already two weeks away?
+
+9
+00:00:28,080 --> 00:00:33,840
+Well, the first thing we did was write
+down every service. Then we ranked them by
+
+10
+00:00:33,840 --> 00:00:41,578
+risk. Great. The new
+release is version 1.7.2,
+
+11
+00:00:41,578 --> 00:00:47,970
+and the pro upgrade costs $14. Thanks.

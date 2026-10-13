@@ -1,0 +1,42 @@
+1
+00:00:00,000 --> 00:00:02,890
+Hello and welcome to episode 42.
+
+2
+00:00:02,890 --> 00:00:08,400
+Today I am joined by Priya
+Raghunathan and Oluwaseun Adeyemi.
+
+3
+00:00:08,400 --> 00:00:13,622
+Priya, you recently moved the whole
+platform to Kubernetes, and Oluwaseun,
+
+4
+00:00:13,622 --> 00:00:18,138
+you rebuilt the PostgreSQL backups,
+so where did you both start,
+
+5
+00:00:18,138 --> 00:00:23,148
+and what would you do differently if
+you had to begin again with only a
+
+6
+00:00:23,148 --> 00:00:28,440
+small team, a tight budget, and a
+deadline that was already two weeks away.
+
+7
+00:00:28,440 --> 00:00:34,090
+Well, the first thing we did
+was write down every service.
+
+8
+00:00:34,090 --> 00:00:37,500
+Then we ranked them by risk. Great.
+
+9
+00:00:37,500 --> 00:00:46,850
+The new release is version 1.7.2, and
+the pro upgrade costs $14. Thanks.
