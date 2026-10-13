@@ -1062,9 +1062,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("VoxScribe")
         screen = QApplication.primaryScreen()
-        tall = screen.availableGeometry().height() - 60 if screen else 820
-        self.resize(1120, max(720, min(900, tall)))
-        self.setMinimumSize(960, 720)
+        tall = screen.availableGeometry().height() - 40 if screen else 820
+        self.resize(1120, max(740, min(900, tall)))
+        self.setMinimumSize(960, 740)
         self.setStyleSheet(MAIN_STYLESHEET)
         if ICON_PATH.exists():
             icon = QIcon(str(ICON_PATH))
@@ -1237,8 +1237,12 @@ class MainWindow(QMainWindow):
         hero_text.addStretch(1)
         hero_row.addLayout(hero_text, stretch=1)
 
+        layout.addWidget(hero)
+
+        status_row = QHBoxLayout()
         self.status_pill = StatusPill()
-        hero_row.addWidget(self.status_pill, alignment=Qt.AlignVCenter)
+        status_row.addWidget(self.status_pill)
+        status_row.addStretch(1)
 
         self.language_badge = QPushButton()
         self.language_badge.setObjectName("languageBadge")
@@ -1248,8 +1252,8 @@ class MainWindow(QMainWindow):
         self.language_badge.setToolTip("Dictation language -- click to change")
         self.language_badge.clicked.connect(self._open_settings_dialog)
         self._refresh_language_badge()
-        hero_row.addWidget(self.language_badge, alignment=Qt.AlignVCenter)
-        layout.addWidget(hero)
+        status_row.addWidget(self.language_badge)
+        layout.addLayout(status_row)
 
         # Icons drawn once and reused (see _icon_* helpers above) rather
         # than regenerated per state change.
@@ -1471,7 +1475,7 @@ class MainWindow(QMainWindow):
             "Your transcribed text will appear here."
         )
         self.transcript_area.setAcceptDrops(False)
-        self.transcript_area.setMinimumHeight(200)
+        self.transcript_area.setMinimumHeight(150)
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
 
