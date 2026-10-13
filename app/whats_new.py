@@ -15,9 +15,10 @@ WHATS_NEW: dict[str, str] = {
         "saved as \"name (2)\".\n"
         "- New: after a batch there is a report of every file, which failed and "
         "where each .srt went, and a button to retry just the failed ones.\n"
-        "- New: caption cards are split evenly, and cards that are too fast to "
-        "read, overlap or follow a long silence are flagged for review. Nothing is "
-        "changed for you.\n"
+        "- New: caption cards are timed from the words, so each appears when its "
+        "first word is spoken and leaves soon after the last, and cards are cut at "
+        "pauses. Cards that are too fast, overlap, follow a long silence or stay "
+        "on screen too long are flagged for review. Nothing is changed for you.\n"
         "- New: the Dictation page is reorganised so everything fits on one screen. "
         "A batch now always saves a .srt for each file."
     ),
