@@ -1061,8 +1061,10 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("VoxScribe")
-        self.resize(960, 740)
-        self.setMinimumSize(880, 640)
+        screen = QApplication.primaryScreen()
+        tall = screen.availableGeometry().height() - 60 if screen else 820
+        self.resize(980, max(660, min(840, tall)))
+        self.setMinimumSize(900, 640)
         self.setStyleSheet(MAIN_STYLESHEET)
         if ICON_PATH.exists():
             icon = QIcon(str(ICON_PATH))
@@ -1201,7 +1203,7 @@ class MainWindow(QMainWindow):
 
         content = QWidget()
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(24, 18, 24, 16)
+        layout.setContentsMargins(32, 26, 32, 24)
         layout.setSpacing(10)
         # Scrolls instead of overlapping when the window is shorter than the page.
         page_scroll = QScrollArea()
@@ -1217,9 +1219,9 @@ class MainWindow(QMainWindow):
 
         hero = QWidget()
         hero.setObjectName("heroBanner")
-        hero.setFixedHeight(68)
+        hero.setFixedHeight(80)
         hero_layout = QVBoxLayout(hero)
-        hero_layout.setContentsMargins(20, 10, 20, 10)
+        hero_layout.setContentsMargins(24, 14, 24, 14)
         hero_layout.setSpacing(2)
         hero_title = QLabel("Hold to talk, anywhere")
         hero_title.setObjectName("heroTitle")
@@ -1231,6 +1233,7 @@ class MainWindow(QMainWindow):
         hero_layout.addWidget(hero_subtitle)
         hero_layout.addStretch(1)
         layout.addWidget(hero)
+        layout.addSpacing(6)
 
         status_row = QHBoxLayout()
         self.status_pill = StatusPill()
@@ -1248,6 +1251,7 @@ class MainWindow(QMainWindow):
         status_row.addWidget(self.language_badge)
 
         layout.addLayout(status_row)
+        layout.addSpacing(6)
 
         # Icons drawn once and reused (see _icon_* helpers above) rather
         # than regenerated per state change.
@@ -1258,7 +1262,7 @@ class MainWindow(QMainWindow):
         self.record_button.setObjectName("recordButton")
         self.record_button.setProperty("recording", False)
         self.record_button.setEnabled(False)
-        self.record_button.setMinimumHeight(52)
+        self.record_button.setMinimumHeight(56)
         self.record_button.setCursor(Qt.PointingHandCursor)
         self.record_button.setIcon(self._mic_icon)
         self.record_button.setIconSize(QSize(20, 20))
@@ -1289,9 +1293,48 @@ class MainWindow(QMainWindow):
         self._record_pulse.addAnimation(shrink)
         self._record_pulse.setLoopCount(-1)
 
-        button_row = QHBoxLayout()
-        button_row.setSpacing(10)
+        # Hotkey hint row: icon + "Hold [KEY] anywhere..." with the key
+        # itself rendered as a small badge, so the hold-to-talk hotkey (the
+        # app's primary interaction) is more visible than plain muted text.
+        hint_row = QHBoxLayout()
+        hint_row.setSpacing(6)
+        hint_row.setContentsMargins(4, 0, 0, 0)
 
+        self._hotkey_hint_icon = QLabel()
+        self._hotkey_hint_icon.setPixmap(_icon_keyboard(14, TEXT_FAINT).pixmap(14, 14))
+        hint_row.addWidget(self._hotkey_hint_icon)
+
+        self._hotkey_hint_prefix = QLabel("Hold")
+        self._hotkey_hint_prefix.setObjectName("hotkeyHint")
+        hint_row.addWidget(self._hotkey_hint_prefix)
+
+        self._hotkey_badge = QLabel()
+        self._hotkey_badge.setObjectName("keyBadge")
+        hint_row.addWidget(self._hotkey_badge)
+
+        self._hotkey_hint_suffix = QLabel()
+        self._hotkey_hint_suffix.setObjectName("hotkeyHint")
+        self._hotkey_hint_suffix.setWordWrap(True)
+        hint_row.addWidget(self._hotkey_hint_suffix, stretch=1)
+
+
+        layout.addLayout(hint_row)
+
+        layout.addSpacing(18)
+
+        import_header = QHBoxLayout()
+        import_caption = QLabel("IMPORT FILES")
+        import_caption.setObjectName("transcriptCaption")
+        import_header.addWidget(import_caption)
+        import_header.addStretch(1)
+        import_drop_hint = QLabel("or drop files or a folder anywhere on this window")
+        import_drop_hint.setObjectName("hotkeyHint")
+        import_header.addWidget(import_drop_hint)
+        layout.addLayout(import_header)
+        layout.addSpacing(2)
+
+        button_row = QHBoxLayout()
+        button_row.setSpacing(12)
         self.import_button = QPushButton("Import Audio")
         self.import_button.setObjectName("secondaryButton")
         self.import_button.setEnabled(False)
@@ -1312,41 +1355,12 @@ class MainWindow(QMainWindow):
         )
         self.import_folder_button.clicked.connect(self.import_folder)
         button_row.addWidget(self.import_folder_button)
-
-        self.save_button = QPushButton("Save Transcript")
-        self.save_button.setObjectName("primaryOutlineButton")
-        self.save_button.setEnabled(False)
-        self.save_button.setMinimumHeight(38)
-        self.save_button.setCursor(Qt.PointingHandCursor)
-        self.save_button.setIcon(_icon_save(16, ACCENT))
-        self.save_button.setIconSize(QSize(15, 15))
-        self.save_button.clicked.connect(self.save_transcript)
-        button_row.addWidget(self.save_button)
-
-        self.copy_button = QPushButton("Copy")
-        self.copy_button.setObjectName("secondaryButton")
-        self.copy_button.setEnabled(False)
-        self.copy_button.setMinimumHeight(38)
-        self.copy_button.setCursor(Qt.PointingHandCursor)
-        self.copy_button.setIcon(_icon_copy(16, TEXT_PRIMARY))
-        self.copy_button.setIconSize(QSize(15, 15))
-        self.copy_button.clicked.connect(self.copy_transcript)
-        button_row.addWidget(self.copy_button)
-
-        self.clear_button = QPushButton("Clear")
-        self.clear_button.setObjectName("ghostButton")
-        self.clear_button.setEnabled(False)
-        self.clear_button.setMinimumHeight(38)
-        self.clear_button.setCursor(Qt.PointingHandCursor)
-        self.clear_button.setIcon(_icon_clear(16, TEXT_MUTED))
-        self.clear_button.setIconSize(QSize(15, 15))
-        self.clear_button.clicked.connect(self.clear_transcript)
-        button_row.addWidget(self.clear_button)
-
+        button_row.addStretch(1)
         layout.addLayout(button_row)
+        layout.addSpacing(2)
 
         options_row = QHBoxLayout()
-        options_row.setSpacing(18)
+        options_row.setSpacing(24)
         self.export_srt_checkbox = QCheckBox("Save .srt captions")
         self.export_srt_checkbox.setObjectName("exportSrtCheckbox")
         self.export_srt_checkbox.setToolTip(
@@ -1413,9 +1427,48 @@ class MainWindow(QMainWindow):
         self._batch_folder: str | None = None
         layout.addWidget(self._batch_bar)
 
+        layout.addSpacing(18)
+
+        transcript_header = QHBoxLayout()
+        transcript_header.setSpacing(8)
         transcript_label = QLabel("TRANSCRIPT")
         transcript_label.setObjectName("transcriptCaption")
-        layout.addWidget(transcript_label)
+        transcript_header.addWidget(transcript_label)
+        transcript_header.addStretch(1)
+        button_row = transcript_header
+        self.save_button = QPushButton("Save Transcript")
+        self.save_button.setObjectName("primaryOutlineButton")
+        self.save_button.setEnabled(False)
+        self.save_button.setFixedHeight(32)
+        self.save_button.setCursor(Qt.PointingHandCursor)
+        self.save_button.setIcon(_icon_save(16, ACCENT))
+        self.save_button.setIconSize(QSize(15, 15))
+        self.save_button.clicked.connect(self.save_transcript)
+        button_row.addWidget(self.save_button)
+
+        self.copy_button = QPushButton("Copy")
+        self.copy_button.setObjectName("secondaryButton")
+        self.copy_button.setEnabled(False)
+        self.copy_button.setFixedHeight(32)
+        self.copy_button.setCursor(Qt.PointingHandCursor)
+        self.copy_button.setIcon(_icon_copy(16, TEXT_PRIMARY))
+        self.copy_button.setIconSize(QSize(15, 15))
+        self.copy_button.clicked.connect(self.copy_transcript)
+        button_row.addWidget(self.copy_button)
+
+        self.clear_button = QPushButton("Clear")
+        self.clear_button.setObjectName("ghostButton")
+        self.clear_button.setEnabled(False)
+        self.clear_button.setFixedHeight(32)
+        self.clear_button.setCursor(Qt.PointingHandCursor)
+        self.clear_button.setIcon(_icon_clear(16, TEXT_MUTED))
+        self.clear_button.setIconSize(QSize(15, 15))
+        self.clear_button.clicked.connect(self.clear_transcript)
+        button_row.addWidget(self.clear_button)
+
+        layout.addLayout(transcript_header)
+        layout.addSpacing(2)
+
 
         self.transcript_area = QTextEdit()
         self.transcript_area.setObjectName("transcriptArea")
@@ -1427,9 +1480,12 @@ class MainWindow(QMainWindow):
             "Your transcribed text will appear here."
         )
         self.transcript_area.setAcceptDrops(False)
-        self.transcript_area.setMinimumHeight(150)
+        self.transcript_area.setMinimumHeight(220)
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
+
+        layout.addSpacing(18)
+
 
         self.setCentralWidget(central)
 
@@ -1452,32 +1508,6 @@ class MainWindow(QMainWindow):
         self._hotkey_release_hook = None
         self._hotkey_registration_error: str | None = None
 
-        # Hotkey hint row: icon + "Hold [KEY] anywhere..." with the key
-        # itself rendered as a small badge, so the hold-to-talk hotkey (the
-        # app's primary interaction) is more visible than plain muted text.
-        hint_row = QHBoxLayout()
-        hint_row.setSpacing(6)
-        hint_row.setContentsMargins(2, 2, 2, 0)
-
-        self._hotkey_hint_icon = QLabel()
-        self._hotkey_hint_icon.setPixmap(_icon_keyboard(14, TEXT_FAINT).pixmap(14, 14))
-        hint_row.addWidget(self._hotkey_hint_icon)
-
-        self._hotkey_hint_prefix = QLabel("Hold")
-        self._hotkey_hint_prefix.setObjectName("hotkeyHint")
-        hint_row.addWidget(self._hotkey_hint_prefix)
-
-        self._hotkey_badge = QLabel()
-        self._hotkey_badge.setObjectName("keyBadge")
-        hint_row.addWidget(self._hotkey_badge)
-
-        self._hotkey_hint_suffix = QLabel()
-        self._hotkey_hint_suffix.setObjectName("hotkeyHint")
-        self._hotkey_hint_suffix.setWordWrap(True)
-        hint_row.addWidget(self._hotkey_hint_suffix, stretch=1)
-
-        layout.addLayout(hint_row)
-
         history_label = QLabel("TODAY")
         history_label.setObjectName("transcriptCaption")
         layout.addWidget(history_label)
@@ -1486,7 +1516,7 @@ class MainWindow(QMainWindow):
         history_scroll.setObjectName("historyScroll")
         history_scroll.setWidgetResizable(True)
         history_scroll.setFrameShape(QScrollArea.NoFrame)
-        history_scroll.setFixedHeight(96)
+        history_scroll.setFixedHeight(110)
         history_content = QWidget()
         self._history_feed_layout = QVBoxLayout(history_content)
         self._history_feed_layout.setContentsMargins(0, 0, 0, 0)
