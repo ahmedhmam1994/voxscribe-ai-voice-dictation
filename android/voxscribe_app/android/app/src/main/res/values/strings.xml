@@ -73,4 +73,10 @@
     <string name="setup_stop_bubble">3. Stop floating bubble</string>
     <string name="bubble_missing_permissions">Grant overlay + accessibility permissions first (steps 1 and 2 above)</string>
     <string name="bubble_status_running">Bubble is active, drag it anywhere, hold to talk.</string>
+    <string name="alert_channel_name">Needs attention</string>
+    <string name="alert_title">VoxScribe lost its connection</string>
+    <string name="alert_text">The floating button is hidden. Tap here, then switch VoxScribe off and on again in Accessibility.</string>
+    <string name="template_prompt">Template \"%1$s\": say %2$s</string>
+    <string name="template_cancelled">Template cancelled</string>
+    <string name="edit_cant_undo">Nothing to undo here</string>
 </resources>

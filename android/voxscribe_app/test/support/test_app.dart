@@ -4,6 +4,7 @@ import 'package:voxscribe_app/app/app.dart';
 import 'package:voxscribe_app/app/shell/vox_nav_bar.dart';
 
 import 'fake_history_repository.dart';
+import 'fake_release_repository.dart';
 import 'fake_pro_repository.dart';
 import 'fake_settings_repository.dart';
 import 'fake_setup_platform.dart';
@@ -17,14 +18,19 @@ Widget buildTestApp({
   FakeSettingsRepository? settings,
   FakeProRepository? pro,
   FakeSnippetRepository? snippets,
+  FakeTextToolsRepository? textTools,
+  FakeReleaseRepository? release,
 }) {
   return VoxScribeApp(
+    showIntro: false,
     engine: engine ?? ScriptedEngine(),
     setupPlatform: setup ?? FakeSetupPlatform(),
     historyRepository: history ?? FakeHistoryRepository(),
     settingsRepository: settings ?? FakeSettingsRepository(),
     proRepository: pro ?? FakeProRepository(),
     snippetRepository: snippets ?? FakeSnippetRepository(),
+    textToolsRepository: textTools ?? FakeTextToolsRepository(),
+    releaseRepository: release ?? FakeReleaseRepository(),
   );
 }
 

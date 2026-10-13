@@ -8,6 +8,7 @@ import android.media.MediaRecorder
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -50,6 +51,15 @@ class DictationEngine(
     private val onFailure: (String) -> Unit,
     // Input level from 0 to 1 while recording, delivered on the main thread.
     private val onLevel: (Float) -> Unit = {},
+    // True when the result is typed into another app (the bubble): then spoken
+    // editing commands and fill-in templates apply too. The in-app screen only
+    // shows text, so it leaves this off.
+    private val interactive: Boolean = false,
+    // The app that has focus right now, for per-app profiles.
+    private val focusedPackage: () -> String? = { null },
+    // Delivered instead of [onResult] when the utterance was an editing command
+    // or a template prompt, not text to type.
+    private val onSpecial: (Spoken) -> Unit = {},
 ) : RecognitionListener {
 
     private var speechRecognizer: SpeechRecognizer? = null
@@ -116,11 +126,29 @@ class DictationEngine(
         }
     }
 
-    private fun cleanupIfEnabled(text: String): String =
-        if (SettingsStore.cleanupEnabled(context)) TranscriptCleanup.clean(text) else text
+    /**
+     * Runs the text pipeline (cleanup, voice commands, smart formatting, code
+     * dictation, replacements, templates, snippets) on the main thread's behalf
+     * and hands the result to the right callback.
+     */
+    private fun finish(raw: String): Spoken {
+        val spoken = TextPipeline.process(raw, TextPipeline.optionsFor(context, focusedPackage()), interactive)
+        if (isDebuggable()) {
+            // Debug builds only, so a mis-heard command can be told apart from a bug.
+            Log.d("VoxPipeline", "heard=[$raw] interactive=$interactive package=${focusedPackage()} -> ${spoken::class.simpleName}")
+        }
+        return spoken
+    }
 
-    /** Cleanup first, then a Pro snippet trigger becomes its longer text. */
-    private fun finish(text: String): String = SnippetStore.expandIfPro(context, cleanupIfEnabled(text))
+    private fun isDebuggable(): Boolean =
+        context.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+
+    private fun deliver(spoken: Spoken) {
+        when (spoken) {
+            is Spoken.Text -> onResult(spoken.text)
+            else -> onSpecial(spoken)
+        }
+    }
 
     // --- Milestone 2: bundled Whisper via sherpa-onnx -----------------------------------
 
@@ -174,7 +202,7 @@ class DictationEngine(
                 } else {
                     val spoken = TranscriptCleanup.removeNonSpeechTags(WhisperEngine.transcribe(samples))
                     val finished = finish(spoken)
-                    mainHandler.post { onResult(finished) }
+                    mainHandler.post { deliver(finished) }
                 }
             }
         }.also { it.start() }
@@ -235,7 +263,7 @@ class DictationEngine(
         if (cancelled) return
         val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
         val raw = matches?.firstOrNull().orEmpty()
-        onResult(finish(raw))
+        deliver(finish(raw))
     }
 
     override fun onError(error: Int) {

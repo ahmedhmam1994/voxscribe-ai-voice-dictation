@@ -13,6 +13,8 @@ import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
+import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
+import 'package:voxscribe_app/features/texttools/text_tools_page.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
 /// Language, cleanup, theme, the setup page and clearing history.
@@ -24,6 +26,7 @@ class SettingsScreen extends StatelessWidget {
     required this.history,
     required this.pro,
     required this.snippets,
+    required this.textTools,
     super.key,
   });
 
@@ -33,6 +36,7 @@ class SettingsScreen extends StatelessWidget {
   final HistoryController history;
   final ProController pro;
   final SnippetsController snippets;
+  final TextToolsController textTools;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +109,20 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
+                    label: 'Text tools',
+                    children: [
+                      SettingsRow(
+                        title: 'Voice commands, replacements and more',
+                        subtitle:
+                            'Spoken punctuation, word replacements, and Pro '
+                            'tools: smart formatting, code dictation, '
+                            'templates and per-app profiles.',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _openTextTools(context),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
                     label: 'Appearance',
                     children: [
                       Padding(
@@ -158,6 +176,14 @@ class SettingsScreen extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProPage(pro: pro, snippets: snippets),
+      ),
+    );
+  }
+
+  void _openTextTools(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TextToolsPage(controller: textTools, pro: pro),
       ),
     );
   }

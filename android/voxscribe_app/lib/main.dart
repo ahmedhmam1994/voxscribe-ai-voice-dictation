@@ -6,6 +6,8 @@ import 'package:voxscribe_app/features/pro/data/method_channel_pro_repository.da
 import 'package:voxscribe_app/features/settings/data/method_channel_settings_repository.dart';
 import 'package:voxscribe_app/features/setup/data/method_channel_setup_platform.dart';
 import 'package:voxscribe_app/features/snippets/data/method_channel_snippet_repository.dart';
+import 'package:voxscribe_app/features/release/data/method_channel_release_repository.dart';
+import 'package:voxscribe_app/features/texttools/data/method_channel_text_tools_repository.dart';
 
 void main() {
   runApp(
@@ -16,6 +18,8 @@ void main() {
       settingsRepository: MethodChannelSettingsRepository(),
       proRepository: MethodChannelProRepository(),
       snippetRepository: MethodChannelSnippetRepository(),
+      textToolsRepository: MethodChannelTextToolsRepository(),
+      releaseRepository: MethodChannelReleaseRepository(),
     ),
   );
 }

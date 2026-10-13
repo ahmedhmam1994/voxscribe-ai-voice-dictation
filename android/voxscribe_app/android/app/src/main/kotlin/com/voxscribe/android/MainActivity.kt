@@ -13,5 +13,7 @@ class MainActivity : FlutterActivity() {
         HistoryChannel(this).register(messenger)
         SettingsChannel(this).register(messenger)
         ProChannel(this).register(messenger)
+        TextToolsChannel(this).register(messenger)
+        ReleaseChannel(this).register(messenger)
     }
 }

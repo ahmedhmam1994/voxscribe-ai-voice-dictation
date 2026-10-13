@@ -1,6 +1,8 @@
 import 'package:voxscribe_app/features/pro/domain/pro_repository.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
+import 'package:voxscribe_app/features/texttools/domain/text_tools.dart';
+import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
 
 /// Pro state kept in memory. [validKey] is the one key it accepts.
 class FakeProRepository implements ProRepository {
@@ -50,4 +52,17 @@ class FakeSnippetRepository implements SnippetRepository {
 
   @override
   Future<void> save(List<Snippet> snippets) async => saved = snippets;
+}
+
+/// Text tool settings kept in memory. [saved] always holds what was last stored.
+class FakeTextToolsRepository implements TextToolsRepository {
+  FakeTextToolsRepository([this.saved = TextToolsSettings.defaults]);
+
+  TextToolsSettings saved;
+
+  @override
+  Future<TextToolsSettings> load() async => saved;
+
+  @override
+  Future<void> save(TextToolsSettings settings) async => saved = settings;
 }

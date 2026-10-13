@@ -44,6 +44,12 @@ class VoxScribeAccessibilityService : AccessibilityService() {
     // session append to what we know we wrote, never to a fresh read.
     private var lastWrittenText: String? = null
 
+    // The last piece of dictation typed, so "scratch that" and "delete last
+    // word" know what to take back. Cleared whenever focus moves, like
+    // lastWrittenText, so an edit never touches text VoxScribe did not write.
+    private var lastInsertedChunk: String? = null
+    private val recentChunks = ArrayDeque<String>()
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -162,6 +168,9 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         }
         if (node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, setTextArgs)) {
             lastWrittenText = newText
+            lastInsertedChunk = text
+            recentChunks.addLast(text)
+            while (recentChunks.size > 10) recentChunks.removeFirst()
             focusedNode = node
             placeCursorAfterInsertedText(node, newText.length)
             return true
@@ -175,6 +184,83 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         // is restored shortly after, same spirit as never wanting to
         // permanently clobber it.
         return pasteFallback(node, text)
+    }
+
+    /** The package name of the app that has focus now, for per-app profiles. */
+    fun focusedPackage(): String? =
+        focusedNode?.packageName?.toString() ?: rootInActiveWindow?.packageName?.toString()
+
+    /**
+     * Takes back some of what VoxScribe typed last ("scratch that", "delete
+     * last word", "delete last sentence"). Refuses when the field no longer
+     * ends with that text, as the Windows app refuses when the window changed:
+     * deleting text the user never dictated would be worse than doing nothing.
+     */
+    fun applyEdit(edit: VoiceCommands.Edit): Boolean {
+        if (recentChunks.isEmpty()) {
+            debugLog("edit refused: nothing was typed by VoxScribe yet")
+            return false
+        }
+        var node = focusedNode
+        if (node == null || !node.refresh() || !node.isEditable) {
+            focusedNode = null
+            node = findFocusedEditableNode()
+            if (node == null) {
+                debugLog("edit refused: no focused text field")
+                return false
+            }
+        }
+        node.refresh()
+        val current = node.text?.toString().orEmpty()
+
+        // Find the newest dictation still at the end of the field. Some apps trim
+        // or change the trailing space, and the user may have deleted the latest
+        // chunk by hand, so older ones are tried too.
+        var chunk = ""
+        var spoken = ""
+        var at = -1
+        for (candidate in recentChunks.reversed()) {
+            val words = candidate.trimEnd()
+            val found = current.lastIndexOf(words)
+            if (words.isNotEmpty() && found >= 0 && current.substring(found + words.length).isBlank()) {
+                chunk = candidate
+                spoken = words
+                at = found
+                break
+            }
+        }
+        if (at < 0) {
+            debugLog("edit refused: the field no longer ends with any recent dictation (field has ${current.length} chars)")
+            return false
+        }
+        val deletion = VoiceCommands.computeDeletion(spoken, edit)
+        // Keep the trailing space VoxScribe adds, so the next dictation does not run on.
+        val trailing = chunk.substring(spoken.length)
+        val kept = if (deletion.remaining.isEmpty()) "" else deletion.remaining + trailing
+        val newText = current.substring(0, at) + kept
+
+        val args = Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)
+        }
+        if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
+            debugLog("edit refused: the field would not accept the new text")
+            return false
+        }
+        lastWrittenText = newText
+        lastInsertedChunk = kept.ifEmpty { null }
+        recentChunks.remove(chunk)
+        if (kept.isNotEmpty()) recentChunks.addLast(kept)
+        focusedNode = node
+        placeCursorAfterInsertedText(node, newText.length)
+        debugLog("edit applied: removed ${current.length - newText.length} chars")
+        return true
+    }
+
+    /** Debug builds only, so a refused undo can be told apart from a bug. */
+    private fun debugLog(message: String) {
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            Log.d("VoxPipeline", message)
+        }
     }
 
     /** Depth-first search of the active window for a focused, editable node. */

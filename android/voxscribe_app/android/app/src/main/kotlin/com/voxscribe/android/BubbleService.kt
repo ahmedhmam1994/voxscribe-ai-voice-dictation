@@ -15,7 +15,10 @@ import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
+import android.os.Looper
+import android.os.Handler
 import android.os.SystemClock
+import android.util.Log
 import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -60,7 +63,9 @@ class BubbleService : Service() {
         isRunning = true
         instance = this
         createNotificationChannel()
+        createAlertChannel()
         addBubbleToWindow()
+        startAccessibilityWatch()
         // WhisperEngine.isAvailable() loads the ~160MB bundled model into
         // memory the first time it's called, which takes a few seconds --
         // doing that lazily on the first bubble press (as DictationEngine's
@@ -97,6 +102,8 @@ class BubbleService : Service() {
         super.onDestroy()
         isRunning = false
         instance = null
+        watchHandler.removeCallbacksAndMessages(null)
+        getSystemService(NotificationManager::class.java)?.cancel(ALERT_NOTIFICATION_ID)
         dictationEngine?.destroy()
         dictationEngine = null
         bubbleView?.let { view -> runCatching { windowManager?.removeView(view) } }
@@ -276,6 +283,9 @@ class BubbleService : Service() {
                 setState(BubbleState.IDLE)
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             },
+            interactive = true,
+            focusedPackage = { VoxScribeAccessibilityService.instance?.focusedPackage() },
+            onSpecial = { spoken -> onSpecialResult(spoken) },
         ).also { it.startListening() }
     }
 
@@ -288,6 +298,26 @@ class BubbleService : Service() {
         dictationEngine?.cancel()
         dictationEngine?.destroy()
         dictationEngine = null
+    }
+
+    /** An editing command or a template prompt, not text to type. */
+    private fun onSpecialResult(spoken: Spoken) {
+        setState(BubbleState.IDLE)
+        when (spoken) {
+            is Spoken.Edit -> {
+                val service = VoxScribeAccessibilityService.instance
+                val done = service?.applyEdit(spoken.edit) ?: false
+                if (service == null) Log.d("VoxPipeline", "edit refused: accessibility service not connected")
+                if (!done) Toast.makeText(this, R.string.edit_cant_undo, Toast.LENGTH_SHORT).show()
+            }
+            is Spoken.TemplatePrompt -> Toast.makeText(
+                this,
+                getString(R.string.template_prompt, spoken.name, spoken.slot),
+                Toast.LENGTH_LONG,
+            ).show()
+            Spoken.TemplateCancelled -> Toast.makeText(this, R.string.template_cancelled, Toast.LENGTH_SHORT).show()
+            is Spoken.Text -> Unit
+        }
     }
 
     private fun onDictationResult(text: String) {
@@ -328,6 +358,64 @@ class BubbleService : Service() {
         manager.createNotificationChannel(channel)
     }
 
+    // -- lost accessibility connection -----------------------------------------
+
+    private val watchHandler = Handler(Looper.getMainLooper())
+    private var disconnectedChecks = 0
+    private var alertShowing = false
+
+    private val watchAccessibility = object : Runnable {
+        override fun run() {
+            // After an app update Android can leave the accessibility service
+            // switched on but disconnected (or flagged as crashed). Nothing
+            // reaches the bubble then, so it silently never appears. Say so,
+            // with a one tap way to fix it, instead of failing quietly.
+            val connected = VoxScribeAccessibilityService.instance != null
+            val enabled = BubblePermissions.isAccessibilityServiceEnabled(this@BubbleService)
+            disconnectedChecks = if (enabled && !connected) disconnectedChecks + 1 else 0
+            // Two checks in a row (about ten seconds), so a normal start up is not flagged.
+            val shouldAlert = disconnectedChecks >= 2
+            if (shouldAlert != alertShowing) {
+                alertShowing = shouldAlert
+                val manager = getSystemService(NotificationManager::class.java)
+                if (shouldAlert) manager?.notify(ALERT_NOTIFICATION_ID, buildAlertNotification())
+                else manager?.cancel(ALERT_NOTIFICATION_ID)
+            }
+            watchHandler.postDelayed(this, WATCH_INTERVAL_MS)
+        }
+    }
+
+    private fun startAccessibilityWatch() {
+        watchHandler.postDelayed(watchAccessibility, WATCH_INTERVAL_MS)
+    }
+
+    private fun createAlertChannel() {
+        val channel = NotificationChannel(
+            ALERT_CHANNEL_ID,
+            getString(R.string.alert_channel_name),
+            NotificationManager.IMPORTANCE_HIGH,
+        )
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    private fun buildAlertNotification(): Notification {
+        val openSettings = PendingIntent.getActivity(
+            this,
+            1,
+            BubblePermissions.accessibilitySettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_mic)
+            .setContentTitle(getString(R.string.alert_title))
+            .setContentText(getString(R.string.alert_text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(getString(R.string.alert_text)))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(openSettings)
+            .build()
+    }
+
     private fun buildNotification(): Notification {
         val openApp = PendingIntent.getActivity(
             this,
@@ -349,6 +437,9 @@ class BubbleService : Service() {
     companion object {
         private const val CHANNEL_ID = "voxscribe_bubble"
         private const val NOTIFICATION_ID = 1
+        private const val ALERT_NOTIFICATION_ID = 2
+        private const val ALERT_CHANNEL_ID = "voxscribe_alert"
+        private const val WATCH_INTERVAL_MS = 5_000L
 
         /**
          * There is exactly one instance of this service at a time (Android

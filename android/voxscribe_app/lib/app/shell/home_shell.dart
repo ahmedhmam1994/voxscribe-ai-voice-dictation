@@ -8,12 +8,17 @@ import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/insights/insights_screen.dart';
 import 'package:voxscribe_app/features/pro/domain/pro_repository.dart';
 import 'package:voxscribe_app/features/pro/pro_controller.dart';
+import 'package:voxscribe_app/features/release/domain/release_repository.dart';
+import 'package:voxscribe_app/features/release/release_controller.dart';
+import 'package:voxscribe_app/features/release/release_prompts.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/settings_screen.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
+import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
+import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 
 /// The three top-level sections with a bottom navigation bar.
 class HomeShell extends StatefulWidget {
@@ -23,6 +28,8 @@ class HomeShell extends StatefulWidget {
     required this.historyRepository,
     required this.proRepository,
     required this.snippetRepository,
+    required this.textToolsRepository,
+    required this.releaseRepository,
     required this.settings,
     super.key,
   });
@@ -32,6 +39,8 @@ class HomeShell extends StatefulWidget {
   final HistoryRepository historyRepository;
   final ProRepository proRepository;
   final SnippetRepository snippetRepository;
+  final TextToolsRepository textToolsRepository;
+  final ReleaseRepository releaseRepository;
   final SettingsController settings;
 
   @override
@@ -61,7 +70,14 @@ class _HomeShellState extends State<HomeShell> {
   late final SnippetsController _snippets = SnippetsController(
     repository: widget.snippetRepository,
   );
+  late final TextToolsController _textTools = TextToolsController(
+    repository: widget.textToolsRepository,
+  );
+  late final ReleaseController _release = ReleaseController(
+    repository: widget.releaseRepository,
+  );
   late final AppLifecycleListener _lifecycle;
+  var _notesShown = false;
   var _index = 0;
 
   @override
@@ -72,12 +88,23 @@ class _HomeShellState extends State<HomeShell> {
     _lifecycle = AppLifecycleListener(onResume: _refresh);
     _refresh();
     _dictation.loadLanguage();
+    _release.addListener(_maybeShowNotes);
+    _release.start();
+  }
+
+  void _maybeShowNotes() {
+    if (_notesShown || _release.pendingNotes == null) return;
+    _notesShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showWhatsNewSheet(context, _release);
+    });
   }
 
   void _refresh() {
     _history.load();
     _setup.refresh();
     _pro.load();
+    _textTools.load();
   }
 
   @override
@@ -88,6 +115,8 @@ class _HomeShellState extends State<HomeShell> {
     _setup.dispose();
     _pro.dispose();
     _snippets.dispose();
+    _textTools.dispose();
+    _release.dispose();
     super.dispose();
   }
 
@@ -96,18 +125,26 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: IndexedStack(
-          index: _index,
+        child: Column(
           children: [
-            DictationScreen(controller: _dictation, history: _history),
-            InsightsScreen(history: _history),
-            SettingsScreen(
-              settings: widget.settings,
-              setup: _setup,
-              dictation: _dictation,
-              history: _history,
-              pro: _pro,
-              snippets: _snippets,
+            UpdateBanner(controller: _release),
+            Expanded(
+              child: IndexedStack(
+                index: _index,
+                children: [
+                  DictationScreen(controller: _dictation, history: _history),
+                  InsightsScreen(history: _history),
+                  SettingsScreen(
+                    settings: widget.settings,
+                    setup: _setup,
+                    dictation: _dictation,
+                    history: _history,
+                    pro: _pro,
+                    snippets: _snippets,
+                    textTools: _textTools,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

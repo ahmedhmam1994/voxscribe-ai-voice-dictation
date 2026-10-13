@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:voxscribe_app/app/intro_splash.dart';
 import 'package:voxscribe_app/app/shell/home_shell.dart';
 import 'package:voxscribe_app/app/theme/app_theme.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
@@ -9,6 +10,8 @@ import 'package:voxscribe_app/features/settings/domain/settings_repository.dart'
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
+import 'package:voxscribe_app/features/release/domain/release_repository.dart';
+import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
 
 class VoxScribeApp extends StatefulWidget {
   const VoxScribeApp({
@@ -18,6 +21,9 @@ class VoxScribeApp extends StatefulWidget {
     required this.settingsRepository,
     required this.proRepository,
     required this.snippetRepository,
+    required this.textToolsRepository,
+    required this.releaseRepository,
+    this.showIntro = true,
     super.key,
   });
 
@@ -27,6 +33,9 @@ class VoxScribeApp extends StatefulWidget {
   final SettingsRepository settingsRepository;
   final ProRepository proRepository;
   final SnippetRepository snippetRepository;
+  final TextToolsRepository textToolsRepository;
+  final ReleaseRepository releaseRepository;
+  final bool showIntro;
 
   @override
   State<VoxScribeApp> createState() => _VoxScribeAppState();
@@ -65,13 +74,18 @@ class _VoxScribeAppState extends State<VoxScribeApp> {
             ThemeChoice.light => ThemeMode.light,
             ThemeChoice.dark => ThemeMode.dark,
           },
-          home: HomeShell(
-            engine: widget.engine,
-            setupPlatform: widget.setupPlatform,
-            historyRepository: widget.historyRepository,
-            proRepository: widget.proRepository,
-            snippetRepository: widget.snippetRepository,
-            settings: _settings,
+          home: IntroSplash(
+            enabled: widget.showIntro,
+            child: HomeShell(
+              engine: widget.engine,
+              setupPlatform: widget.setupPlatform,
+              historyRepository: widget.historyRepository,
+              proRepository: widget.proRepository,
+              snippetRepository: widget.snippetRepository,
+              textToolsRepository: widget.textToolsRepository,
+              releaseRepository: widget.releaseRepository,
+              settings: _settings,
+            ),
           ),
         );
       },
