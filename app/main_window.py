@@ -86,13 +86,13 @@ from core.audio_capture import (
     resample_to_16k,
     resolve_input_device,
 )
-from core.captions import split_segments
+from core.captions import review_flags, split_segments
 from core.chime import make_chime
 from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.hold_gate import HoldGate
-from core.srt import format_srt
+from core.srt import format_srt, format_timestamp
 from core.transcribe import MODEL_APPROX_MB, Transcriber, load_transcriber, model_cache_bytes
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 from core.voice_commands import apply_voice_commands, compute_deletion, get_editing_command
@@ -940,6 +940,8 @@ class FileTranscribeThread(QThread):
         self._run_gate = threading.Event()
         self._run_gate.set()
         self._stop_requested = False
+        self.review_total = 0
+        self.review_notes: list[str] = []
         self.srt_path: str | None = None
         self.extra_paths: list[str] = []
 
@@ -979,6 +981,14 @@ class FileTranscribeThread(QThread):
             segments = self._label_speakers(segments)
 
         cards = split_segments(segments, self.caption_line_chars)
+        if self.export_srt or self.export_extras:
+            # Flags only: nothing is changed, the user decides.
+            flags = review_flags(cards)
+            self.review_total = len(flags)
+            self.review_notes = [
+                f"card {number} at {format_timestamp(cards[number - 1][0])[:8]}: {reason}"
+                for number, reason in flags[:5]
+            ]
 
         # Never replace a file that is already there (it may be a hand
         # corrected caption): save under "name (2)" instead.
@@ -1051,8 +1061,8 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("VoxScribe")
-        self.resize(960, 620)
-        self.setMinimumSize(760, 520)
+        self.resize(960, 740)
+        self.setMinimumSize(880, 640)
         self.setStyleSheet(MAIN_STYLESHEET)
         if ICON_PATH.exists():
             icon = QIcon(str(ICON_PATH))
@@ -1191,15 +1201,25 @@ class MainWindow(QMainWindow):
 
         content = QWidget()
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(24, 20, 24, 18)
-        layout.setSpacing(14)
-        self._pages.addWidget(content)
+        layout.setContentsMargins(24, 18, 24, 16)
+        layout.setSpacing(10)
+        # Scrolls instead of overlapping when the window is shorter than the page.
+        page_scroll = QScrollArea()
+        page_scroll.setWidgetResizable(True)
+        page_scroll.setFrameShape(QScrollArea.NoFrame)
+        page_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        page_scroll.setStyleSheet(
+            "QScrollArea { border: none; background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+        )
+        page_scroll.setWidget(content)
+        self._pages.addWidget(page_scroll)
 
         hero = QWidget()
         hero.setObjectName("heroBanner")
-        hero.setFixedHeight(84)
+        hero.setFixedHeight(68)
         hero_layout = QVBoxLayout(hero)
-        hero_layout.setContentsMargins(20, 14, 20, 14)
+        hero_layout.setContentsMargins(20, 10, 20, 10)
         hero_layout.setSpacing(2)
         hero_title = QLabel("Hold to talk, anywhere")
         hero_title.setObjectName("heroTitle")
@@ -1325,59 +1345,71 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(button_row)
 
-        self.export_srt_checkbox = QCheckBox("Also save .srt captions when importing a file")
+        options_row = QHBoxLayout()
+        options_row.setSpacing(18)
+        self.export_srt_checkbox = QCheckBox("Save .srt captions")
         self.export_srt_checkbox.setObjectName("exportSrtCheckbox")
-        layout.addWidget(self.export_srt_checkbox)
-
-        self.export_extras_checkbox = QCheckBox(
-            "Also save .vtt, .md and Word (.docx) copies (Pro)"
+        self.export_srt_checkbox.setToolTip(
+            "Also save an .srt caption file next to each imported file"
         )
-        self.export_extras_checkbox.setObjectName("exportSrtCheckbox")
-        layout.addWidget(self.export_extras_checkbox)
+        options_row.addWidget(self.export_srt_checkbox)
 
-        self.label_speakers_checkbox = QCheckBox(
+        self.export_extras_checkbox = QCheckBox("Also .vtt, .md, .docx (Pro)")
+        self.export_extras_checkbox.setObjectName("exportSrtCheckbox")
+        self.export_extras_checkbox.setToolTip(
+            "Also save .vtt, .md and Word (.docx) copies of each imported file (Pro)"
+        )
+        options_row.addWidget(self.export_extras_checkbox)
+
+        self.label_speakers_checkbox = QCheckBox("Label speakers (Pro)")
+        self.label_speakers_checkbox.setObjectName("exportSrtCheckbox")
+        self.label_speakers_checkbox.setToolTip(
             "Label who is speaking in saved files "
             f"(Pro, downloads {diarize.APPROX_DOWNLOAD_MB} MB once)"
         )
-        self.label_speakers_checkbox.setObjectName("exportSrtCheckbox")
-        layout.addWidget(self.label_speakers_checkbox)
+        options_row.addWidget(self.label_speakers_checkbox)
+        options_row.addStretch(1)
+        layout.addLayout(options_row)
 
         self._batch_bar = QWidget()
-        batch_layout = QVBoxLayout(self._batch_bar)
+        batch_layout = QHBoxLayout(self._batch_bar)
         batch_layout.setContentsMargins(0, 0, 0, 0)
-        batch_layout.setSpacing(6)
+        batch_layout.setSpacing(10)
         self._batch_label = QLabel("")
-        batch_layout.addWidget(self._batch_label)
+        self._batch_label.setWordWrap(True)
+        batch_layout.addWidget(self._batch_label, stretch=1)
         self._batch_progress = QProgressBar()
         self._batch_progress.setRange(0, 100)
         self._batch_progress.setTextVisible(False)
-        self._batch_progress.setFixedHeight(8)
+        self._batch_progress.setFixedSize(150, 8)
         self._batch_progress.setStyleSheet(
             f"QProgressBar {{ background: {BG_CARD}; border: 1px solid {BORDER};"
             " border-radius: 4px; }"
             f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 3px; }}"
         )
         batch_layout.addWidget(self._batch_progress)
-        batch_buttons = QHBoxLayout()
-        batch_buttons.setSpacing(8)
-        self._batch_pause_button = QPushButton("Pause")
-        self._batch_pause_button.setObjectName("secondaryButton")
-        self._batch_pause_button.setCursor(Qt.PointingHandCursor)
-        self._batch_pause_button.clicked.connect(self._toggle_import_pause)
-        self._batch_cancel_button = QPushButton("Cancel")
-        self._batch_cancel_button.setObjectName("ghostButton")
-        self._batch_cancel_button.setCursor(Qt.PointingHandCursor)
-        self._batch_cancel_button.clicked.connect(self._cancel_import)
-        self._batch_open_button = QPushButton("Open folder")
-        self._batch_open_button.setObjectName("primaryOutlineButton")
-        self._batch_open_button.setCursor(Qt.PointingHandCursor)
-        self._batch_open_button.clicked.connect(self._open_batch_folder)
-        batch_buttons.addWidget(self._batch_pause_button)
-        batch_buttons.addWidget(self._batch_cancel_button)
-        batch_buttons.addWidget(self._batch_open_button)
-        batch_buttons.addStretch(1)
-        batch_layout.addLayout(batch_buttons)
+
+        def _batch_button(text: str, name: str, handler) -> QPushButton:  # noqa: ANN001
+            button = QPushButton(text)
+            button.setObjectName(name)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setFixedHeight(30)
+            button.setStyleSheet("padding: 3px 14px;")
+            button.clicked.connect(handler)
+            batch_layout.addWidget(button)
+            return button
+
+        self._batch_pause_button = _batch_button(
+            "Pause", "secondaryButton", self._toggle_import_pause
+        )
+        self._batch_cancel_button = _batch_button("Cancel", "ghostButton", self._cancel_import)
+        self._batch_retry_button = _batch_button("Retry", "secondaryButton", self._retry_batch)
+        self._batch_open_button = _batch_button(
+            "Open folder", "primaryOutlineButton", self._open_batch_folder
+        )
         self._batch_bar.hide()
+        self._batch_retry_button.hide()
+        self._retry_paths: list[str] = []
         self._batch_folder: str | None = None
         layout.addWidget(self._batch_bar)
 
@@ -1395,6 +1427,7 @@ class MainWindow(QMainWindow):
             "Your transcribed text will appear here."
         )
         self.transcript_area.setAcceptDrops(False)
+        self.transcript_area.setMinimumHeight(150)
         self.transcript_area.textChanged.connect(self._update_save_button)
         layout.addWidget(self.transcript_area, stretch=1)
 
@@ -1453,7 +1486,7 @@ class MainWindow(QMainWindow):
         history_scroll.setObjectName("historyScroll")
         history_scroll.setWidgetResizable(True)
         history_scroll.setFrameShape(QScrollArea.NoFrame)
-        history_scroll.setFixedHeight(120)
+        history_scroll.setFixedHeight(96)
         history_content = QWidget()
         self._history_feed_layout = QVBoxLayout(history_content)
         self._history_feed_layout.setContentsMargins(0, 0, 0, 0)
@@ -3802,7 +3835,7 @@ class MainWindow(QMainWindow):
             event.acceptProposedAction()
             self._begin_import(paths)
 
-    def _begin_import(self, paths: list[str]) -> None:
+    def _begin_import(self, paths: list[str], retry: bool = False) -> None:
         """Starts an import from picked files, a picked folder or a drop. One
         file is free; several files or a folder is a batch: Pro, with a couple
         of free runs so it can be tried first."""
@@ -3816,7 +3849,7 @@ class MainWindow(QMainWindow):
         is_batch = len(files) > 1 or any(os.path.isdir(p) for p in paths)
 
         trial_note = ""
-        if is_batch and not hotkey_license.is_pro():
+        if is_batch and not retry and not hotkey_license.is_pro():
             if hotkey_settings.get_batch_trials_left() <= 0:
                 self._offer_batch_pro(files)
                 return
@@ -3845,6 +3878,7 @@ class MainWindow(QMainWindow):
                 "skipped": len(skipped),
                 "saved": 0,
                 "paths": list(files),
+                "results": [{"path": p, "status": "skipped"} for p in skipped],
                 "cancelled": False,
                 "paused": False,
             }
@@ -3852,6 +3886,8 @@ class MainWindow(QMainWindow):
             else None
         )
         self._batch_folder = None
+        self._batch_retry_button.hide()
+        self._retry_paths = []
         if is_batch:
             self._batch_progress.setValue(0)
             self._batch_progress.show()
@@ -3904,6 +3940,11 @@ class MainWindow(QMainWindow):
         if self._file_worker is not None:
             self._file_worker.request_stop()
 
+    def _retry_batch(self) -> None:
+        paths = list(self._retry_paths)
+        if paths:
+            self._begin_import(paths, retry=True)
+
     def _open_batch_folder(self) -> None:
         if self._batch_folder and os.path.isdir(self._batch_folder):
             os.startfile(self._batch_folder)  # noqa: S606
@@ -3945,11 +3986,24 @@ class MainWindow(QMainWindow):
             b["total"], b["done"], b["failed"], b["skipped"], b["saved"], b["cancelled"]
         )
         self.transcript_area.append(summary)
+        handled = {r["path"] for r in b["results"]}
+        results = b["results"] + [
+            {"path": p, "status": "not run"} for p in b["paths"] if p not in handled
+        ]
+        folder = batch.common_folder(b["paths"])
+        for line in batch.format_report(results, folder):
+            self.transcript_area.append(line)
+        self._retry_paths = batch.to_retry(results)
+        self._batch_retry_button.setText(
+            f"Retry {len(self._retry_paths)} file{'s' if len(self._retry_paths) != 1 else ''}"
+        )
+        self._batch_retry_button.setVisible(bool(self._retry_paths))
         self._batch_label.setText(summary)
         if not b["cancelled"]:
             self._batch_progress.setValue(100)
         self._batch_pause_button.hide()
         self._batch_cancel_button.hide()
+        self._batch_progress.hide()
         self._batch_folder = batch.common_folder(b["paths"])
         self._batch_open_button.setVisible(bool(self._batch_folder))
         if self.tray_icon is not None:
@@ -4017,8 +4071,24 @@ class MainWindow(QMainWindow):
             self._batch["done"] += 1
             if self._file_worker is not None and self._file_worker.srt_path:
                 self._batch["saved"] += 1
+            self._batch["results"].append(
+                {
+                    "path": path,
+                    "status": "done",
+                    "srt": self._file_worker.srt_path if self._file_worker else None,
+                }
+            )
         if self._file_worker is not None and self._file_worker.srt_path:
             self.transcript_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
+        if self._file_worker is not None and self._file_worker.review_total:
+            worker = self._file_worker
+            self.transcript_area.append(
+                f"  review: {worker.review_total} caption card"
+                f"{'s' if worker.review_total != 1 else ''} to check "
+                "(flagged only, nothing was changed)"
+            )
+            for note in worker.review_notes:
+                self.transcript_area.append(f"    {note}")
         if self._file_worker is not None and self._file_worker.speaker_error:
             self.transcript_area.append(
                 f"  could not label speakers: {self._file_worker.speaker_error}"
@@ -4032,4 +4102,5 @@ class MainWindow(QMainWindow):
         self.transcript_area.append(f"[{Path(path).name}] [error] {message}")
         if self._batch is not None:
             self._batch["failed"] += 1
+            self._batch["results"].append({"path": path, "status": "failed", "error": message})
         self._process_next_import_file()

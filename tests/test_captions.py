@@ -59,3 +59,35 @@ def test_a_very_long_word_does_not_loop_forever():
 def test_blank_segments_are_dropped_and_srt_renders():
     cards = split_segments([(0.0, 1.0, "   "), (1.0, 5.0, LONG)])
     assert format_srt(cards).startswith("1\n00:00:01,000 -->")
+
+
+def test_tail_cards_are_balanced_not_a_single_word():
+    text = "word " * 17 + "last"  # 89 characters, just over two lines of 42
+    cards = split_segments([(0.0, 9.0, text.strip())])
+    lengths = [len(t.replace("\n", " ")) for _s, _e, t in cards]
+    assert len(cards) == 2
+    assert min(lengths) >= 30
+
+
+def test_review_flags_fast_overlap_and_gap():
+    from core.captions import review_flags
+
+    cards = [
+        (0.0, 0.4, "Quick"),
+        (0.3, 4.0, "Starts before the last one ended"),
+        (9.0, 12.0, "After a long silence"),
+        (12.0, 13.0, "x" * 60),
+    ]
+    reasons = dict()
+    for number, reason in review_flags(cards):
+        reasons.setdefault(number, []).append(reason)
+    assert "only 0.4s" in reasons[1][0]
+    assert any("overlaps" in r for r in reasons[2])
+    assert any("silence" in r for r in reasons[3])
+    assert any("too fast" in r for r in reasons[4])
+
+
+def test_clean_cards_have_no_flags():
+    from core.captions import review_flags
+
+    assert review_flags([(0.0, 3.0, "A normal caption"), (3.2, 6.0, "And another one")]) == []

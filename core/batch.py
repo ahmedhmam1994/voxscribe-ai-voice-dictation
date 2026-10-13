@@ -7,6 +7,7 @@ summary text can be unit tested on their own.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 MEDIA_EXTENSIONS = (
@@ -101,3 +102,44 @@ def unused_base(source: str, suffixes: list[str]) -> Path:
         n += 1
         candidate = base.with_name(f"{base.name} ({n})")
     return candidate
+
+
+def _shown(path: str, folder: str | None) -> str:
+    """A path relative to the batch folder when it sits inside it."""
+    if folder:
+        try:
+            return os.path.relpath(path, folder)
+        except ValueError:
+            pass
+    return path
+
+
+def _short_reason(error: str | None) -> str:
+    """The reason without the long file path some errors end with."""
+    text = re.sub(r"[:\s]*'[^']*[\\/][^']*'\s*$", "", error or "").strip()
+    text = re.sub(r"^\[Errno \d+\]\s*", "", text)
+    return (text or "unknown error")[:100]
+
+
+def to_retry(results: list[dict]) -> list[str]:
+    """Files worth running again: the ones that failed or never started."""
+    return [r["path"] for r in results if r["status"] in ("failed", "not run")]
+
+
+def format_report(results: list[dict], folder: str | None) -> list[str]:
+    """One line per file: what happened and where the .srt went. Each result
+    is {"path", "status": done|failed|skipped|not run, "srt", "error"}."""
+    order = {"failed": 0, "not run": 1, "done": 2, "skipped": 3}
+    lines = []
+    for r in sorted(results, key=lambda r: order.get(r["status"], 9)):
+        name = _shown(r["path"], folder)
+        if r["status"] == "done":
+            where = f" -> {_shown(r['srt'], folder)}" if r.get("srt") else ""
+            lines.append(f"  done: {name}{where}")
+        elif r["status"] == "failed":
+            lines.append(f"  failed: {name} ({_short_reason(r.get('error'))})")
+        elif r["status"] == "skipped":
+            lines.append(f"  skipped: {name} (already had an .srt)")
+        else:
+            lines.append(f"  not run: {name} (stopped before it started)")
+    return lines

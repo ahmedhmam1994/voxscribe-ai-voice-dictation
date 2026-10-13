@@ -78,3 +78,34 @@ def test_unused_base_with_dots_in_the_name(tmp_path):
     src = _touch(tmp_path / "my.talk.v2.mp3")
     _touch(tmp_path / "my.talk.v2.srt")
     assert batch.unused_base(src, [".srt"]) == tmp_path / "my.talk.v2 (2)"
+
+
+def test_report_lists_failures_first_and_where_srt_went(tmp_path):
+    folder = str(tmp_path)
+    results = [
+        {"path": str(tmp_path / "a.mp3"), "status": "done", "srt": str(tmp_path / "a.srt")},
+        {"path": str(tmp_path / "b.mp3"), "status": "failed", "error": "corrupt file"},
+        {"path": str(tmp_path / "sub" / "c.mp3"), "status": "skipped"},
+        {"path": str(tmp_path / "d.mp3"), "status": "not run"},
+    ]
+    lines = batch.format_report(results, folder)
+    assert lines[0] == "  failed: b.mp3 (corrupt file)"
+    assert lines[1].startswith("  not run: d.mp3")
+    assert "  done: a.mp3 -> a.srt" in lines
+    assert any("skipped" in line and "c.mp3" in line for line in lines)
+
+
+def test_to_retry_is_failed_and_unstarted_only(tmp_path):
+    results = [
+        {"path": "a", "status": "done"},
+        {"path": "b", "status": "failed"},
+        {"path": "c", "status": "not run"},
+        {"path": "d", "status": "skipped"},
+    ]
+    assert batch.to_retry(results) == ["b", "c"]
+
+
+def test_failure_reason_drops_the_long_path():
+    err = r"[Errno 1094995529] Invalid data found when processing input: 'C:\Users\x\media\bad.mp3'"
+    lines = batch.format_report([{"path": "bad.mp3", "status": "failed", "error": err}], None)
+    assert lines == ["  failed: bad.mp3 (Invalid data found when processing input)"]

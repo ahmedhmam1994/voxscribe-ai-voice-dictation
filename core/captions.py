@@ -13,38 +13,40 @@ Segment = tuple[float, float, str]
 
 DEFAULT_LINE_CHARS = 42
 MAX_LINES = 2
-_CLAUSE_ENDS = ".?!;:,"
 
 
-def _cut_point(text: str, limit: int) -> int:
-    """Index to cut `text` at (a space), so the first part is at most `limit`
-    characters, preferring the end of a sentence, then a clause, then a space."""
-    window = text[: limit + 1]
-    floor = limit * 2 // 5
-    for ends in (".?!", ";:,"):
-        best = -1
-        for i, ch in enumerate(window):
-            if ch in ends and i >= floor and (i + 1 == len(text) or text[i + 1] == " "):
-                best = i + 1
-        if best > 0:
-            return best
-    space = window.rfind(" ")
-    if space > 0:
-        return space
-    after = text.find(" ", limit)
-    return after if after > 0 else len(text)
-
-
-def _chunks(text: str, limit: int) -> list[str]:
-    """Cuts text into pieces of at most `limit` characters where it can."""
-    pieces = []
-    rest = text.strip()
-    while len(rest) > limit:
-        cut = _cut_point(rest, limit)
-        pieces.append(rest[:cut].strip())
-        rest = rest[cut:].strip()
-    if rest:
-        pieces.append(rest)
+def _balanced_chunks(text: str, limit: int) -> list[str]:
+    """Cuts text into the fewest cards of at most `limit` characters, with the
+    pieces about equal in length (no one word tail card that flashes by).
+    Cuts prefer the end of a sentence, then a clause, then any space."""
+    text = text.strip()
+    if len(text) <= limit:
+        return [text]
+    count = -(-len(text) // limit)
+    pieces: list[str] = []
+    rest = text
+    for left in range(count, 1, -1):
+        target = len(rest) / left
+        lowest = max(1, len(rest) - limit * (left - 1))
+        best = None
+        for i, ch in enumerate(rest[: limit + 1]):
+            if ch != " " or i < lowest:
+                continue
+            before = rest[:i].rstrip()
+            if before.endswith((".", "?", "!")):
+                bonus = 12
+            elif before.endswith((";", ":", ",")):
+                bonus = 6
+            else:
+                bonus = 0
+            score = abs(i - target) - bonus
+            if best is None or score < best[0]:
+                best = (score, i)
+        if best is None:
+            break
+        pieces.append(rest[: best[1]].strip())
+        rest = rest[best[1] :].strip()
+    pieces.append(rest)
     return pieces
 
 
@@ -75,7 +77,7 @@ def split_segments(
         text = " ".join(text.split())
         if not text:
             continue
-        pieces = _chunks(text, line_chars * MAX_LINES)
+        pieces = _balanced_chunks(text, line_chars * MAX_LINES)
         total = sum(len(p) for p in pieces)
         duration = max(end - start, 0.0)
         done = 0
@@ -85,3 +87,34 @@ def split_segments(
             card_end = start + duration * done / total
             cards.append((card_start, card_end, _two_lines(piece, line_chars)))
     return cards
+
+
+MAX_CHARS_PER_SECOND = 21.0
+MIN_CARD_SECONDS = 1.0
+LONG_GAP_SECONDS = 3.0
+
+
+def review_flags(cards: list[Segment]) -> list[tuple[int, str]]:
+    """Cards worth a second look, as (card number, reason). Flags only: it
+    never changes a word or a time. Cards are numbered from 1, as in the .srt.
+
+    A card is flagged when it is on screen too briefly to read, when it starts
+    before the previous one ended, or when the silence before it is unusually
+    long (a possible missed stretch of speech).
+    """
+    flags: list[tuple[int, str]] = []
+    previous_end = None
+    for number, (start, end, text) in enumerate(cards, start=1):
+        duration = end - start
+        chars = len(" ".join(text.split()))
+        if duration < MIN_CARD_SECONDS:
+            flags.append((number, f"on screen for only {duration:.1f}s"))
+        elif chars / duration > MAX_CHARS_PER_SECOND:
+            flags.append((number, f"too fast to read ({chars / duration:.0f} characters a second)"))
+        if previous_end is not None:
+            if start < previous_end - 0.001:
+                flags.append((number, f"overlaps the previous card by {previous_end - start:.1f}s"))
+            elif start - previous_end > LONG_GAP_SECONDS:
+                flags.append((number, f"{start - previous_end:.0f}s of silence before it"))
+        previous_end = end
+    return flags

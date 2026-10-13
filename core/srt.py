@@ -17,6 +17,11 @@ def _format_timestamp(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 
+def format_timestamp(seconds: float) -> str:
+    """Public form of the SRT timestamp, for messages that point at a card."""
+    return _format_timestamp(seconds)
+
+
 def format_srt(segments: list[tuple[float, float, str]]) -> str:
     """Render (start, end, text) segments as SRT-formatted text.
 
