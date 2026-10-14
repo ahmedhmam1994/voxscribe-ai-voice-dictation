@@ -75,8 +75,14 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 - Android 8 or newer, 64-bit phone (almost every phone from the last several years)
 - The speech model is bundled in the app, so the file is large (about 200 MB) and works in airplane mode
 - Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
-- Spoken commands ("period", "new line", "scratch that"), word replacements, smart formatting, code dictation, fill-in templates and per-app profiles are in Text tools. The same Pro key as Windows unlocks the Pro ones, and Snippets
+- Spoken commands ("period", "new line", "scratch that") and word replacements are free, in Text tools. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same Pro key as Windows, which also unlocks Snippets
 - When a newer Android release is published, the app shows an update banner with a download button
+
+<p align="center">
+  <img src="docs/assets/android-intro.png" width="230" alt="VoxScribe for Android opening animation">
+  <img src="docs/assets/android-dictation.png" width="230" alt="VoxScribe for Android dictation screen">
+  <img src="docs/assets/android-text-tools.png" width="230" alt="VoxScribe for Android Text tools">
+</p>
 
 The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutter for the app screens, Kotlin for the floating button, typing service and speech engine.
 
