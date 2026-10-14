@@ -55,7 +55,13 @@ Free and privacy-first: your voice audio is never uploaded anywhere.
 
 Grab the latest installer from the [Releases page](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases).
 
-Prefer a package manager? With [Scoop](https://scoop.sh):
+Prefer a package manager? With winget, which ships with Windows 10 and 11:
+
+```
+winget install ahmedhmam1994.VoxScribe
+```
+
+Or with [Scoop](https://scoop.sh):
 
 ```
 scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe
