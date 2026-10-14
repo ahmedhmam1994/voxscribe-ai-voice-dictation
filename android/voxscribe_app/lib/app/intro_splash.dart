@@ -25,6 +25,9 @@ class _IntroSplashState extends State<IntroSplash>
     duration: const Duration(milliseconds: 2800),
   );
   bool _done = false;
+  // The app underneath is built only once the logo has grown, so building it
+  // cannot make the opening of the animation stutter.
+  bool _mountChild = false;
   // Android's "Remove animations": show the settled logo and just fade through.
   late final bool _calm = WidgetsBinding
       .instance
@@ -40,6 +43,11 @@ class _IntroSplashState extends State<IntroSplash>
       return;
     }
     _controller
+      ..addListener(() {
+        if (!_mountChild && _controller.value >= 0.45 && mounted) {
+          setState(() => _mountChild = true);
+        }
+      })
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed && mounted) {
           setState(() => _done = true);
@@ -69,7 +77,7 @@ class _IntroSplashState extends State<IntroSplash>
     return Stack(
       fit: StackFit.expand,
       children: [
-        widget.child,
+        if (_mountChild || _calm) widget.child,
         AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
