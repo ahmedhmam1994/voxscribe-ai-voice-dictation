@@ -10,4 +10,6 @@ abstract interface class SettingsRepository {
   Future<void> setTrailingSpace({required bool value});
 
   Future<void> setTheme(ThemeChoice value);
+
+  Future<void> setUsagePing({required bool value});
 }

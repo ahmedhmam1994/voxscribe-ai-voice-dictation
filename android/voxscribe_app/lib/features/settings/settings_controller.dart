@@ -29,6 +29,12 @@ class SettingsController extends ChangeNotifier {
     return repository.setTrailingSpace(value: value);
   }
 
+  Future<void> setUsagePing({required bool value}) {
+    _settings = _settings.copyWith(usagePing: value);
+    notifyListeners();
+    return repository.setUsagePing(value: value);
+  }
+
   Future<void> setTheme(ThemeChoice value) {
     _settings = _settings.copyWith(theme: value);
     notifyListeners();

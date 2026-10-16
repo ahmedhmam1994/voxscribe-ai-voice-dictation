@@ -10,6 +10,7 @@ class AppSettings {
     required this.cleanup,
     required this.trailingSpace,
     required this.theme,
+    this.usagePing = true,
   });
 
   /// What a fresh install uses.
@@ -27,15 +28,20 @@ class AppSettings {
 
   final ThemeChoice theme;
 
+  /// Once a day, an anonymous "the app was used" ping: versions and a random id only.
+  final bool usagePing;
+
   AppSettings copyWith({
     bool? cleanup,
     bool? trailingSpace,
     ThemeChoice? theme,
+    bool? usagePing,
   }) {
     return AppSettings(
       cleanup: cleanup ?? this.cleanup,
       trailingSpace: trailingSpace ?? this.trailingSpace,
       theme: theme ?? this.theme,
+      usagePing: usagePing ?? this.usagePing,
     );
   }
 }

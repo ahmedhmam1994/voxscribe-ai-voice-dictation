@@ -22,6 +22,9 @@ abstract interface class SetupPlatform {
 
   Future<void> openOverlaySettings();
 
+  /// Opens this app's notification settings, where they can be allowed.
+  Future<void> openNotificationSettings();
+
   /// Starts or stops the floating button.
   Future<void> setBubbleRunning({required bool running});
 }

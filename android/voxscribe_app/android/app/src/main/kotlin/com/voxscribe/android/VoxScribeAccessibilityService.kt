@@ -3,6 +3,7 @@ package com.voxscribe.android
 import android.accessibilityservice.AccessibilityService
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -90,7 +91,8 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         // Null while windows are switching; keep the current state then.
         val root = rootInActiveWindow ?: return
         val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
-        val editing = focused?.isEditable == true
+        val editing = focused != null &&
+            FieldSafety.allowsDictation(focused.isEditable, focused.isPassword, focused.inputType)
         focused.recycleCompat()
         val allWindows = windows
         // If the phone does not report windows, fall back to focus alone.
@@ -134,6 +136,12 @@ class VoxScribeAccessibilityService : AccessibilityService() {
             focusedNode = null
             node = findFocusedEditableNode()
             if (node == null) return false
+        }
+
+        // Never type into a password field, whatever the caller thinks the target is.
+        if (FieldSafety.isSensitive(node.isPassword, node.inputType)) {
+            debugLog("insert refused: password field")
+            return false
         }
 
         // Cursor/selection reporting via AccessibilityNodeInfo is unreliable
@@ -192,13 +200,105 @@ class VoxScribeAccessibilityService : AccessibilityService() {
 
     /**
      * Takes back some of what VoxScribe typed last ("scratch that", "delete
-     * last word", "delete last sentence"). Refuses when the field no longer
-     * ends with that text, as the Windows app refuses when the window changed:
-     * deleting text the user never dictated would be worse than doing nothing.
+     * last word", "delete last sentence").
      */
-    fun applyEdit(edit: VoiceCommands.Edit): Boolean {
+    fun applyEdit(edit: VoiceCommands.Edit): Boolean =
+        rewriteLastDictation("edit") { spoken -> VoiceCommands.computeDeletion(spoken, edit).remaining }
+
+    /** "capitalize that", "all caps", "lowercase that": changes the last dictation in place. */
+    fun applyTransform(transform: VoiceCommands.Transform): Boolean =
+        rewriteLastDictation("transform") { spoken -> VoiceCommands.applyTransform(spoken, transform) }
+
+    /** "replace X with Y": swaps a word in the last dictation. False when X is not in it. */
+    fun applyReplace(from: String, to: String): Boolean =
+        rewriteLastDictation("replace") { spoken -> VoiceCommands.applyReplace(spoken, from, to) }
+
+    /**
+     * "send it": taps the app's Send button. Most chat apps treat Enter as a new line, so the
+     * button is looked for first, and Enter is only the fallback when the window has none.
+     * "press enter" presses Enter itself. It reads button labels and ids only, never message
+     * text, and it never acts on a password field.
+     */
+    fun sendMessage(kind: VoiceCommands.SendKind): Boolean {
+        if (focusedFieldIsSensitive()) {
+            debugLog("send refused: password field")
+            return false
+        }
+        if (kind == VoiceCommands.SendKind.SEND) {
+            val button = findSendButton()
+            if (button != null) {
+                val clicked = button.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                debugLog("send button clicked: $clicked")
+                if (clicked) return true
+            }
+        }
+        return pressEnter()
+    }
+
+    private fun findSendButton(): AccessibilityNodeInfo? {
+        val root = rootInActiveWindow ?: return null
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        queue.addLast(root)
+        var visited = 0
+        while (queue.isNotEmpty() && visited < MAX_NODES_SEARCHED) {
+            val node = queue.removeFirst()
+            visited++
+            if (looksLikeSendButton(node)) return clickableSelfOrParent(node)
+            for (i in 0 until node.childCount) node.getChild(i)?.let { queue.addLast(it) }
+        }
+        return null
+    }
+
+    private fun looksLikeSendButton(node: AccessibilityNodeInfo): Boolean {
+        if (!node.isVisibleToUser || !node.isEnabled || node.isEditable) return false
+        val label = node.contentDescription?.toString()?.trim().orEmpty()
+        val id = node.viewIdResourceName.orEmpty().substringAfter('/').lowercase()
+        return SEND_LABELS.any { label.equals(it, ignoreCase = true) } || id in SEND_IDS
+    }
+
+    private fun clickableSelfOrParent(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        repeat(3) {
+            if (current?.isClickable == true) return current
+            current = current?.parent
+        }
+        return null
+    }
+
+    /** The keyboard's Enter key, in the focused field. Needs Android 11. */
+    fun pressEnter(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            debugLog("enter refused: needs Android 11 or newer")
+            return false
+        }
+        var node = focusedNode
+        if (node == null || !node.refresh() || !node.isEditable) {
+            focusedNode = null
+            node = findFocusedEditableNode()
+        }
+        if (node == null) {
+            debugLog("enter refused: no focused text field")
+            return false
+        }
+        if (FieldSafety.isSensitive(node.isPassword, node.inputType)) {
+            debugLog("enter refused: password field")
+            return false
+        }
+        val performed = node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_IME_ENTER.id)
+        debugLog("enter performed: $performed")
+        return performed
+    }
+
+    /**
+     * Rewrites the last thing VoxScribe typed. Refuses when the field no longer
+     * ends with that text, as the Windows app refuses when the window changed:
+     * changing text the user never dictated would be worse than doing nothing.
+     * [rewrite] gets the dictated words and returns their replacement (empty to
+     * delete them), or null when the command does not apply.
+     */
+    private fun rewriteLastDictation(label: String, rewrite: (String) -> String?): Boolean {
         if (recentChunks.isEmpty()) {
-            debugLog("edit refused: nothing was typed by VoxScribe yet")
+            debugLog("$label refused: nothing was typed by VoxScribe yet")
             return false
         }
         var node = focusedNode
@@ -206,11 +306,15 @@ class VoxScribeAccessibilityService : AccessibilityService() {
             focusedNode = null
             node = findFocusedEditableNode()
             if (node == null) {
-                debugLog("edit refused: no focused text field")
+                debugLog("$label refused: no focused text field")
                 return false
             }
         }
         node.refresh()
+        if (FieldSafety.isSensitive(node.isPassword, node.inputType)) {
+            debugLog("$label refused: password field")
+            return false
+        }
         val current = node.text?.toString().orEmpty()
 
         // Find the newest dictation still at the end of the field. Some apps trim
@@ -230,20 +334,24 @@ class VoxScribeAccessibilityService : AccessibilityService() {
             }
         }
         if (at < 0) {
-            debugLog("edit refused: the field no longer ends with any recent dictation (field has ${current.length} chars)")
+            debugLog("$label refused: the field no longer ends with any recent dictation (field has ${current.length} chars)")
             return false
         }
-        val deletion = VoiceCommands.computeDeletion(spoken, edit)
+        val rewritten = rewrite(spoken)
+        if (rewritten == null) {
+            debugLog("$label refused: it does not apply to the last dictation")
+            return false
+        }
         // Keep the trailing space VoxScribe adds, so the next dictation does not run on.
         val trailing = chunk.substring(spoken.length)
-        val kept = if (deletion.remaining.isEmpty()) "" else deletion.remaining + trailing
+        val kept = if (rewritten.isEmpty()) "" else rewritten + trailing
         val newText = current.substring(0, at) + kept
 
         val args = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)
         }
         if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
-            debugLog("edit refused: the field would not accept the new text")
+            debugLog("$label refused: the field would not accept the new text")
             return false
         }
         lastWrittenText = newText
@@ -252,8 +360,26 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         if (kept.isNotEmpty()) recentChunks.addLast(kept)
         focusedNode = node
         placeCursorAfterInsertedText(node, newText.length)
-        debugLog("edit applied: removed ${current.length - newText.length} chars")
+        debugLog("$label applied: ${current.length} to ${newText.length} chars")
         return true
+    }
+
+    /** True when the focused field is a password field, so nothing dictated may go near it. */
+    fun focusedFieldIsSensitive(): Boolean {
+        val root = rootInActiveWindow ?: return false
+        val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return false
+        val sensitive = FieldSafety.isSensitive(focused.isPassword, focused.inputType)
+        focused.recycleCompat()
+        return sensitive
+    }
+
+    /** The focused box's android.text.InputType, or 0 when there is none. */
+    fun focusedInputType(): Int {
+        val root = rootInActiveWindow ?: return 0
+        val focused = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: return 0
+        val type = focused.inputType
+        focused.recycleCompat()
+        return type
     }
 
     /** Debug builds only, so a refused undo can be told apart from a bug. */
@@ -270,7 +396,11 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         stack.addLast(root)
         while (stack.isNotEmpty()) {
             val current = stack.removeLast()
-            if (current.isFocused && current.isEditable) return current
+            if (current.isFocused &&
+                FieldSafety.allowsDictation(current.isEditable, current.isPassword, current.inputType)
+            ) {
+                return current
+            }
             for (i in 0 until current.childCount) {
                 current.getChild(i)?.let { stack.addLast(it) }
             }
@@ -317,6 +447,9 @@ class VoxScribeAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "VoxScribeAccessibility"
         private const val CLIPBOARD_RESTORE_DELAY_MS = 500L
+        private const val MAX_NODES_SEARCHED = 2500
+        private val SEND_LABELS = listOf("send", "send message")
+        private val SEND_IDS = setOf("send", "send_button", "btn_send", "send_btn", "button_send")
 
         /**
          * There is exactly one enabled instance of this service at a time

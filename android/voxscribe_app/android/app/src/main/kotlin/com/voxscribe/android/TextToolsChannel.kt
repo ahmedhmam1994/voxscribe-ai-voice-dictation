@@ -24,6 +24,7 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         "replacements" to saved.replacements,
                         "templates" to saved.templates,
                         "profiles" to saved.profiles,
+                        "sendIt" to saved.sendIt,
                     ),
                 )
             }
@@ -37,6 +38,7 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         replacements = call.argument<String>("replacements").orEmpty(),
                         templates = call.argument<String>("templates").orEmpty(),
                         profiles = call.argument<String>("profiles").orEmpty(),
+                        sendIt = call.argument<Boolean>("sendIt") == true,
                     ),
                 )
                 result.success(null)

@@ -5,9 +5,12 @@ import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 
 /// Today's dictations, newest first.
 class TodayList extends StatelessWidget {
-  const TodayList({required this.entries, super.key});
+  const TodayList({required this.entries, this.onFixWord, super.key});
 
   final List<DictationEntry> entries;
+
+  /// Opens the "Fix a word" sheet for an entry's text. Null hides the button.
+  final void Function(String text)? onFixWord;
 
   @override
   Widget build(BuildContext context) {
@@ -21,17 +24,26 @@ class TodayList extends StatelessWidget {
     return Column(
       children: [
         for (var i = 0; i < entries.length; i++)
-          _EntryRow(entry: entries[i], showDivider: i > 0),
+          _EntryRow(
+            entry: entries[i],
+            showDivider: i > 0,
+            onFixWord: onFixWord,
+          ),
       ],
     );
   }
 }
 
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry, required this.showDivider});
+  const _EntryRow({
+    required this.entry,
+    required this.showDivider,
+    required this.onFixWord,
+  });
 
   final DictationEntry entry;
   final bool showDivider;
+  final void Function(String text)? onFixWord;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +74,18 @@ class _EntryRow extends StatelessWidget {
                   '${formatSeconds(entry.duration)}',
                   style: theme.bodySmall?.copyWith(fontSize: 12),
                 ),
+                if (onFixWord != null)
+                  TextButton.icon(
+                    onPressed: () => onFixWord!(entry.text),
+                    icon: const Icon(Icons.spellcheck, size: 16),
+                    label: const Text('Fix a word'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: c.accentInk,
+                      padding: const EdgeInsets.symmetric(horizontal: 0),
+                      minimumSize: const Size(0, 36),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
               ],
             ),
           ),

@@ -67,6 +67,10 @@ class _SetupScreenState extends State<SetupScreen> {
                           : 'Off. Turn it on to dictate in any app.',
                       highlighted: !status.bubbleRunning,
                     ),
+                  if (!status.notifications)
+                    _NotificationNotice(
+                      onOpen: widget.controller.openNotificationSettings,
+                    ),
                   const _PrivacyNote(),
                 ],
               ),
@@ -220,6 +224,62 @@ class _ErrorText extends StatelessWidget {
         message,
         style: Theme.of(context).textTheme.bodyMedium
             ?.copyWith(color: context.vox.red),
+      ),
+    );
+  }
+}
+
+/// Notifications are not required, but two things depend on them: the button
+/// that brings the floating button back after a pause, and the warning that
+/// the typing service disconnected.
+class _NotificationNotice extends StatelessWidget {
+  const _NotificationNotice({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.vox;
+    return Container(
+      margin: const EdgeInsets.only(top: 6, bottom: 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.amber.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_off_outlined, color: c.amber, size: 22),
+              const SizedBox(width: 10),
+              Text(
+                'Notifications are off',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'The floating button still works. Notifications are how you bring '
+            'it back after hiding it, and how VoxScribe tells you if Android '
+            'disconnects it.',
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(color: c.muted),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: onOpen,
+              child: Text(
+                'Open notification settings',
+                style: TextStyle(color: c.accentInk),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

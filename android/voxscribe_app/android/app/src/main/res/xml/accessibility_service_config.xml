@@ -8,7 +8,9 @@
   only while a text box is being edited with the keyboard open
   (typeWindowContentChanged, typeWindowsChanged and flagRetrieveInteractiveWindows,
   used only to see whether the keyboard window is present). Nothing on screen is
-  read beyond that.
+  read beyond that, except for the optional "send it" command: when it is said, the
+  window is searched for a button labelled Send (labels and ids only, never message
+  text), which is tapped.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeViewFocused|typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"

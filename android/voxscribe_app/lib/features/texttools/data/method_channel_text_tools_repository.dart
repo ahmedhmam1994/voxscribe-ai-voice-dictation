@@ -21,6 +21,7 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         replacements: raw['replacements'] as String? ?? '',
         templates: raw['templates'] as String? ?? '',
         profiles: raw['profiles'] as String? ?? '',
+        sendIt: raw['sendIt'] as bool? ?? false,
       );
     } on PlatformException {
       return TextToolsSettings.defaults;
@@ -37,6 +38,7 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         'replacements': settings.replacements,
         'templates': settings.templates,
         'profiles': settings.profiles,
+        'sendIt': settings.sendIt,
       });
     } on PlatformException {
       // The screen already shows the new value; it just will not persist.

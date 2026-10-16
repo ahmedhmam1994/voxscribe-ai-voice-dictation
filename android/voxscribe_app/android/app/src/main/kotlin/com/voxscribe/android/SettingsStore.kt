@@ -18,6 +18,9 @@ object SettingsStore {
     private const val KEY_WHISPER_LANGUAGE = "whisper_language"
     private const val DEFAULT_WHISPER_LANGUAGE = "en"
     private const val KEY_THEME_MODE = "theme_mode"
+    private const val KEY_USAGE_PING = "usage_ping"
+    private const val KEY_LAST_PING_DAY = "last_ping_day"
+    private const val KEY_ANONYMOUS_ID = "anonymous_id"
 
     /** BCP-47 tag -> display name shown in the language picker. Null tag means "device default". */
     val FALLBACK_LANGUAGES: List<Pair<String?, String>> = listOf(
@@ -82,6 +85,27 @@ object SettingsStore {
 
     fun setThemeMode(context: Context, value: String) {
         prefs(context).edit().putString(KEY_THEME_MODE, value).apply()
+    }
+
+    /** The once-a-day anonymous launch ping (see [Telemetry]). On by default, as on Windows. */
+    fun usagePingEnabled(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_USAGE_PING, true)
+
+    fun setUsagePingEnabled(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_USAGE_PING, value).apply()
+    }
+
+    fun lastPingDay(context: Context): String? = prefs(context).getString(KEY_LAST_PING_DAY, null)
+
+    fun setLastPingDay(context: Context, day: String) {
+        prefs(context).edit().putString(KEY_LAST_PING_DAY, day).apply()
+    }
+
+    /** A random id made on this phone, so a repeat launch is not counted as a new person. */
+    fun anonymousId(context: Context): String? = prefs(context).getString(KEY_ANONYMOUS_ID, null)
+
+    fun setAnonymousId(context: Context, id: String) {
+        prefs(context).edit().putString(KEY_ANONYMOUS_ID, id).apply()
     }
 
     /** Append a trailing space after committing dictated text. */

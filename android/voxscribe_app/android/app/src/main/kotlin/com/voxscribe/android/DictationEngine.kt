@@ -60,6 +60,8 @@ class DictationEngine(
     // Delivered instead of [onResult] when the utterance was an editing command
     // or a template prompt, not text to type.
     private val onSpecial: (Spoken) -> Unit = {},
+    // Called after the text of "how are you? send it" has been delivered.
+    private val onSend: (VoiceCommands.SendKind) -> Unit = {},
 ) : RecognitionListener {
 
     private var speechRecognizer: SpeechRecognizer? = null
@@ -145,7 +147,11 @@ class DictationEngine(
 
     private fun deliver(spoken: Spoken) {
         when (spoken) {
-            is Spoken.Text -> onResult(spoken.text)
+            is Spoken.Text -> {
+                onResult(spoken.text)
+                val send = spoken.thenSend
+                if (send != null && spoken.text.isNotBlank()) onSend(send)
+            }
             else -> onSpecial(spoken)
         }
     }

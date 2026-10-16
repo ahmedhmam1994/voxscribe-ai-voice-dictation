@@ -58,6 +58,22 @@ void main() {
     expect(settings.saved.trailingSpace, isTrue);
   });
 
+  testWidgets('the usage ping is on by default and one switch turns it off', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final settings = FakeSettingsRepository();
+    expect(settings.saved.usagePing, isTrue);
+    await tester.pumpWidget(buildTestApp(settings: settings));
+    await openTab(tester, 'Settings');
+
+    await tester.tap(find.text('Send an anonymous usage ping'));
+    await tester.pumpAndSettle();
+
+    expect(settings.saved.usagePing, isFalse);
+    expect(settings.saved.cleanup, isTrue);
+  });
+
   testWidgets('choosing a theme switches the whole app', (tester) async {
     useTallScreen(tester);
     final settings = FakeSettingsRepository();

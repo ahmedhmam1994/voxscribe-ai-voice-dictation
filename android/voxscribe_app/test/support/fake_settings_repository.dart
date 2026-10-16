@@ -21,6 +21,11 @@ class FakeSettingsRepository implements SettingsRepository {
   }
 
   @override
+  Future<void> setUsagePing({required bool value}) async {
+    saved = saved.copyWith(usagePing: value);
+  }
+
+  @override
   Future<void> setTheme(ThemeChoice value) async {
     saved = saved.copyWith(theme: value);
   }

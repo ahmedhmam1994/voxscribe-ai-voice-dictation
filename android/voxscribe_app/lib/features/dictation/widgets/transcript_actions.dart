@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 
-/// Copy and Clear for the current transcript.
+/// Copy, Fix a word and Clear for the current transcript.
 class TranscriptActions extends StatelessWidget {
   const TranscriptActions({
     required this.onCopy,
+    required this.onFixWord,
     required this.onClear,
     super.key,
   });
 
   final VoidCallback? onCopy;
+  final VoidCallback? onFixWord;
   final VoidCallback? onClear;
 
   @override
@@ -23,6 +25,15 @@ class TranscriptActions extends StatelessWidget {
             icon: const Icon(Icons.copy_outlined, size: 18),
             label: const Text('Copy'),
             style: _style(foreground: c.text, border: c.border),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: TextButton.icon(
+            onPressed: onFixWord,
+            icon: const Icon(Icons.spellcheck, size: 18),
+            label: const Text('Fix a word'),
+            style: _style(foreground: c.accentInk),
           ),
         ),
         const SizedBox(width: 8),

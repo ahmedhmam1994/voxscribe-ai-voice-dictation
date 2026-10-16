@@ -18,6 +18,7 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       accessibilityNeedsRestart: accessibilityOn && !connected,
       overlay: map['overlay'] ?? false,
       bubbleRunning: map['bubbleRunning'] ?? false,
+      notifications: map['notifications'] ?? true,
     );
   }
 
@@ -30,6 +31,10 @@ class MethodChannelSetupPlatform implements SetupPlatform {
 
   @override
   Future<void> openOverlaySettings() => _invoke('openOverlaySettings');
+
+  @override
+  Future<void> openNotificationSettings() =>
+      _invoke('openNotificationSettings');
 
   @override
   Future<void> setBubbleRunning({required bool running}) {

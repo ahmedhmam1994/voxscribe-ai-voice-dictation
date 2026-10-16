@@ -16,11 +16,14 @@ void main() {
     useTallScreen(tester);
     await tester.pumpWidget(buildTestApp());
     await openTab(tester, 'Settings');
-
-    expect(
-      find.textContaining('Unlock snippets with the same key'),
-      findsOneWidget,
+    final locked = find.textContaining('Locked. Unlock snippets');
+    await tester.scrollUntilVisible(
+      locked,
+      200,
+      scrollable: find.byType(Scrollable).first,
     );
+
+    expect(locked, findsOneWidget);
   });
 
   testWidgets('a good key unlocks Pro and shows the features', (tester) async {

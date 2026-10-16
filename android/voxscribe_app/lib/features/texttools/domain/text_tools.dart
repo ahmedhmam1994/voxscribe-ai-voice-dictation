@@ -9,10 +9,14 @@ class TextToolsSettings {
     this.replacements = '',
     this.templates = '',
     this.profiles = '',
+    this.sendIt = false,
   });
 
   /// "period", "new line" and "scratch that" become punctuation and edits.
   final bool voiceCommands;
+
+  /// "send it" presses Enter or Send. Off by default, because it can send a message.
+  final bool sendIt;
 
   /// Spoken emails, web addresses and numbers typed as written. Pro.
   final bool smartFormat;
@@ -38,6 +42,7 @@ class TextToolsSettings {
     String? replacements,
     String? templates,
     String? profiles,
+    bool? sendIt,
   }) {
     return TextToolsSettings(
       voiceCommands: voiceCommands ?? this.voiceCommands,
@@ -46,6 +51,7 @@ class TextToolsSettings {
       replacements: replacements ?? this.replacements,
       templates: templates ?? this.templates,
       profiles: profiles ?? this.profiles,
+      sendIt: sendIt ?? this.sendIt,
     );
   }
 
@@ -57,7 +63,8 @@ class TextToolsSettings {
       other.codeDictation == codeDictation &&
       other.replacements == replacements &&
       other.templates == templates &&
-      other.profiles == profiles;
+      other.profiles == profiles &&
+      other.sendIt == sendIt;
 
   @override
   int get hashCode => Object.hash(
@@ -67,5 +74,6 @@ class TextToolsSettings {
     replacements,
     templates,
     profiles,
+    sendIt,
   );
 }

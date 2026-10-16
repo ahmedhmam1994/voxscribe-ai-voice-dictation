@@ -170,6 +170,175 @@ object VoiceCommands {
         return 1.0 - previous[b.length].toDouble() / longest
     }
 
+    /** Spoken commands that change the text typed last instead of deleting it. */
+    enum class Transform { CAPITALIZE, UPPERCASE, LOWERCASE }
+
+    // The small speech model hears "that" as "Z" and "capitalize" as "capitalized", so those
+    // count too. The bare keywords are only safe after a pause (see weakTrailing).
+    private val transformPhrases: Map<String, Transform> = buildMap {
+        val fillers = listOf("that", "it", "z")
+        for (key in listOf("capitalize", "capitalise", "capitalized", "capitalised")) {
+            for (filler in fillers) put("$key $filler", Transform.CAPITALIZE)
+        }
+        for (key in listOf("uppercase", "upper case")) {
+            for (filler in fillers) put("$key $filler", Transform.UPPERCASE)
+        }
+        for (key in listOf("lowercase", "lower case")) {
+            for (filler in fillers) put("$key $filler", Transform.LOWERCASE)
+        }
+        put("make that uppercase", Transform.UPPERCASE)
+        put("make that lowercase", Transform.LOWERCASE)
+        put("all caps", Transform.UPPERCASE)
+        put("all caps that", Transform.UPPERCASE)
+        put("all lowercase", Transform.LOWERCASE)
+        put("capitalize", Transform.CAPITALIZE)
+        put("capitalise", Transform.CAPITALIZE)
+        put("uppercase", Transform.UPPERCASE)
+        put("lowercase", Transform.LOWERCASE)
+    }
+
+    private fun normalized(text: String): String = trailingPunct.replace(text.trim(), "").trim().lowercase()
+
+    /** The transform when the WHOLE utterance is one, otherwise null. */
+    fun transformCommand(text: String): Transform? =
+        if (text.isEmpty()) null else transformPhrases[normalized(text)]
+
+    /** Every word starts with a capital, or the whole text goes up or down. Spacing is kept. */
+    fun applyTransform(text: String, transform: Transform): String = when (transform) {
+        Transform.UPPERCASE -> text.uppercase()
+        Transform.LOWERCASE -> text.lowercase()
+        Transform.CAPITALIZE -> Regex("\\S+").replace(text) { match ->
+            match.value.replaceFirstChar { c -> if (c.isLowerCase()) c.titlecase() else c.toString() }
+        }
+    }
+
+    // Phrases that need a pause before them to count at the end of a sentence, because they
+    // could just be words ("write it in all caps", "we should capitalize").
+    private val weakTrailing = setOf(
+        "all caps", "all caps that", "all lowercase", "capitalize", "capitalise", "uppercase", "lowercase",
+    ) +
+        // "we need to capitalize it" is an ordinary sentence far more often than a
+        // command, so the "it" forms need a pause before them too.
+        transformPhrases.keys.filter { it.endsWith(" it") }
+
+    private fun alternatives(phrases: Collection<String>): String =
+        phrases.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+
+    private val trailingAfterPause = Regex(
+        "^(.+?)\\s*([,.;:!?])\\s*(" + alternatives(transformPhrases.keys) + ")\\s*[.!?]*$",
+        RegexOption.IGNORE_CASE,
+    )
+    private val trailingAnywhere = Regex(
+        "^(.+?)\\s+(" + alternatives(transformPhrases.keys - weakTrailing) + ")\\s*[.!?]*$",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * "bring the notes, all caps" as ("bring the notes", UPPERCASE): the command at the
+     * end of the same sentence, said in one go. A question or exclamation mark before the
+     * command stays with the sentence. Null when there is no such ending.
+     */
+    fun splitTrailingTransform(text: String): Pair<String, Transform>? {
+        val trimmed = text.trim()
+        val pause = trailingAfterPause.matchEntire(trimmed)
+        val (before, mark, phrase) = if (pause != null) {
+            Triple(pause.groupValues[1], pause.groupValues[2], pause.groupValues[3])
+        } else {
+            val plain = trailingAnywhere.matchEntire(trimmed) ?: return null
+            Triple(plain.groupValues[1], "", plain.groupValues[2])
+        }
+        val transform = transformPhrases[phrase.lowercase()] ?: return null
+        val sentence = before.trim()
+        if (sentence.isEmpty()) return null
+        return (if (mark == "?" || mark == "!") sentence + mark else sentence) to transform
+    }
+
+    private val replaceRegex = Regex("^replace\\s+(.+?)\\s+with\\s+(.+)$", RegexOption.IGNORE_CASE)
+
+    /**
+     * "replace X with Y" as (X, Y), or null. An ordinary sentence can have this
+     * shape ("replace the battery with a new one"), so the caller only treats it
+     * as a command when X is really in the last dictation, see [applyReplace].
+     */
+    fun replaceCommand(text: String): Pair<String, String>? {
+        val match = replaceRegex.matchEntire(trailingPunct.replace(text.trim(), "").trim()) ?: return null
+        val from = match.groupValues[1].trim()
+        val to = match.groupValues[2].trim()
+        return if (from.isEmpty() || to.isEmpty()) null else from to to
+    }
+
+    /** [chunk] with every whole-word, case-insensitive [from] swapped for [to], or null when [from] is not in it. */
+    fun applyReplace(chunk: String, from: String, to: String): String? {
+        val pattern = Regex(
+            "(?<![\\p{L}\\p{N}])" + Regex.escape(from) + "(?![\\p{L}\\p{N}])",
+            RegexOption.IGNORE_CASE,
+        )
+        if (!pattern.containsMatchIn(chunk)) return null
+        // A function, not a string, so a "$" or "\" in the replacement is kept as typed.
+        return pattern.replace(chunk) { to }
+    }
+
+    private val trailingReplaceRegex = Regex(
+        "^(.+?)\\s*([,.;:!?])\\s*replace\\s+(.+?)\\s+with\\s+(.+?)\\s*[.!?]*$",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * "meet me at noon, replace noon with one" as "meet me at one": a replace said at the
+     * end of the same sentence. It only counts when the first phrase is really in the
+     * sentence before it, so "I will replace the battery with a new one" stays dictation.
+     * Null when there is no such ending.
+     */
+    fun applyTrailingReplace(text: String): String? {
+        val match = trailingReplaceRegex.matchEntire(text.trim()) ?: return null
+        val before = match.groupValues[1].trim()
+        val from = match.groupValues[3].trim()
+        val to = match.groupValues[4].trim()
+        if (before.isEmpty() || from.isEmpty() || to.isEmpty()) return null
+        val changed = applyReplace(before, from, to) ?: return null
+        val mark = match.groupValues[2]
+        return if (mark == "?" || mark == "!") changed + mark else changed
+    }
+
+    /**
+     * SEND taps the app's Send button, because Enter is only a new line in most chat apps.
+     * ENTER presses the Enter key itself.
+     */
+    enum class SendKind { SEND, ENTER }
+
+    private val sendPhrases = mapOf(
+        "send it" to SendKind.SEND,
+        "send that" to SendKind.SEND,
+        "press enter" to SendKind.ENTER,
+        "hit enter" to SendKind.ENTER,
+        "press return" to SendKind.ENTER,
+    )
+
+    /** What the WHOLE utterance asks for, "send it" or "press enter", or null. */
+    fun sendCommand(text: String): SendKind? = if (text.isEmpty()) null else sendPhrases[normalized(text)]
+
+    /** True when the WHOLE utterance asks for the Enter or Send key. */
+    fun isSendCommand(text: String): Boolean = sendCommand(text) != null
+
+    private val trailingSendRegex = Regex(
+        "^(.+?)\\s*([,.;:!?])\\s*(" + alternatives(sendPhrases.keys) + ")\\s*[.!?]*$",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * "how are you? send it" as ("how are you?", SEND): the command at the end of the same
+     * sentence, said in one go. It needs a pause before it (a comma, full stop or question
+     * mark), so "please send it to Sam" stays ordinary dictation. Null when there is no such ending.
+     */
+    fun splitTrailingSend(text: String): Pair<String, SendKind>? {
+        val match = trailingSendRegex.matchEntire(text.trim()) ?: return null
+        val sentence = match.groupValues[1].trim()
+        val kind = sendPhrases[match.groupValues[3].lowercase()] ?: return null
+        if (sentence.isEmpty()) return null
+        val mark = match.groupValues[2]
+        return (if (mark == "?" || mark == "!") sentence + mark else sentence) to kind
+    }
+
     /** What is left of [text] after the edit, and how many characters were removed. */
     data class Deletion(val remaining: String, val removed: Int)
 

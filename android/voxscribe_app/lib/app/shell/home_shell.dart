@@ -132,7 +132,11 @@ class _HomeShellState extends State<HomeShell> {
               child: IndexedStack(
                 index: _index,
                 children: [
-                  DictationScreen(controller: _dictation, history: _history),
+                  DictationScreen(
+                    controller: _dictation,
+                    history: _history,
+                    textTools: _textTools,
+                  ),
                   InsightsScreen(history: _history),
                   SettingsScreen(
                     settings: widget.settings,
@@ -142,6 +146,7 @@ class _HomeShellState extends State<HomeShell> {
                     pro: _pro,
                     snippets: _snippets,
                     textTools: _textTools,
+                    openLink: widget.releaseRepository.open,
                   ),
                 ],
               ),

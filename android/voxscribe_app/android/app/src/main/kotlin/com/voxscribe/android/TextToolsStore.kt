@@ -10,6 +10,7 @@ import android.content.Context
 object TextToolsStore {
     private const val PREFS_NAME = "voxscribe_texttools"
     private const val KEY_VOICE_COMMANDS = "voice_commands"
+    private const val KEY_SEND_IT = "send_it"
     private const val KEY_SMART_FORMAT = "smart_format"
     private const val KEY_CODE_DICTATION = "code_dictation"
     private const val KEY_REPLACEMENTS = "replacements"
@@ -27,6 +28,7 @@ object TextToolsStore {
         val replacements: String,
         val templates: String,
         val profiles: String,
+        val sendIt: Boolean = false,
     )
 
     fun snapshot(context: Context): Snapshot {
@@ -38,6 +40,7 @@ object TextToolsStore {
             replacements = p.getString(KEY_REPLACEMENTS, "").orEmpty(),
             templates = p.getString(KEY_TEMPLATES, "").orEmpty(),
             profiles = p.getString(KEY_PROFILES, "").orEmpty(),
+            sendIt = p.getBoolean(KEY_SEND_IT, false),
         )
     }
 
@@ -49,6 +52,7 @@ object TextToolsStore {
             .putString(KEY_REPLACEMENTS, snapshot.replacements)
             .putString(KEY_TEMPLATES, snapshot.templates)
             .putString(KEY_PROFILES, snapshot.profiles)
+            .putBoolean(KEY_SEND_IT, snapshot.sendIt)
             .apply()
     }
 }

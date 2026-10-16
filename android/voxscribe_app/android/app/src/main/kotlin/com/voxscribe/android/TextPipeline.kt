@@ -5,10 +5,19 @@ import android.content.Context
 /** What a finished utterance turned into. */
 sealed interface Spoken {
     /** Text to type. May be empty when nothing was recognized. */
-    data class Text(val text: String) : Spoken
+    data class Text(val text: String, val thenSend: VoiceCommands.SendKind? = null) : Spoken
 
     /** A spoken editing command: remove some of what was typed last. */
     data class Edit(val edit: VoiceCommands.Edit) : Spoken
+
+    /** A spoken command that changes the text typed last: capitalize it, or make it upper or lower case. */
+    data class Transform(val transform: VoiceCommands.Transform) : Spoken
+
+    /** "replace X with Y", with the raw words in case X is not in the last dictation and it was just speech. */
+    data class Replace(val from: String, val to: String, val raw: String) : Spoken
+
+    /** "send it": press the Enter or Send key. */
+    data class Send(val kind: VoiceCommands.SendKind) : Spoken
 
     /** A template is waiting for the answer to [slot]. */
     data class TemplatePrompt(val name: String, val slot: String) : Spoken
@@ -27,6 +36,8 @@ data class TextOptions(
     val replacements: List<Pair<String, String>> = emptyList(),
     val snippets: List<Snippet> = emptyList(),
     val templates: List<Template> = emptyList(),
+    /** Opt in: "send it" presses Enter. Separate from voice commands, because it can send a message. */
+    val sendIt: Boolean = false,
 )
 
 /**
@@ -54,10 +65,42 @@ object TextPipeline {
         interactive: Boolean = false,
         state: TemplateState = templateState,
         nowMs: Long = System.currentTimeMillis(),
+        allowReplace: Boolean = true,
     ): Spoken {
         var text = raw
         if (interactive && text.isNotEmpty() && options.voiceCommands) {
             VoiceCommands.editingCommand(text)?.let { return Spoken.Edit(it) }
+        }
+        if (interactive && text.isNotEmpty()) {
+            if (options.voiceCommands) {
+                VoiceCommands.transformCommand(text)?.let { return Spoken.Transform(it) }
+                if (allowReplace) {
+                    VoiceCommands.replaceCommand(text)?.let { (from, to) -> return Spoken.Replace(from, to, text) }
+                }
+            }
+            if (options.sendIt) VoiceCommands.sendCommand(text)?.let { return Spoken.Send(it) }
+        }
+        // "how are you? send it": type the sentence, then send it.
+        var thenSend: VoiceCommands.SendKind? = null
+        if (interactive && options.sendIt && text.isNotEmpty()) {
+            val split = VoiceCommands.splitTrailingSend(text)
+            if (split != null) {
+                text = split.first
+                thenSend = split.second
+            }
+        }
+        // "meet me at noon, replace noon with one": a replace at the end of the same sentence.
+        if (text.isNotEmpty() && options.voiceCommands) {
+            VoiceCommands.applyTrailingReplace(text)?.let { text = it }
+        }
+        // "bring the notes, all caps": a command at the end of the same sentence.
+        var trailing: VoiceCommands.Transform? = null
+        if (text.isNotEmpty() && options.voiceCommands) {
+            val split = VoiceCommands.splitTrailingTransform(text)
+            if (split != null) {
+                text = split.first
+                trailing = split.second
+            }
         }
         if (interactive && text.isNotEmpty() && options.pro) {
             templateTurn(text, options, state, nowMs)?.let { return it }
@@ -73,7 +116,9 @@ object TextPipeline {
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
         if (text.isNotEmpty() && options.pro) text = SnippetExpander.expand(text, options.snippets)
-        return Spoken.Text(text)
+        val transform = trailing
+        if (transform != null && text.isNotEmpty()) text = VoiceCommands.applyTransform(text, transform)
+        return Spoken.Text(text, thenSend)
     }
 
     /** Starts a spoken template or takes the next answer for one. Null when the utterance is not for a template. */
@@ -115,6 +160,7 @@ object TextPipeline {
             pro = pro,
             cleanup = profile["cleanup"] ?: SettingsStore.cleanupEnabled(context),
             voiceCommands = profile["voice_commands"] ?: saved.voiceCommands,
+            sendIt = saved.sendIt,
             smartFormat = profile["smart"] ?: saved.smartFormat,
             codeDictation = profile["code"] ?: saved.codeDictation,
             replacements = Replacements.parse(saved.replacements),

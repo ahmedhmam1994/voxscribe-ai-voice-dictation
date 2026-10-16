@@ -105,4 +105,42 @@ void main() {
     expect(find.text('Finish the setup steps first.'), findsOneWidget);
     expect(find.byType(Scrollable), findsWidgets);
   });
+
+  testWidgets('says so when notifications are off and opens their settings', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+        notifications: false,
+      ),
+    );
+
+    expect(find.text('Notifications are off'), findsOneWidget);
+    await tester.ensureVisible(find.text('Open notification settings'));
+    await tester.tap(find.text('Open notification settings'));
+    await tester.pumpAndSettle();
+
+    expect(platform.calls, contains('openNotificationSettings'));
+  });
+
+  testWidgets('shows no notice when notifications are on', (tester) async {
+    useTallScreen(tester);
+    await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+      ),
+    );
+
+    expect(find.text('Notifications are off'), findsNothing);
+  });
 }

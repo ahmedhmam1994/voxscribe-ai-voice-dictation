@@ -25,6 +25,10 @@ class FakeSetupPlatform implements SetupPlatform {
   Future<void> openOverlaySettings() => _record('openOverlaySettings');
 
   @override
+  Future<void> openNotificationSettings() =>
+      _record('openNotificationSettings');
+
+  @override
   Future<void> setBubbleRunning({required bool running}) async {
     await _record('setBubbleRunning:$running');
     status = status.copyWith(bubbleRunning: running);

@@ -12,6 +12,7 @@ class SetupStatus {
     required this.overlay,
     required this.bubbleRunning,
     this.accessibilityNeedsRestart = false,
+    this.notifications = true,
   });
 
   /// Nothing granted yet.
@@ -26,6 +27,11 @@ class SetupStatus {
   final bool accessibility;
   final bool overlay;
   final bool bubbleRunning;
+
+  /// Whether VoxScribe may show notifications. The floating button works
+  /// without them, but the hide and show button and the warning that the
+  /// typing service disconnected both need them.
+  final bool notifications;
 
   /// Accessibility is switched on, but Android has disconnected the service,
   /// as it can after an app update. Switching it off and on fixes it.
@@ -56,6 +62,7 @@ class SetupStatus {
       overlay: overlay,
       bubbleRunning: bubbleRunning ?? this.bubbleRunning,
       accessibilityNeedsRestart: accessibilityNeedsRestart,
+      notifications: notifications,
     );
   }
 }

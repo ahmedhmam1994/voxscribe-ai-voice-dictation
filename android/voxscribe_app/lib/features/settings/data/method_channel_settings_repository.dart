@@ -19,6 +19,7 @@ class MethodChannelSettingsRepository implements SettingsRepository {
         trailingSpace:
             raw['trailingSpace'] as bool? ?? AppSettings.defaults.trailingSpace,
         theme: _themeFromName(raw['theme'] as String?),
+        usagePing: raw['usagePing'] as bool? ?? AppSettings.defaults.usagePing,
       );
     } on PlatformException {
       return AppSettings.defaults;
@@ -31,6 +32,10 @@ class MethodChannelSettingsRepository implements SettingsRepository {
   @override
   Future<void> setTrailingSpace({required bool value}) =>
       _send('setTrailingSpace', value);
+
+  @override
+  Future<void> setUsagePing({required bool value}) =>
+      _send('setUsagePing', value);
 
   @override
   Future<void> setTheme(ThemeChoice value) => _send('setTheme', value.name);

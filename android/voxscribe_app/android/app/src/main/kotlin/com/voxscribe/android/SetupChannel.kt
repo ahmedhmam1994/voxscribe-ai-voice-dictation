@@ -5,7 +5,9 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.provider.Settings
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
@@ -36,6 +38,13 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                 activity.startActivity(BubblePermissions.overlayPermissionIntent(activity))
                 result.success(null)
             }
+            "openNotificationSettings" -> {
+                activity.startActivity(
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName),
+                )
+                result.success(null)
+            }
             "setBubbleRunning" -> setBubbleRunning(call.argument<Boolean>("running") == true, result)
             else -> result.notImplemented()
         }
@@ -48,6 +57,8 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         "accessibilityConnected" to (VoxScribeAccessibilityService.instance != null),
         "overlay" to BubblePermissions.hasOverlayPermission(activity),
         "bubbleRunning" to BubbleService.isRunning,
+        // Off by default on Android 13 and newer until the user allows it.
+        "notifications" to NotificationManagerCompat.from(activity).areNotificationsEnabled(),
     )
 
     private fun hasMicrophone(): Boolean =

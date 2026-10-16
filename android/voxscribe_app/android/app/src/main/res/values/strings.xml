@@ -79,4 +79,11 @@
     <string name="template_prompt">Template \"%1$s\": say %2$s</string>
     <string name="template_cancelled">Template cancelled</string>
     <string name="edit_cant_undo">Nothing to undo here</string>
+    <string name="bubble_snoozed">VoxScribe is hidden for 10 minutes. Use the notification to bring it back.</string>
+    <string name="bubble_notification_snoozed">Hidden for 10 minutes</string>
+    <string name="bubble_show_now">Show now</string>
+    <string name="bubble_password_blocked">Not typing into a password field.</string>
+    <string name="edit_cant_change">Nothing to change here</string>
+    <string name="bubble_field_no_match">That box only takes numbers</string>
+    <string name="send_cant_press">Could not send here</string>
 </resources>

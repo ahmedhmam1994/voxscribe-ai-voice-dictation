@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:voxscribe_app/core/dates.dart';
 import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
+import 'package:voxscribe_app/features/dictation/widgets/fix_word_sheet.dart';
 import 'package:voxscribe_app/features/dictation/widgets/hold_to_dictate_button.dart';
 import 'package:voxscribe_app/features/dictation/widgets/language_chip.dart';
 import 'package:voxscribe_app/features/dictation/widgets/status_pill.dart';
@@ -9,6 +10,7 @@ import 'package:voxscribe_app/features/dictation/widgets/today_list.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_actions.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_card.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
+import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
 
@@ -17,11 +19,13 @@ class DictationScreen extends StatelessWidget {
   const DictationScreen({
     required this.controller,
     required this.history,
+    required this.textTools,
     super.key,
   });
 
   final DictationController controller;
   final HistoryController history;
+  final TextToolsController textTools;
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +57,24 @@ class DictationScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   TranscriptActions(
                     onCopy: hasTranscript ? () => _copy(controller) : null,
+                    onFixWord: hasTranscript
+                        ? () => showFixWordSheet(
+                            context,
+                            text: controller.transcript!,
+                            textTools: textTools,
+                          )
+                        : null,
                     onClear: hasTranscript ? controller.clearTranscript : null,
                   ),
                   const SectionLabel('Today'),
-                  TodayList(entries: today),
+                  TodayList(
+                    entries: today,
+                    onFixWord: (text) => showFixWordSheet(
+                      context,
+                      text: text,
+                      textTools: textTools,
+                    ),
+                  ),
                 ],
               ),
             ),

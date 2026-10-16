@@ -14,10 +14,11 @@ import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
-import 'package:voxscribe_app/features/texttools/text_tools_page.dart';
+import 'package:voxscribe_app/features/texttools/text_tools_pages.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
-/// Language, cleanup, theme, the setup page and clearing history.
+/// Every setting, in groups: setup, Pro, dictation, voice commands, word
+/// replacements, the Pro tools, appearance, and privacy and data.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     required this.settings,
@@ -27,6 +28,7 @@ class SettingsScreen extends StatelessWidget {
     required this.pro,
     required this.snippets,
     required this.textTools,
+    this.openLink,
     super.key,
   });
 
@@ -38,12 +40,26 @@ class SettingsScreen extends StatelessWidget {
   final SnippetsController snippets;
   final TextToolsController textTools;
 
+  /// Opens a web page in the browser. Null hides the links.
+  final Future<void> Function(String url)? openLink;
+
+  static const _privacyUrl =
+      'https://voxscribe-ai-voice-dictation.vercel.app/privacy-at-a-glance.html';
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([settings, setup, dictation, pro]),
+      listenable: Listenable.merge([
+        settings,
+        setup,
+        dictation,
+        pro,
+        textTools,
+      ]),
       builder: (context, _) {
         final values = settings.settings;
+        final tools = textTools.settings;
+        final unlocked = pro.isPro;
         return Column(
           children: [
             const _Header(),
@@ -63,19 +79,6 @@ class SettingsScreen extends StatelessWidget {
                         subtitle: _setupSummary(setup.status),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _openSetup(context),
-                      ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'VoxScribe Pro',
-                    children: [
-                      SettingsRow(
-                        title: 'VoxScribe Pro',
-                        subtitle: pro.isPro
-                            ? 'Unlocked. Snippets are on.'
-                            : 'Unlock snippets with the same key as Windows.',
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openPro(context),
                       ),
                     ],
                   ),
@@ -109,16 +112,109 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
-                    label: 'Text tools',
+                    label: 'Voice commands',
                     children: [
                       SettingsRow(
-                        title: 'Voice commands, replacements and more',
-                        subtitle:
-                            'Spoken punctuation, word replacements, and Pro '
-                            'tools: smart formatting, code dictation, '
-                            'templates and per-app profiles.',
+                        title: 'Voice commands',
+                        subtitle: tools.voiceCommands
+                            ? 'On. Punctuation, take back, change it.'
+                            : 'Off. Say "period", "scratch that", "all caps".',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openTextTools(context),
+                        onTap: () => _push(
+                          context,
+                          VoiceCommandsPage(controller: textTools),
+                        ),
+                      ),
+                      SettingsRow(
+                        title: 'Say "send it" to send',
+                        subtitle: tools.sendIt
+                            ? 'On. Taps the Send button for you.'
+                            : 'Off. Send a message by voice.',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () =>
+                            _push(context, SendItPage(controller: textTools)),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'Word replacements',
+                    children: [
+                      SettingsRow(
+                        title: 'Your replacements',
+                        subtitle: _countLine(
+                          ruleCount(tools.replacements),
+                          'replacement',
+                          'Fix words the model keeps getting wrong.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          ReplacementsPage(controller: textTools),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'VoxScribe Pro',
+                    children: [
+                      SettingsRow(
+                        title: 'VoxScribe Pro',
+                        subtitle: unlocked
+                            ? 'Unlocked. Snippets and the tools below are on.'
+                            : 'Locked. Unlock snippets and the tools below '
+                                  'with the same key as Windows.',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _openPro(context),
+                      ),
+                      ProGate(
+                        unlocked: unlocked,
+                        child: SettingsSwitchRow(
+                          title: 'Smart formatting',
+                          subtitle:
+                              '"john at gmail dot com" becomes john@gmail.com, '
+                              '"twenty five percent" becomes 25%.',
+                          value: tools.smartFormat,
+                          onChanged: (value) =>
+                              textTools.setSmartFormat(value: value),
+                        ),
+                      ),
+                      ProGate(
+                        unlocked: unlocked,
+                        child: SettingsSwitchRow(
+                          title: 'Code dictation',
+                          subtitle:
+                              '"camel case user name" becomes userName. Turns '
+                              'off capitals and filler cleanup while on.',
+                          value: tools.codeDictation,
+                          onChanged: (value) =>
+                              textTools.setCodeDictation(value: value),
+                        ),
+                      ),
+                      SettingsRow(
+                        title: 'Fill-in templates',
+                        subtitle: _countLine(
+                          ruleCount(tools.templates),
+                          'template',
+                          'Say "template bug report" and fill it in by voice.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          TemplatesPage(controller: textTools, pro: pro),
+                        ),
+                      ),
+                      SettingsRow(
+                        title: 'Per-app profiles',
+                        subtitle: _countLine(
+                          ruleCount(tools.profiles),
+                          'profile',
+                          'Different settings for different apps.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          ProfilesPage(controller: textTools, pro: pro),
+                        ),
                       ),
                     ],
                   ),
@@ -135,8 +231,27 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
-                    label: 'Your data',
+                    label: 'Privacy and data',
                     children: [
+                      SettingsSwitchRow(
+                        title: 'Send an anonymous usage ping',
+                        subtitle:
+                            'Once a day: the app version, the Android version '
+                            'and a random id, so we can see how many people '
+                            'use VoxScribe. Never audio or text.',
+                        value: values.usagePing,
+                        onChanged: (value) =>
+                            settings.setUsagePing(value: value),
+                      ),
+                      if (openLink case final open?)
+                        SettingsRow(
+                          title: 'Privacy at a glance',
+                          subtitle:
+                              'What stays on your phone and every connection '
+                              'the app makes.',
+                          trailing: const Icon(Icons.open_in_new, size: 20),
+                          onTap: () => open(_privacyUrl),
+                        ),
                       SettingsRow(
                         title: 'Clear history',
                         subtitle:
@@ -180,12 +295,14 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _openTextTools(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => TextToolsPage(controller: textTools, pro: pro),
-      ),
-    );
+  void _push(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
+  /// "3 replacements" when there are some, otherwise what the feature is for.
+  String _countLine(int count, String noun, String empty) {
+    if (count == 0) return empty;
+    return '$count $noun${count == 1 ? '' : 's'}';
   }
 
   Future<void> _chooseLanguage(BuildContext context) async {

@@ -55,6 +55,18 @@ android {
             signingConfig = signingConfigs.getByName(if (hasReleaseSigning) "release" else "debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            // Compress the native libraries inside the APK: a much smaller
+            // download, at the cost of Android unpacking them once on install.
+            useLegacyPackaging = true
+            // 64-bit ARM phones only, as the site says. The 32-bit ARM and x86
+            // copies of the speech engine were over a third of the APK. Build
+            // with --target-platform android-arm64 so Flutter matches.
+            excludes += listOf("lib/armeabi-v7a/**", "lib/x86/**", "lib/x86_64/**")
+        }
+    }
 }
 
 kotlin {

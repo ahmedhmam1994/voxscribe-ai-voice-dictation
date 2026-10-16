@@ -30,6 +30,16 @@ class SetupController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Opens the notification settings for this app.
+  Future<void> openNotificationSettings() async {
+    try {
+      await platform.openNotificationSettings();
+    } on SetupException catch (error) {
+      _errorMessage = error.message;
+      notifyListeners();
+    }
+  }
+
   /// Does what the primary button says: the next permission step, or turns
   /// the floating button on or off once every step is done.
   Future<void> performPrimaryAction() async {

@@ -19,6 +19,7 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
                     "cleanup" to SettingsStore.cleanupEnabled(context),
                     "trailingSpace" to SettingsStore.trailingSpaceEnabled(context),
                     "theme" to SettingsStore.themeMode(context),
+                    "usagePing" to SettingsStore.usagePingEnabled(context),
                 ),
             )
             "setCleanup" -> {
@@ -27,6 +28,10 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
             }
             "setTrailingSpace" -> {
                 SettingsStore.setTrailingSpaceEnabled(context, call.argument<Boolean>("value") == true)
+                result.success(null)
+            }
+            "setUsagePing" -> {
+                SettingsStore.setUsagePingEnabled(context, call.argument<Boolean>("value") == true)
                 result.success(null)
             }
             "setTheme" -> {

@@ -18,6 +18,8 @@ ADB="${ADB:-adb}"
 APK="build/app/outputs/flutter-apk/app-debug.apk"
 PACKAGE="com.voxscribe.android"
 SERVICE="$PACKAGE/$PACKAGE.VoxScribeAccessibilityService"
+# Android saves the entry in either form, depending on how it was switched on.
+SHORT_SERVICE="$PACKAGE/.VoxScribeAccessibilityService"
 SETTING="enabled_accessibility_services"
 
 "$ADB" install -r "$APK"
@@ -32,10 +34,10 @@ service_ok() {
 }
 
 enabled="$("$ADB" shell settings get secure "$SETTING" | tr -d '\r')"
-if [[ "$enabled" != *"$SERVICE"* ]]; then
+if [[ "$enabled" != *"$SERVICE"* && "$enabled" != *"$SHORT_SERVICE"* ]]; then
   echo "VoxScribe is not enabled in Accessibility yet. Turn it on once by hand."
 else
-  others="$(printf '%s' "$enabled" | tr ':' '\n' | grep -vxF "$SERVICE" | paste -sd: - || true)"
+  others="$(printf '%s' "$enabled" | tr ':' '\n' | grep -vxF -e "$SERVICE" -e "$SHORT_SERVICE" | paste -sd: - || true)"
   for attempt in 1 2 3; do
     if [[ -n "$others" ]]; then
       "$ADB" shell settings put secure "$SETTING" "$others"
