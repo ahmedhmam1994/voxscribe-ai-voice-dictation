@@ -45,8 +45,9 @@ Free and privacy-first: your voice audio is never uploaded anywhere.
 - **Direct typing into the focused window:** not clipboard/paste, so it never overwrites what you've copied
 - **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU; your audio never leaves your machine
 - **Rule-based text cleanup:** strips filler words ("um", "uh", "like", "you know") without calling any paid AI API
-- **Spoken commands:** say "period", "new line" or "question mark" for symbols, and "scratch that" or "delete last word" to take back what you just typed
-- **Custom vocabulary and word replacements:** teach it names and jargon, and fix words it mishears the same way every time
+- **Spoken commands:** say "period", "new line" or "question mark" for symbols, "scratch that" or "delete last word" to take back what you just typed, and "capitalize that", "all caps" or "replace X with Y" to change it. An optional "send it" presses Enter
+- **Custom vocabulary and word replacements:** teach it names and jargon, and fix words it mishears the same way every time. Right-click a word in the transcript to always correct it, and export or import both lists as one file (the Android app reads it too)
+- **Speech models by speed:** Fast, Balanced (the default) and, with Pro, three more accurate ones including Large turbo
 - **Audio and video to captions:** import a file or a whole folder and get an .srt next to each one, capped at two short lines, timed from the word timestamps and cut at pauses. It never overwrites an existing caption file, and a report lists what was saved, skipped or failed, with a retry. Folder import has 2 free runs, then it is a Pro feature
 - **Floating status indicator:** small pill shows Recording/Transcribing state
 - **Runs from the system tray:** starts hidden, stays out of your way
@@ -76,12 +77,14 @@ The installer does not require admin rights (per-user install). On first launch,
 
 VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
 
-**Install:** download `VoxScribe-Android-1.0.0.apk` from the [Android 1.0.0 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+**Install:** download `VoxScribe-Android-1.1.0.apk` from the [Android 1.1.0 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
 
 - Android 8 or newer, 64-bit phone (almost every phone from the last several years)
-- The speech model is bundled in the app, so the file is large (about 200 MB) and works in airplane mode
+- The speech model is bundled in the app, so the download is about 115 MB and it works in airplane mode
 - Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
-- Spoken commands ("period", "new line", "scratch that") and word replacements are free, in Text tools. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same Pro key as Windows, which also unlocks Snippets
+- Tap the button to start and stop, or hold it. Drag it to the bottom of the screen to hide it for 10 minutes. It never appears in password or PIN boxes
+- Email, web address and number boxes get the text the way they expect, for example "sam at gmail dot com" becomes sam@gmail.com
+- Spoken commands ("period", "new line", "scratch that", "capitalize that", "replace X with Y"), an optional "send it" that taps the Send button, "Fix a word", and word replacements with export and import are free, each with its own page in Settings. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same Pro key as Windows, which also unlocks Snippets
 - When a newer Android release is published, the app shows an update banner with a download button
 
 <p align="center">
@@ -108,7 +111,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, an anonymous launch ping (app version and OS only, can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
+- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, an anonymous usage ping (app version, OS version and a random id; on every launch on Windows, at most once a day on Android; can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
 
 ## Building from source
 
@@ -119,6 +122,18 @@ venv\Scripts\python.exe main.py
 ```
 
 See [CLAUDE.md](CLAUDE.md) for architecture notes and build/packaging commands (PyInstaller + Inno Setup).
+
+## Command line
+
+The same local engine can be called from scripts. From a source checkout:
+
+```
+venv\Scripts\python.exe cli.py meeting.mp3
+venv\Scripts\python.exe cli.py talk.mp4 --format srt --output captions
+venv\Scripts\python.exe cli.py interview.m4a --language auto --translate
+```
+
+Text goes to stdout, or into the `--output` folder (an existing file is never replaced). Plain text is cleaned and uses your word replacements, like dictation; `--raw` gives it exactly as heard. Plain text and `.srt` are free; `.vtt`, `.md` and the three most accurate models need Pro, as in the app. Run `cli.py --help` for every option.
 
 ## Code signing
 

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>VoxScribe Privacy at a Glance: What Stays on Your Device</title>
+<meta name="description" content="Your voice is turned into text on your own PC or phone and never uploaded. Every connection VoxScribe makes, and what the Android button can see, on one page.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/privacy-at-a-glance.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="VoxScribe Privacy at a Glance">
+<meta property="og:description" content="Your voice never leaves your device. Every connection the apps make, in one table.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/privacy-at-a-glance.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VoxScribe Privacy at a Glance">
+<meta name="twitter:description" content="Your voice never leaves your device. Every connection the apps make, in one table.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-pressed: #059669;
+    --cyan: #5eead4;
+    --magenta: #34d399;
+    --green: #34d399;
+    --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 10px; border-radius: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ul { padding-left: 20px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--text-faint); }
+  td.first { color: var(--text-primary); font-weight: 600; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+
+  @media (max-width: 560px) {
+    table.stack { min-width: 0; }
+    table.stack thead { display: none; }
+    table.stack tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
+    table.stack tr:last-child { border-bottom: none; }
+    table.stack td { display: block; border: none; padding: 3px 16px; }
+    table.stack td.first { font-size: 15px; padding-bottom: 6px; }
+    table.stack td[data-label]::before {
+      content: attr(data-label) ": "; color: var(--text-faint);
+      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+  }
+</style>
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Privacy at a Glance", "item": "https://voxscribe-ai-voice-dictation.vercel.app/privacy-at-a-glance.html"}]}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Privacy</span>
+  <h1>VoxScribe Privacy at a Glance</h1>
+  <p class="subhead">The short version: your voice is turned into text on your own computer or phone, and it is never uploaded. This page lists everything the apps do touch, in one place. The <a href="privacy.html">full privacy policy</a> has the fine print.</p>
+
+  <h2>Your words</h2>
+  <div class="table-scroll">
+    <table class="stack">
+      <thead><tr><th>What</th><th>Windows</th><th>Android</th></tr></thead>
+      <tbody>
+        <tr><td class="first">Your voice</td><td data-label="Windows">Turned into text on your PC, then thrown away</td><td data-label="Android">Turned into text on your phone, then thrown away</td></tr>
+        <tr><td class="first">The text</td><td data-label="Windows">Typed into your app; never sent anywhere</td><td data-label="Android">Typed into your app; never sent anywhere</td></tr>
+        <tr><td class="first">History</td><td data-label="Windows">Kept on your PC only</td><td data-label="Android">Kept on your phone only</td></tr>
+        <tr><td class="first">Word lists and settings</td><td data-label="Windows">Kept on your PC only</td><td data-label="Android">Kept on your phone only</td></tr>
+        <tr><td class="first">Recordings saved</td><td data-label="Windows" class="no">Never</td><td data-label="Android" class="no">Never</td></tr>
+        <tr><td class="first">Account needed</td><td data-label="Windows" class="no">No</td><td data-label="Android" class="no">No</td></tr>
+        <tr><td class="first">Your clipboard</td><td data-label="Windows">Not touched (text is typed)</td><td data-label="Android">Only for the few boxes that refuse typed text, then put back</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Every connection the apps make</h2>
+  <p>None of these carry your voice or your text.</p>
+  <div class="table-scroll">
+    <table class="stack">
+      <thead><tr><th>Connection</th><th>When</th><th>What is sent</th></tr></thead>
+      <tbody>
+        <tr><td class="first">Speech model download (Windows)</td><td data-label="When">First launch, or when you pick a model you do not have yet</td><td data-label="What is sent">A normal file download from Hugging Face</td></tr>
+        <tr><td class="first">Usage ping (both)</td><td data-label="When">Windows: each launch. Android: at most once a day. Unless you turn it off in Settings</td><td data-label="What is sent">App version, Windows or Android version and a random id made on your device</td></tr>
+        <tr><td class="first">Update check (both)</td><td data-label="When">When the app starts</td><td data-label="What is sent">A request for the latest version number on GitHub</td></tr>
+        <tr><td class="first">Pro activation (both)</td><td data-label="When">Once, when you unlock Pro</td><td data-label="What is sent">Your key and a device id, so one key covers one PC and one phone</td></tr>
+        <tr><td class="first">Android's own recognizer</td><td data-label="When">Only if you turn off the built-in model, or it cannot run</td><td data-label="What is sent">Your audio may go to Google if its offline language pack is missing</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>With the built-in model (the default), the Android app works in airplane mode.</p>
+
+  <h2>What the Android button can see</h2>
+  <p>Android only lets an app type into other apps through an accessibility service, so VoxScribe needs one. Here is all it does with it:</p>
+  <ul>
+    <li>It notices which text box is focused and whether the keyboard is open, so the button shows only when it is useful.</li>
+    <li>It types your words into that one box, and reads that box's text only to add to it or to take back your last dictation.</li>
+    <li>It hides itself in password and PIN boxes and types nothing there.</li>
+    <li>It reads the name of the app you are in, only for per-app settings.</li>
+    <li>If you turn on "send it", it looks for a button named Send when you say it. It reads button names only, never your messages.</li>
+    <li>It does nothing at all unless you hold or tap the button.</li>
+  </ul>
+  <p>It never reads the rest of your screen, never sees what you type with your keyboard, and stores or sends none of it.</p>
+
+  <h2>Check it yourself</h2>
+  <ul>
+    <li><strong>The code is open.</strong> Both apps are MIT licensed and the full source is on <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>.</li>
+    <li><strong>Windows connection log.</strong> Settings shows every outside connection VoxScribe has tried. Offline mode (Pro) blocks them all.</li>
+    <li><strong>Airplane mode.</strong> Turn the network off and dictate. Both apps keep working once the model is on your device.</li>
+  </ul>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="privacy.html">Read the full privacy policy</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View the source</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>

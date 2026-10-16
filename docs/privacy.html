@@ -73,16 +73,16 @@
 </style>
 <link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "WebPage", "name": "Privacy Policy: VoxScribe", "url": "https://voxscribe-ai-voice-dictation.vercel.app/privacy.html", "description": "VoxScribe privacy policy: what data the Windows app and the Android app collect, and what they don't.", "isPartOf": {"@type": "WebSite", "name": "VoxScribe", "url": "https://voxscribe-ai-voice-dictation.vercel.app/"}, "dateModified": "2026-10-14"}
+{"@context": "https://schema.org", "@type": "WebPage", "name": "Privacy Policy: VoxScribe", "url": "https://voxscribe-ai-voice-dictation.vercel.app/privacy.html", "description": "VoxScribe privacy policy: what data the Windows app and the Android app collect, and what they don't.", "isPartOf": {"@type": "WebSite", "name": "VoxScribe", "url": "https://voxscribe-ai-voice-dictation.vercel.app/"}, "dateModified": "2026-10-17"}
 </script>
 </head>
 <body>
 <div class="wrap">
   <a class="back" href="index.html">&larr; Back to VoxScribe</a>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: 2026-10-14 &middot; applies to VoxScribe for Windows and VoxScribe for Android</p>
+  <p class="updated">Last updated: 2026-10-17 &middot; applies to VoxScribe for Windows and VoxScribe for Android</p>
 
-  <p>The VoxScribe apps do not collect, store, or transmit your data to any server that we operate. There is no VoxScribe backend; the apps run entirely on your own device. The project website uses Google Analytics, described under "This website" below. This page explains exactly what each version does with your microphone audio and what, if anything, leaves your device.</p>
+  <p>The VoxScribe apps do not collect, store, or transmit your data to any server that we operate. There is no VoxScribe backend; the apps run entirely on your own device. The project website uses Google Analytics, described under "This website" below. This page explains exactly what each version does with your microphone audio and what, if anything, leaves your device. For a one-screen summary, see <a href="privacy-at-a-glance.html">privacy at a glance</a>.</p>
 
   <h2>VoxScribe for Windows</h2>
   <ul>
@@ -105,16 +105,16 @@
     <li><strong>Dictation history</strong>: the app keeps a list of your recent dictations (the text and when you said it) on your phone, for its History and Insights screens. It never leaves your phone, and clearing the app's data erases it.</li>
     <li><strong>Settings and text tools</strong> (offline preference, cleanup toggles, voice commands, word replacements, templates and per-app profiles) are stored locally on your phone and never leave it.</li>
     <li><strong>Per-app profiles</strong>: to apply a profile, the accessibility service reads the package name of the app you're in (for example a messaging app's identifier). It does not read the app's content for this, and the name is not stored or sent anywhere.</li>
-    <li>The <code>INTERNET</code> permission is used for three things only. First, Android's own recognizer in the fallback case above. Second, a check for a newer VoxScribe release: when the app opens it asks GitHub's public releases list for the latest Android version, which sends nothing about you or your usage, and it only opens a download if you tap Update. Third, <strong>VoxScribe Pro activation</strong>: one request when you tap Unlock Pro, sending the license key and a device id to our activation server, as described in the Windows section.</li>
+    <li>The <code>INTERNET</code> permission is used for four things only. First, Android's own recognizer in the fallback case above. Second, a check for a newer VoxScribe release: when the app opens it asks GitHub's public releases list for the latest Android version, which sends nothing about you or your usage, and it only opens a download if you tap Update. Third, <strong>VoxScribe Pro activation</strong>: one request when you tap Unlock Pro, sending the license key and a device id to our activation server, as described in the Windows section. Fourth, the <strong>anonymous usage ping</strong> described below.</li>
     <li>If the app crashes, a log is written to a folder on your own phone (<code>Android/data/com.voxscribe.android/files/crash_logs/</code>, readable with any file manager) so it can be diagnosed if you choose to share it. This never happens automatically; nothing is uploaded or sent anywhere on your behalf.</li>
-    <li>VoxScribe collects no analytics, telemetry, or usage data on Android, and sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
+    <li>VoxScribe for Android sends one anonymous ping to our analytics provider (PostHog) at most once a day, when the app or the floating button starts, so we can see how many people actually use it. It contains only the app version, your Android version and a random id generated on your phone: never your name, number, audio, dictations, or anything about other apps. You can turn it off in Settings ("Send an anonymous usage ping"). Apart from this ping, the Android app collects no analytics or usage data, and sends no crash data anywhere without you deliberately sharing the local log file yourself.</li>
   </ul>
 
   <h2>VoxScribe for Android: the floating button's permissions</h2>
   <p>The floating button needs a few permissions that are more sensitive than a typical app's, so here is exactly what each one does. You can turn any of them off in Android's settings at any time; without the accessibility service the button can no longer type into other apps.</p>
   <ul>
     <li><strong>Display over other apps</strong> (<code>SYSTEM_ALERT_WINDOW</code>): lets the button be drawn on top of whatever app you're in. VoxScribe uses this only to show the button; it does not use this permission to see or capture anything else on your screen.</li>
-    <li><strong>Accessibility Service</strong>: this is the permission that lets the button put dictated text into the app you're using. VoxScribe's accessibility service does only this: it keeps track of which text field is focused and whether the keyboard is open (so the button only shows when it is useful), and, when you finish dictating, it adds your text to that one field. To add to what is already there, and to take back your last dictation when you say "scratch that" or "delete last word", it reads the text of that one focused field at that moment, only to check that it still ends with what VoxScribe typed. That text is never stored or transmitted. It does not read, log, record, or transmit the rest of your screen or other fields, and it takes no action at all except in direct response to you holding the button and dictating.</li>
+    <li><strong>Accessibility Service</strong>: this is the permission that lets the button put dictated text into the app you're using. VoxScribe's accessibility service does only this: it keeps track of which text field is focused and whether the keyboard is open (so the button only shows when it is useful), and, when you finish dictating, it adds your text to that one field. To add to what is already there, and to take back your last dictation when you say "scratch that" or "delete last word", it reads the text of that one focused field at that moment, only to check that it still ends with what VoxScribe typed. That text is never stored or transmitted. It does not read, log, record, or transmit the rest of your screen or other fields. The one exception is the optional "send it" command, which is off until you turn it on: when you say it, VoxScribe looks through the current window for a button named Send and taps it (reading only button labels, never message text), or presses Enter if there is none. It takes no action at all except in direct response to you holding or tapping the button and speaking.</li>
     <li><strong>Microphone</strong>, the <strong>foreground service</strong> and <strong>notifications</strong>: while the button is active VoxScribe runs a foreground service with a notification, which Android requires for anything that stays on screen and uses the microphone. The same notification channel is used for a single alert if the accessibility connection drops, so you know the button has disappeared and why.</li>
     <li><strong>Clipboard, as a fallback only</strong>: a small number of text fields (mainly some WebViews) don't support VoxScribe's normal direct-insert method. For those specific fields, VoxScribe briefly places the dictated text on the clipboard, triggers a paste, and then restores whatever was previously on your clipboard half a second later. VoxScribe does not read your clipboard's existing contents at any point, and does not use the clipboard at all for fields where direct insertion works.</li>
   </ul>
@@ -127,12 +127,12 @@
   <p>This website (the pages you are reading, not the apps) uses Google Analytics 4 to count visits and see which pages and sources bring people here. Google Analytics sets cookies in your browser and receives your IP address, browser and device details, and the pages you view. It does not receive anything from the VoxScribe apps, and the apps never load it. You can block it with a content blocker, your browser's tracking protection, or the Google Analytics opt-out browser add-on.</p>
 
   <h2>Data sharing and third parties</h2>
-  <p>VoxScribe does not sell or monetize any data. The third-party processing that can occur is the Android fallback recognizer described above (only when the on-device Whisper path isn't in use), the optional PostHog launch ping, and Google Analytics on this website.</p>
+  <p>VoxScribe does not sell or monetize any data. The third-party processing that can occur is the Android fallback recognizer described above (only when the on-device Whisper path isn't in use), the anonymous PostHog usage ping in both apps (which you can turn off), and Google Analytics on this website.</p>
 
   <h2>Permissions</h2>
   <ul>
     <li><strong>Microphone</strong>: required to capture your voice for transcription. Requested at first use, not on install.</li>
-    <li><strong>Internet</strong> (Android only): used for Google's fallback recognizer, the update check and Pro activation described above.</li>
+    <li><strong>Internet</strong> (Android only): used for Google's fallback recognizer, the update check, Pro activation and the anonymous usage ping described above.</li>
     <li><strong>Display over other apps</strong> (Android): draws the floating dictation button.</li>
     <li><strong>Accessibility Service</strong> (Android): lets the button put dictated text into the field you're focused in. See the floating button section above for exactly what it does and doesn't do.</li>
   </ul>

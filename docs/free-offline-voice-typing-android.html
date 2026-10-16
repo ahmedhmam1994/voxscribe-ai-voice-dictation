@@ -116,7 +116,7 @@
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is there a free offline voice typing app for Android?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe for Android is free and open source (MIT). Transcription runs on the phone with a Whisper model bundled in the app, so it works in airplane mode and your audio is not uploaded."}}, {"@type": "Question", "name": "Is VoxScribe a keyboard?", "acceptedAnswer": {"@type": "Answer", "text": "No. It is a small floating button that appears above whichever keyboard you already use when you tap a text field. Hold it, talk, release, and the text is typed into the box."}}, {"@type": "Question", "name": "Why does it need the Accessibility service?", "acceptedAnswer": {"@type": "Answer", "text": "Android only lets an app type into other apps through an accessibility service. VoxScribe uses it to find the focused text field and put your dictation there, and nothing else. The privacy policy lists exactly what it reads and does."}}, {"@type": "Question", "name": "Is it on the Play Store?", "acceptedAnswer": {"@type": "Answer", "text": "Not yet. Download the APK from the GitHub release and open it. Android asks once to allow installs from your browser or files app."}}]}
 </script>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0", "softwareVersion": "1.0.0", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
+{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0", "softwareVersion": "1.1.0", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png"}
 </script>
 </head>
 <body>
@@ -128,13 +128,13 @@
   <p class="subhead">Tap any text box, hold a small floating button, talk, and let go. Your words are transcribed on the phone and typed into the box, in any app, with whichever keyboard you already use. No account, no subscription, and your voice is not uploaded.</p>
 
   <div class="cta-row">
-    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Download the APK (free)</a>
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0">Download the APK (free)</a>
     <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/tree/main/android/voxscribe_app">View the source</a>
   </div>
-  <p class="fine-print">Free &amp; open source (MIT) &middot; Android 8 or newer, 64-bit &middot; about 230 MB &middot; version 1.0.0</p>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Android 8 or newer, 64-bit &middot; about 115 MB &middot; version 1.1.0</p>
 
   <h2>How it works</h2>
-  <p>When you tap a text field and the keyboard opens, a small button appears above it. Hold it to record, release to stop, and the text appears in the field. The button stays out of the way otherwise: it is hidden when no text box is focused, and you can drag it anywhere.</p>
+  <p>When you tap a text field and the keyboard opens, a small button appears above it. Hold it to record and release to stop, or tap it once to start and again to stop. The text appears in the field. The button stays out of the way otherwise: it is hidden when no text box is focused, it never shows in password or PIN boxes, you can drag it anywhere, and dragging it to the bottom of the screen hides it for 10 minutes.</p>
 
   <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:24px 0;">
     <img src="assets/android-intro.png" width="1080" height="2400" loading="lazy" style="width:220px;height:auto;border-radius:18px;border:1px solid var(--border-soft);" alt="VoxScribe for Android opening animation: the four green bars logo and the wordmark on a dark background">
@@ -147,18 +147,21 @@
 
   <h2>More than typing</h2>
   <ul>
-    <li><strong>Spoken commands.</strong> Say "period", "comma" or "new line" and get the symbol, and say "scratch that" or "delete last word" to take back what you just typed.</li>
+    <li><strong>Spoken commands.</strong> Say "period", "comma" or "new line" and get the symbol, say "scratch that" or "delete last word" to take back what you just typed, and "capitalize that", "all caps" or "replace X with Y" to change it.</li>
+    <li><strong>"Send it".</strong> Turn it on and say "send it" after a message to tap the app's Send button.</li>
+    <li><strong>Boxes get the right format.</strong> In an email, web address or number box, "sam at gmail dot com" is typed as sam@gmail.com and a phone number as digits.</li>
+    <li><strong>Fix a word.</strong> Tap a word that was heard wrong on the Dictation screen, type what it should be, and it is right from then on. Export and import your replacements as a file.</li>
     <li><strong>Word replacements and smart formatting.</strong> Fix names and jargon the model keeps mishearing, and have spoken emails, links and numbers written the way you would type them.</li>
     <li><strong>Code dictation, fill-in templates and per-app profiles.</strong> Dictate symbols for code, fill a template by answering its prompts, and set different behavior for different apps.</li>
     <li><strong>History and Insights.</strong> Recent dictations stay on the phone so you can copy one back.</li>
   </ul>
-  <p>Voice commands and word replacements are free. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same optional one-time Pro key as the Windows app.</p>
+  <p>Voice commands, "send it", Fix a word and word replacements are free. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same optional one-time Pro key as the Windows app.</p>
 
   <h2>What it asks for, and why</h2>
   <p>Setup takes three permissions, and the app walks you through them: the microphone, display over other apps (to draw the button), and the Accessibility service. Android requires the Accessibility service for any app that types into other apps. VoxScribe uses it to find the focused text field and add your dictation to it, and the <a href="privacy.html">privacy policy</a> lists exactly what it reads and does not do.</p>
 
   <h2>Install</h2>
-  <p>Download the APK from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Android 1.0.0 release</a> and open it. Android will ask you to allow installs from your browser or files app once. VoxScribe is not on the Play Store yet. When a newer version is published, the app shows an update banner with a download button.</p>
+  <p>Download the APK from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0">Android 1.1.0 release</a> and open it. Android will ask you to allow installs from your browser or files app once. VoxScribe is not on the Play Store yet. When a newer version is published, the app shows an update banner with a download button.</p>
 
   <h2>Frequently asked questions</h2>
   <div class="faq-item">
@@ -179,7 +182,7 @@
   </div>
 
   <div class="cta-row">
-    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.0.0">Download the APK (free)</a>
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0">Download the APK (free)</a>
     <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
   </div>
   <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>.</p>

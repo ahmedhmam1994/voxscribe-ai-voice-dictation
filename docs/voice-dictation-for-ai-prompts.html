@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Dictate AI Prompts by Voice on Windows, Free and Offline: VoxScribe</title>
+<meta name="description" content="Talk your ChatGPT, Claude and coding assistant prompts instead of typing them. VoxScribe transcribes on your PC and types the prompt into any app. Free and open source.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/voice-dictation-for-ai-prompts.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Talk Your AI Prompts Instead of Typing Them">
+<meta property="og:description" content="Hold a key, say the prompt, and it is typed into ChatGPT, Claude or your editor. Transcribed on your PC, free and open source.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/voice-dictation-for-ai-prompts.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Talk Your AI Prompts Instead of Typing Them">
+<meta name="twitter:description" content="Hold a key, say the prompt, and it is typed into ChatGPT, Claude or your editor. Transcribed on your PC, free and open source.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-pressed: #059669;
+    --cyan: #5eead4;
+    --magenta: #34d399;
+    --green: #34d399;
+    --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 10px; border-radius: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ul { padding-left: 20px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--text-faint); }
+  td.first { color: var(--text-primary); font-weight: 600; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+  code { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 1px 6px; font-size: 13px; }
+</style>
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Dictate AI Prompts", "item": "https://voxscribe-ai-voice-dictation.vercel.app/voice-dictation-for-ai-prompts.html"}]}
+</script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can I dictate prompts to ChatGPT or Claude by voice?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe types into any Windows app that accepts typed text, so it works in the ChatGPT and Claude websites and desktop apps, in coding assistants inside editors, and in terminals. Hold F9, talk, let go, and the prompt is typed where your cursor is."}}, {"@type": "Question", "name": "Does my voice go to the AI company?", "acceptedAnswer": {"@type": "Answer", "text": "No. VoxScribe transcribes on your own computer with a local Whisper model, and only the finished text is typed into the prompt box. What you then send is up to you."}}, {"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Dictation, custom vocabulary, word replacements and voice commands are free with no word limit. An optional one-time Pro key adds extras such as code dictation and the larger, more accurate models."}}, {"@type": "Question", "name": "Does it work with coding tools?", "acceptedAnswer": {"@type": "Answer", "text": "It types into editors and terminals like any other app. For identifiers and symbols, the Pro code dictation mode writes them the way code needs."}}]}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Use case</span>
+  <h1>Talk Your AI Prompts Instead of Typing Them</h1>
+  <p class="subhead">A good prompt is long: the goal, the background, what you tried, what you want back. Saying it takes a fraction of the time typing it does. VoxScribe turns your voice into text on your own PC and types it straight into ChatGPT, Claude, Gemini or your coding assistant.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html#features">See all features</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; your voice is transcribed on your PC</p>
+
+  <h2>Why speak a prompt</h2>
+  <p>Most people talk several times faster than they type, and they explain more when they talk. That extra context is exactly what makes an AI answer better: the constraint you would have skipped, the error message you would have summarised, the "and keep it short" at the end. Speaking also keeps your train of thought going while you think out loud.</p>
+
+  <h2>How it works</h2>
+  <ul>
+    <li>Click into the prompt box, in a browser tab, a desktop app, a code editor or a terminal.</li>
+    <li>Hold <strong>F9</strong> and say what you want. Let go.</li>
+    <li>A moment later the text is typed into the box, as if you had typed it. Read it over, then send it as usual.</li>
+  </ul>
+  <p>VoxScribe types the words instead of pasting them, so whatever you copied earlier (a stack trace, a snippet of code) is still on your clipboard to paste into the same prompt.</p>
+
+  <h2>Tips for better prompts by voice</h2>
+  <ul>
+    <li><strong>Teach it your words.</strong> Add project names, libraries and people to the custom vocabulary, so "Supabase" and "PySide" come out right the first time.</li>
+    <li><strong>Fix the ones it keeps missing.</strong> A word replacement such as <code>pie test =&gt; pytest</code> corrects the same mistake every time, everywhere.</li>
+    <li><strong>Structure as you go.</strong> Say "new line" or "new paragraph" between parts of a prompt, and "scratch that" to take back the last thing you said.</li>
+    <li><strong>Dictate code names too (Pro).</strong> Code dictation turns "camel case user name" into <code>userName</code> and "open paren x close paren" into <code>(x)</code>.</li>
+  </ul>
+
+  <h2>What stays private</h2>
+  <p>Your voice is turned into text on your PC and never uploaded. The prompt itself goes wherever you send it, so the AI service you use sees your words as it always would; VoxScribe adds nothing to that. The <a href="privacy-at-a-glance.html">privacy at a glance</a> page lists every connection VoxScribe makes.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Can I dictate prompts to ChatGPT or Claude by voice?</h3>
+    <p>Yes. VoxScribe types into any Windows app that accepts typed text, so it works in the ChatGPT and Claude websites and desktop apps, in coding assistants inside editors, and in terminals. Hold F9, talk, let go, and the prompt is typed where your cursor is.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does my voice go to the AI company?</h3>
+    <p>No. VoxScribe transcribes on your own computer with a local Whisper model, and only the finished text is typed into the prompt box. What you then send is up to you.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is it free?</h3>
+    <p>Yes. Dictation, custom vocabulary, word replacements and voice commands are free with no word limit. An optional one-time Pro key adds extras such as code dictation and the larger, more accurate models.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does it work with coding tools?</h3>
+    <p>It types into editors and terminals like any other app. For identifiers and symbols, the Pro code dictation mode writes them the way code needs.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="voice-typing-for-wrist-pain-rsi.html">Voice Typing for Wrist Pain</a>, <a href="privacy-at-a-glance.html">Privacy at a Glance</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>

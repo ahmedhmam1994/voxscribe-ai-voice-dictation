@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Voice Typing for Wrist Pain and RSI: Free Dictation for Windows and Android</title>
+<meta name="description" content="Type less when your wrists hurt. Hold one key or one button and your words are typed into any app. Free, no word limits, works offline, open source.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/voice-typing-for-wrist-pain-rsi.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Voice Typing When Your Wrists Hurt">
+<meta property="og:description" content="One key instead of thousands of keystrokes. Free voice dictation for Windows and Android, offline and open source.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/voice-typing-for-wrist-pain-rsi.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Voice Typing When Your Wrists Hurt">
+<meta name="twitter:description" content="One key instead of thousands of keystrokes. Free voice dictation for Windows and Android, offline and open source.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --bg-card-hover: #191929;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-pressed: #059669;
+    --cyan: #5eead4;
+    --magenta: #34d399;
+    --green: #34d399;
+    --amber: #f0a54a;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 10px; border-radius: 6px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ul { padding-left: 20px; }
+  strong { color: var(--text-primary); }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
+  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); }
+  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+  tr:last-child td { border-bottom: none; }
+  td.yes { color: var(--green); font-weight: 600; }
+  td.no { color: var(--text-faint); }
+  td.first { color: var(--text-primary); font-weight: 600; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+  code { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 4px; padding: 1px 6px; font-size: 13px; }
+</style>
+
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Voice Typing for Wrist Pain", "item": "https://voxscribe-ai-voice-dictation.vercel.app/voice-typing-for-wrist-pain-rsi.html"}]}
+</script>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can I use voice typing for everything on Windows?", "acceptedAnswer": {"@type": "Answer", "text": "For anything that takes typed text, yes: VoxScribe types into whichever app has focus. It does not replace the mouse or keyboard shortcuts, so clicking and menus still need your hands or another tool."}}, {"@type": "Question", "name": "Do I have to hold the key the whole time?", "acceptedAnswer": {"@type": "Answer", "text": "No. Holding is the default, but press-to-toggle mode starts recording with one press and stops it with the next."}}, {"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Dictation, spoken punctuation, custom vocabulary and word replacements are free with no word limit. An optional one-time Pro key adds extras such as the larger models."}}, {"@type": "Question", "name": "Does it work without internet?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. On Windows the speech model downloads once on first launch and everything after that runs offline. The Android app has the model built in."}}]}
+</script>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Use case</span>
+  <h1>Voice Typing When Your Wrists Hurt</h1>
+  <p class="subhead">If typing has started to hurt, every keystroke you can say instead is one your hands do not make. VoxScribe is free voice dictation for Windows and Android: one key or one button, and your words are typed into whatever app you are in.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download for Windows (free)</a>
+    <a class="btn btn-secondary" href="free-offline-voice-typing-android.html">Android app</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; no word limits &middot; works offline</p>
+
+  <div class="card">
+    <strong>Not medical advice.</strong> Pain, numbness or tingling in your hands or wrists is worth showing to a doctor. Voice typing can take load off your hands while you do that; it does not treat anything.
+  </div>
+
+  <h2>One key instead of thousands</h2>
+  <p>On Windows you hold one key, talk, and let go, and the text is typed where your cursor is: email, chat, documents, browser forms, anything that takes typed text. A paragraph that is a few hundred keystrokes becomes one key press.</p>
+  <ul>
+    <li><strong>Pick a key that is easy to reach.</strong> F9 is the default. You can switch to any F key, Pause, Scroll Lock, Insert or Left Shift, whichever your hand finds least awkward.</li>
+    <li><strong>Do not want to hold a key?</strong> Switch to press-to-toggle in Settings: press once to start, talk as long as you like, press again to stop.</li>
+    <li><strong>On Android</strong>, a small floating button sits above your keyboard in every app. Hold it, talk, let go.</li>
+  </ul>
+
+  <h2>Less fixing by hand</h2>
+  <p>Dictation only saves your hands if you are not going back to correct every other word. These help:</p>
+  <ul>
+    <li><strong>Spoken punctuation.</strong> Say "period", "comma", "question mark" or "new line" and get the symbol.</li>
+    <li><strong>Take it back by voice.</strong> "Scratch that" removes your last dictation and "delete last word" removes one word, without reaching for Backspace.</li>
+    <li><strong>Teach it your words.</strong> Names and terms it keeps missing go in the custom vocabulary or in word replacements, and are right from then on.</li>
+    <li><strong>Filler words are cleaned up.</strong> The "um" and "uh" you say while thinking are left out.</li>
+  </ul>
+
+  <h2>Free, with no limit, and private</h2>
+  <p>There is no word limit and no subscription, so you can use it all day. Your voice is turned into text on your own PC or phone and never uploaded, which matters when what you dictate is your work email or your messages. See <a href="privacy-at-a-glance.html">privacy at a glance</a> for every connection the apps make.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Can I use voice typing for everything on Windows?</h3>
+    <p>For anything that takes typed text, yes: VoxScribe types into whichever app has focus. It does not replace the mouse or keyboard shortcuts, so clicking and menus still need your hands or another tool.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Do I have to hold the key the whole time?</h3>
+    <p>No. Holding is the default, but press-to-toggle mode starts recording with one press and stops it with the next.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is it really free?</h3>
+    <p>Yes. Dictation, spoken punctuation, custom vocabulary and word replacements are free with no word limit. An optional one-time Pro key adds extras such as the larger models.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does it work without internet?</h3>
+    <p>Yes. On Windows the speech model downloads once on first launch and everything after that runs offline. The Android app has the model built in.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download for Windows (free)</a>
+    <a class="btn btn-secondary" href="free-offline-voice-typing-android.html">Android app</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="voice-dictation-for-ai-prompts.html">Talk Your AI Prompts</a>, <a href="privacy-at-a-glance.html">Privacy at a Glance</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>
