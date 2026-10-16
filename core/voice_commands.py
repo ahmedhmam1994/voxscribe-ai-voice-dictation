@@ -202,6 +202,197 @@ def compute_deletion(text: str, mode: str) -> tuple[str, int]:
     raise ValueError(f"unknown editing mode: {mode!r}")
 
 
+# --- Commands that change the text typed last instead of deleting it --------
+#
+# Same rules as the Android app: matched only against the whole utterance, so a
+# sentence that merely contains the words is still dictation.
+
+# The small speech model hears "that" as "Z" and "capitalize" as "capitalized", so
+# those count too. The bare keywords are only safe after a pause (see _WEAK_TRAILING).
+_TRANSFORM_FILLERS = ("that", "it", "z")
+_TRANSFORM_PHRASES: dict[str, str] = {
+    **{
+        f"{key} {filler}": "capitalize"
+        for key in ("capitalize", "capitalise", "capitalized", "capitalised")
+        for filler in _TRANSFORM_FILLERS
+    },
+    **{
+        f"{key} {filler}": "uppercase"
+        for key in ("uppercase", "upper case")
+        for filler in _TRANSFORM_FILLERS
+    },
+    **{
+        f"{key} {filler}": "lowercase"
+        for key in ("lowercase", "lower case")
+        for filler in _TRANSFORM_FILLERS
+    },
+    "make that uppercase": "uppercase",
+    "make that lowercase": "lowercase",
+    "all caps": "uppercase",
+    "all caps that": "uppercase",
+    "all lowercase": "lowercase",
+    "capitalize": "capitalize",
+    "capitalise": "capitalize",
+    "uppercase": "uppercase",
+    "lowercase": "lowercase",
+}
+_SEND_PHRASES = frozenset(
+    {"send it", "send that", "press enter", "hit enter", "press return"}
+)
+_REPLACE_RE = re.compile(r"^replace\s+(.+?)\s+with\s+(.+)$", re.IGNORECASE | re.DOTALL)
+
+
+def _normalize(text: str) -> str:
+    return _TRAILING_PUNCT_RE.sub("", text.strip()).strip().lower()
+
+
+def get_transform_command(text: str) -> str | None:
+    """"capitalize", "uppercase" or "lowercase" when the whole utterance is that
+    command ("capitalize that", "all caps", "lowercase that"), else None."""
+    if not text:
+        return None
+    return _TRANSFORM_PHRASES.get(_normalize(text))
+
+
+def apply_transform(text: str, mode: str) -> str:
+    """"uppercase" and "lowercase" change the whole text. "capitalize" starts
+    every word with a capital and leaves the rest of each word, and the
+    spacing, alone."""
+    if mode == "uppercase":
+        return text.upper()
+    if mode == "lowercase":
+        return text.lower()
+    if mode == "capitalize":
+        return re.sub(
+            r"\S+",
+            lambda m: m.group(0)[:1].upper() + m.group(0)[1:]
+            if m.group(0)[:1].islower()
+            else m.group(0),
+            text,
+        )
+    raise ValueError(f"unknown transform: {mode!r}")
+
+
+# Phrases that need a pause before them to count at the end of a sentence, because
+# they could just be words ("write it in all caps", "we should capitalize").
+_WEAK_TRAILING = frozenset(
+    {
+        "all caps",
+        "all caps that",
+        "all lowercase",
+        "capitalize",
+        "capitalise",
+        "uppercase",
+        "lowercase",
+    }
+    # "we need to capitalize it" is an ordinary sentence far more often than a
+    # command, so the "it" forms need a pause before them too.
+) | {phrase for phrase in _TRANSFORM_PHRASES if phrase.endswith(" it")}
+
+
+def _alternatives(phrases) -> str:
+    return "|".join(re.escape(p) for p in sorted(phrases, key=len, reverse=True))
+
+
+_TRAILING_AFTER_PAUSE_RE = re.compile(
+    r"^(.+?)\s*([,.;:!?])\s*(" + _alternatives(_TRANSFORM_PHRASES) + r")\s*[.!?]*$",
+    re.IGNORECASE | re.DOTALL,
+)
+_TRAILING_ANYWHERE_RE = re.compile(
+    r"^(.+?)\s+("
+    + _alternatives(set(_TRANSFORM_PHRASES) - _WEAK_TRAILING)
+    + r")\s*[.!?]*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def split_trailing_transform(text: str) -> tuple[str, str] | None:
+    """("bring the notes", "uppercase") for "bring the notes, all caps": the
+    command at the end of the same sentence, said in one go. A question or
+    exclamation mark before the command stays with the sentence. None when
+    there is no such ending. "capitalize that" and similar count even without
+    a pause; the bare keywords need a pause before them, so "write it in all
+    caps" stays ordinary dictation."""
+    stripped = text.strip()
+    pause = _TRAILING_AFTER_PAUSE_RE.match(stripped)
+    if pause:
+        before, mark, phrase = pause.group(1), pause.group(2), pause.group(3)
+    else:
+        plain = _TRAILING_ANYWHERE_RE.match(stripped)
+        if not plain:
+            return None
+        before, mark, phrase = plain.group(1), "", plain.group(2)
+    mode = _TRANSFORM_PHRASES.get(phrase.lower())
+    sentence = before.strip()
+    if not sentence or not mode:
+        return None
+    return (sentence + mark if mark in ("?", "!") else sentence), mode
+
+
+def get_replace_command(text: str) -> tuple[str, str] | None:
+    """("X", "Y") for a whole utterance shaped "replace X with Y", else None.
+    An ordinary sentence can have this shape ("replace the battery with a new
+    one"), so the caller only treats it as a command when X is really in the
+    last dictation -- see apply_replace."""
+    if not text:
+        return None
+    match = _REPLACE_RE.match(_TRAILING_PUNCT_RE.sub("", text.strip()).strip())
+    if not match:
+        return None
+    old, new = match.group(1).strip(), match.group(2).strip()
+    return (old, new) if old and new else None
+
+
+def apply_replace(chunk: str, old: str, new: str) -> str | None:
+    """`chunk` with every whole-word, case-insensitive `old` swapped for `new`,
+    or None when `old` is not in it."""
+    pattern = re.compile(r"(?<!\w)" + re.escape(old) + r"(?!\w)", re.IGNORECASE)
+    if not pattern.search(chunk):
+        return None
+    # A function, so a backslash or group reference in `new` is typed as written.
+    return pattern.sub(lambda _match: new, chunk)
+
+
+_TRAILING_REPLACE_RE = re.compile(
+    r"^(.+?)\s*([,.;:!?])\s*replace\s+(.+?)\s+with\s+(.+?)\s*[.!?]*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def apply_trailing_replace(text: str) -> str | None:
+    """"meet me at one" for "meet me at noon, replace noon with one": a replace
+    said at the end of the same sentence. It only counts when the first phrase
+    is really in the sentence before it, so "I will replace the battery with a
+    new one" stays dictation. None when there is no such ending."""
+    match = _TRAILING_REPLACE_RE.match(text.strip())
+    if not match:
+        return None
+    before, mark = match.group(1).strip(), match.group(2)
+    old, new = match.group(3).strip(), match.group(4).strip()
+    if not before or not old or not new:
+        return None
+    changed = apply_replace(before, old, new)
+    if changed is None:
+        return None
+    return changed + mark if mark in ("?", "!") else changed
+
+
+def is_send_command(text: str) -> bool:
+    """True when the whole utterance asks for the Enter key ("send it",
+    "press enter"). "send it to Sam" is dictation, not a command."""
+    return bool(text) and _normalize(text) in _SEND_PHRASES
+
+
+def compute_rewrite(old: str, new: str) -> tuple[int, str]:
+    """(backspace_count, text_to_type): the fewest keystrokes that turn the
+    typed text `old` into `new`, keeping whatever start they share."""
+    shared = 0
+    limit = min(len(old), len(new))
+    while shared < limit and old[shared] == new[shared]:
+        shared += 1
+    return len(old) - shared, new[shared:]
+
+
 if __name__ == "__main__":
     _cases = [
         "hello comma world period",

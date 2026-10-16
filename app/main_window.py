@@ -42,6 +42,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QGraphicsDropShadowEffect,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -74,6 +75,7 @@ from core import (
     templates,
     transcript_export,
     vocab_learner,
+    word_lists,
 )
 from core import license as hotkey_license
 from core import settings as hotkey_settings
@@ -95,7 +97,19 @@ from core.hold_gate import HoldGate
 from core.srt import format_srt, format_timestamp
 from core.transcribe import MODEL_APPROX_MB, Transcriber, load_transcriber, model_cache_bytes
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
-from core.voice_commands import apply_voice_commands, compute_deletion, get_editing_command
+from core.voice_commands import (
+    apply_replace,
+    apply_trailing_replace,
+    apply_transform,
+    apply_voice_commands,
+    compute_deletion,
+    compute_rewrite,
+    get_editing_command,
+    get_replace_command,
+    get_transform_command,
+    is_send_command,
+    split_trailing_transform,
+)
 
 ICON_PATH = Path(__file__).parent / "icon.ico"
 UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
@@ -1477,6 +1491,10 @@ class MainWindow(QMainWindow):
         self.transcript_area.setObjectName("transcriptArea")
         self.transcript_area.setProperty("hasContent", False)
         self.transcript_area.setReadOnly(True)
+        self.transcript_area.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.transcript_area.customContextMenuRequested.connect(
+            self._transcript_context_menu
+        )
         self.transcript_area.setFrameShape(QTextEdit.NoFrame)
         self.transcript_area.setPlaceholderText(
             "Click Start Recording, speak, then click Stop Recording. "
@@ -2166,7 +2184,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(translate_hint)
 
         layout = general
-        model_label = QLabel("WHISPER MODEL SIZE")
+        model_label = QLabel("SPEECH MODEL")
         model_label.setObjectName("settingsSectionLabel")
         layout.addWidget(model_label)
 
@@ -2194,13 +2212,22 @@ class MainWindow(QMainWindow):
             for i in range(model_combo.count()):
                 if model_combo.itemData(i) in hotkey_settings.PRO_MODEL_SIZES:
                     item_model.item(i).setEnabled(unlocked)
-            model_hint.setText(
-                "Takes effect after restarting VoxScribe. Switching to a size not "
-                "already downloaded needs internet on next launch."
-                + ("" if unlocked else " Medium/Large require Pro.")
+            hint = (
+                "Faster models type sooner; more accurate ones get names and quiet "
+                "speech right more often. Takes effect after restarting VoxScribe. "
+                "A model not already downloaded needs internet on next launch."
             )
+            if not unlocked:
+                hint += " The three most accurate models need Pro."
+            if model_combo.currentData() in hotkey_settings.NO_TRANSLATE_MODEL_SIZES:
+                hint += (
+                    " Large turbo cannot translate: Translate to English needs "
+                    "another model."
+                )
+            model_hint.setText(hint)
 
         _update_model_lock_state()
+        model_combo.currentIndexChanged.connect(_update_model_lock_state)
         license_unlock_button.clicked.connect(_update_model_lock_state)
         license_remove_button.clicked.connect(_update_model_lock_state)
 
@@ -2243,6 +2270,88 @@ class MainWindow(QMainWindow):
         replacements_hint.setObjectName("settingsHint")
         replacements_hint.setWordWrap(True)
         layout.addWidget(replacements_hint)
+
+        word_lists_row = QHBoxLayout()
+        export_lists_button = QPushButton("Export word lists...")
+        import_lists_button = QPushButton("Import word lists...")
+        for button in (export_lists_button, import_lists_button):
+            button.setObjectName("secondaryButton")
+            button.setCursor(Qt.PointingHandCursor)
+            word_lists_row.addWidget(button)
+        word_lists_row.addStretch(1)
+        layout.addLayout(word_lists_row)
+
+        word_lists_result = QLabel(
+            "One file with your vocabulary and replacements, for a backup, another "
+            "PC or the Android app."
+        )
+        word_lists_result.setObjectName("settingsHint")
+        word_lists_result.setWordWrap(True)
+        layout.addWidget(word_lists_result)
+
+        def _vocabulary_in_box() -> list[str]:
+            return [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
+
+        def _export_word_lists() -> None:
+            start = str(Path.home() / "Documents" / word_lists.DEFAULT_FILE_NAME)
+            path, _ = QFileDialog.getSaveFileName(
+                dialog, "Export word lists", start, "VoxScribe word lists (*.json)"
+            )
+            if not path:
+                return
+            vocabulary = _vocabulary_in_box()
+            pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            try:
+                Path(path).write_text(word_lists.export_text(vocabulary, pairs), encoding="utf-8")
+            except OSError as exc:
+                word_lists_result.setText(f"Could not save the file: {exc}")
+                return
+            word_lists_result.setText(
+                f"Saved {len(vocabulary)} vocabulary term{'s' if len(vocabulary) != 1 else ''} "
+                f"and {len(pairs)} replacement{'s' if len(pairs) != 1 else ''} "
+                f"to {Path(path).name}."
+            )
+
+        def _import_word_lists() -> None:
+            path, _ = QFileDialog.getOpenFileName(
+                dialog,
+                "Import word lists",
+                str(Path.home() / "Documents"),
+                "Word lists (*.json *.txt);;All files (*)",
+            )
+            if not path:
+                return
+            try:
+                vocabulary, pairs = word_lists.parse_import(
+                    Path(path).read_text(encoding="utf-8", errors="replace")
+                )
+            except (OSError, ValueError) as exc:
+                word_lists_result.setText(str(exc))
+                return
+            current_vocabulary = _vocabulary_in_box()
+            merged_vocabulary = vocab_learner.merge_vocabulary(current_vocabulary, vocabulary)
+            new_terms = len(merged_vocabulary) - len(current_vocabulary)
+            current_pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            merged_pairs, added, changed = word_lists.merge_replacements(current_pairs, pairs)
+            vocab_edit.setText(", ".join(merged_vocabulary))
+            replacements_edit.setPlainText("\n".join(f"{a} => {b}" for a, b in merged_pairs))
+            if not (new_terms or added or changed):
+                word_lists_result.setText(
+                    "Nothing new in that file. Your lists already have it all."
+                )
+                return
+            parts = [
+                f"{new_terms} vocabulary term{'s' if new_terms != 1 else ''}",
+                f"{added} replacement{'s' if added != 1 else ''}",
+            ]
+            changed_note = f", and changed {changed}" if changed else ""
+            word_lists_result.setText(
+                f"Added {parts[0]} and {parts[1]}{changed_note}. "
+                "Review them above, then press Save."
+            )
+
+        export_lists_button.clicked.connect(_export_word_lists)
+        import_lists_button.clicked.connect(_import_word_lists)
 
         layout = pro
         snippets_label = QLabel("SNIPPETS (PRO)")
@@ -2523,11 +2632,27 @@ class MainWindow(QMainWindow):
             '"new line", "new paragraph", "open quote"/"close quote". Say '
             '"scratch that" alone to undo the last thing VoxScribe typed, '
             '"delete last word" to remove just the last word, or "delete '
-            'last sentence" to remove just the last sentence.'
+            'last sentence" to remove just the last sentence. "Capitalize '
+            'that", "all caps" and "lowercase that" change it, and "replace '
+            'X with Y" swaps a word in it.'
         )
         voice_commands_hint.setObjectName("settingsHint")
         voice_commands_hint.setWordWrap(True)
         layout.addWidget(voice_commands_hint)
+
+        send_it_checkbox = QCheckBox('Say "send it" to press Enter')
+        send_it_checkbox.setChecked(hotkey_settings.get_send_it_enabled())
+        layout.addWidget(send_it_checkbox)
+
+        send_it_hint = QLabel(
+            'Say "send it", "send that" or "press enter" on its own to press '
+            'Enter in the app you dictated into, for example to send a chat '
+            'message. Off by default, because it can send a message you meant '
+            'to read through first.'
+        )
+        send_it_hint.setObjectName("settingsHint")
+        send_it_hint.setWordWrap(True)
+        layout.addWidget(send_it_hint)
 
         layout = general
         sound_checkbox = QCheckBox("Play a sound when recording starts/stops")
@@ -2798,6 +2923,13 @@ class MainWindow(QMainWindow):
                     "Voice commands enabled."
                     if new_voice_commands_enabled
                     else "Voice commands disabled."
+                )
+
+            new_send_it_enabled = send_it_checkbox.isChecked()
+            if new_send_it_enabled != hotkey_settings.get_send_it_enabled():
+                hotkey_settings.set_send_it_enabled(new_send_it_enabled)
+                changes.append(
+                    '"Send it" enabled.' if new_send_it_enabled else '"Send it" disabled.'
                 )
 
             new_sound_enabled = sound_checkbox.isChecked()
@@ -3494,6 +3626,36 @@ class MainWindow(QMainWindow):
             return self._recording_profile["language"]  # type: ignore[return-value]
         return hotkey_settings.get_language()
 
+    def _transcript_context_menu(self, pos) -> None:
+        """Right-click in the transcript: besides Copy and Select all, offer to
+        always correct the selected words. It only ever reads the transcript
+        VoxScribe already shows, never another app."""
+        menu = self.transcript_area.createStandardContextMenu()
+        heard = replacements.clean_selection(self.transcript_area.textCursor().selectedText())
+        if heard:
+            shown = heard if len(heard) <= 30 else heard[:29] + "..."
+            menu.addSeparator()
+            action = menu.addAction(f'Always correct "{shown}"...')
+            action.triggered.connect(lambda: self._add_correction(heard))
+        menu.exec(self.transcript_area.mapToGlobal(pos))
+        menu.deleteLater()
+
+    def _add_correction(self, heard: str) -> None:
+        replacement, accepted = QInputDialog.getText(
+            self,
+            "Always correct this word",
+            f'Whenever VoxScribe hears "{heard}", type this instead:',
+        )
+        if not accepted:
+            return
+        status = replacements.add_replacement(heard, replacement)
+        if status in ("added", "updated"):
+            self._set_status(f'Will type "{replacement.strip()}" instead of "{heard}"', "ready")
+        elif status == "unchanged":
+            self._set_status("That correction is already saved", "ready")
+        else:
+            self._set_status("Type what it should be instead", "error")
+
     def _option(self, name: str, default: bool) -> bool:
         """A setting as the focused app's profile sees it."""
         return bool(self._recording_profile.get(name, default))
@@ -3504,8 +3666,50 @@ class MainWindow(QMainWindow):
         )
         editing_mode = get_editing_command(text) if text else None
         if editing_mode and voice_commands_on:
-            self._handle_editing_command(editing_mode)
+            self._after_typing(lambda: self._handle_editing_command(editing_mode))
             return
+        if text and voice_commands_on:
+            transform = get_transform_command(text)
+            if transform:
+                self._after_typing(
+                    lambda: self._handle_rewrite_command(
+                        lambda old: apply_transform(old, transform), "Changed last dictation"
+                    )
+                )
+                return
+            swap = get_replace_command(text)
+            # "replace the battery with a new one" is ordinary speech unless
+            # the last dictation really contains the first part. A dictation
+            # still being typed counts as the last one, so wait for it first.
+            if swap and self._typing_lock.locked():
+                self._after_typing(lambda: self._on_transcribed(text))
+                return
+            if (
+                swap
+                and self._last_typed_text
+                and apply_replace(self._last_typed_text, *swap) is not None
+            ):
+                self._after_typing(
+                    lambda: self._handle_rewrite_command(
+                        lambda old: apply_replace(old, *swap), "Replaced in last dictation"
+                    )
+                )
+                return
+        if text and hotkey_settings.get_send_it_enabled() and is_send_command(text):
+            self._after_typing(self._handle_send_command)
+            return
+
+        # "meet me at noon, replace noon with one": a replace at the end of the same sentence.
+        if text and voice_commands_on:
+            swapped = apply_trailing_replace(text)
+            if swapped is not None:
+                text = swapped
+        # "bring the notes, all caps": a command at the end of the same sentence.
+        trailing_mode = None
+        if text and voice_commands_on:
+            split = split_trailing_transform(text)
+            if split:
+                text, trailing_mode = split
 
         pro = hotkey_license.is_pro()
         if text and pro and self._handle_template_turn(text):
@@ -3526,6 +3730,8 @@ class MainWindow(QMainWindow):
             text = replacements.apply_replacements(text)
         if text and pro:
             text = snippets.expand_snippet(text)
+        if text and trailing_mode:
+            text = apply_transform(text, trailing_mode)
         self._deliver_text(text)
 
     # How long a half-filled template waits for the next answer before it is dropped.
@@ -3831,6 +4037,82 @@ class MainWindow(QMainWindow):
         if not remaining_text:
             self._last_typed_hwnd = None
         self._set_status(self._EDITING_STATUS_TEXT[mode], "ready")
+
+    def _after_typing(self, command) -> None:
+        """Runs a spoken command once the dictation before it has been typed
+        in full. Typing a long dictation takes seconds, and until it is done the
+        last typed text is still the one before: "scratch that" would remove
+        the wrong text and "send it" would send half a message."""
+        if self._typing_lock.locked():
+            QTimer.singleShot(100, lambda: self._after_typing(command))
+            return
+        command()
+
+    def _handle_rewrite_command(self, rewrite, status_text: str) -> None:
+        """Spoken "capitalize that", "all caps", "replace X with Y": retypes
+        only the part of the last dictation that changes, in the window it was
+        typed into. Like undo, it refuses if the active window has changed,
+        rather than Backspace into text the user never dictated."""
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        self._indicator.hide_indicator()
+
+        old = self._last_typed_text
+        if not old:
+            self._set_status("Nothing to change", "ready")
+            return
+        if self._last_typed_hwnd is None or foreground_window_handle() != self._last_typed_hwnd:
+            self._set_status("Can't change -- active window changed", "error")
+            return
+        new = rewrite(old)
+        if new is None:
+            self._set_status("Nothing to change", "ready")
+            return
+
+        focus_window(self._last_typed_hwnd)
+        backspaces, to_type = compute_rewrite(old, new)
+        typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
+        self._last_typed_text = new
+
+        def _retype() -> None:
+            with self._typing_lock:
+                try:
+                    for _ in range(backspaces):
+                        keyboard.send("backspace")
+                    if to_type:
+                        keyboard.write(to_type, delay=typing_delay)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        threading.Thread(target=_retype, daemon=True).start()
+        self._set_status(status_text, "ready")
+
+    def _handle_send_command(self) -> None:
+        """Spoken "send it" (opt-in): presses Enter in the app being dictated
+        into. Refuses if that window is no longer the active one, and when
+        VoxScribe itself is the active window, where Enter means nothing."""
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        self._indicator.hide_indicator()
+
+        if self.isActiveWindow():
+            self._set_status("Click into the app you want to send from first", "error")
+            return
+        if (
+            self._last_typed_hwnd is not None
+            and foreground_window_handle() != self._last_typed_hwnd
+        ):
+            self._set_status("Can't send -- active window changed", "error")
+            return
+        try:
+            keyboard.send("enter")
+        except Exception:  # noqa: BLE001
+            pass
+        # It was sent, so a later "scratch that" must not Backspace into
+        # whatever comes next in that window.
+        self._last_typed_text = ""
+        self._last_typed_hwnd = None
+        self._set_status("Pressed Enter", "ready")
 
     def _on_transcribe_failed(self, message: str) -> None:
         self.transcript_area.append(f"[error] {message}")

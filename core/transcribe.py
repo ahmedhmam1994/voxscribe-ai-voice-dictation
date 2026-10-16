@@ -65,6 +65,14 @@ MODEL_APPROX_MB = {
     "medium": 1530,
     "large": 3090,
     "large-v3": 3090,
+    "large-v3-turbo": 1620,
+}
+
+# The Hugging Face repo faster-whisper downloads each size from, where it is
+# not the usual Systran/faster-whisper-<size>.
+_MODEL_REPOS = {
+    "large": "Systran/faster-whisper-large-v3",
+    "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
 }
 
 
@@ -80,8 +88,8 @@ def _hf_cache_root() -> Path:
 
 def model_cache_dir(model_size: str) -> Path:
     """Where faster-whisper stores `model_size` after downloading it."""
-    repo = "faster-whisper-large-v3" if model_size == "large" else f"faster-whisper-{model_size}"
-    return _hf_cache_root() / f"models--Systran--{repo}"
+    repo = _MODEL_REPOS.get(model_size, f"Systran/faster-whisper-{model_size}")
+    return _hf_cache_root() / ("models--" + repo.replace("/", "--"))
 
 
 def model_cache_bytes(model_size: str) -> int:

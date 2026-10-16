@@ -12,6 +12,7 @@ All commands run from the project root with the venv activated (`venv\Scripts\py
 
 ```
 venv\Scripts\python.exe main.py                          # run the app
+venv\Scripts\python.exe cli.py FILE [--format srt] [-o DIR]  # transcribe files from the command line (same engine, same free/Pro line)
 venv\Scripts\python.exe -m PyInstaller --noconfirm --clean VoxScribe.spec   # build the standalone .exe -> dist\VoxScribe\
 "C:\Users\<user>\AppData\Local\Programs\Inno Setup 6\ISCC.exe" installer.iss  # build the installer -> installer_output\VoxScribe-Setup.exe (requires the exe already built)
 venv\Scripts\python.exe scripts\generate_icon.py          # regenerate app\icon.ico

@@ -194,6 +194,19 @@ def set_voice_commands_enabled(enabled: bool) -> None:
     _settings().setValue("voice_commands_enabled", enabled)
 
 
+def get_send_it_enabled() -> bool:
+    """Default False (opt-in): "send it" presses Enter in the app, which can
+    send a message the user meant to read through first."""
+    value = _settings().value("send_it_enabled", False)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_send_it_enabled(enabled: bool) -> None:
+    _settings().setValue("send_it_enabled", enabled)
+
+
 def get_translate_to_english_enabled() -> bool:
     """Default False: most users dictate and want the words back in the
     language they spoke them in. When on, Whisper's own built-in
@@ -295,12 +308,15 @@ def set_excluded_apps(apps: list[str]) -> None:
 # (e.g. tests/test_settings.py) just to read one string constant.
 DEFAULT_MODEL_SIZE = "small"
 
+# Plain names first, so the choice reads as speed against accuracy; the
+# Whisper size stays in the label for people who know them.
 AVAILABLE_MODEL_SIZES = [
-    ("tiny", "Tiny -- fastest, least accurate (~75MB)"),
-    ("base", "Base -- fast (~145MB)"),
-    ("small", "Small -- recommended (~500MB)"),
-    ("medium", "Medium -- more accurate (~1.5GB) (Pro)"),
-    ("large", "Large -- most accurate (~3GB) (Pro)"),
+    ("tiny", "Fastest: Tiny, least accurate (~75MB)"),
+    ("base", "Fast: Base (~145MB)"),
+    ("small", "Balanced: Small, recommended (~500MB)"),
+    ("medium", "More accurate: Medium (~1.5GB) (Pro)"),
+    ("large-v3-turbo", "Most accurate, quicker: Large turbo (~1.6GB) (Pro)"),
+    ("large", "Most accurate: Large, slowest (~3GB) (Pro)"),
 ]
 
 # Larger models are gated behind a Pro license (see core/license.py) --
@@ -308,7 +324,11 @@ AVAILABLE_MODEL_SIZES = [
 # (main_window.py disables these combo entries when not Pro) and as a
 # defense-in-depth fallback in ModelLoaderThread, in case a size got
 # persisted while Pro was active and the license was later removed.
-PRO_MODEL_SIZES = {"medium", "large"}
+PRO_MODEL_SIZES = {"medium", "large-v3-turbo", "large"}
+
+# Large turbo was trained without Whisper's translation task, so "Translate to
+# English" gives poor results with it. Settings says so when it is picked.
+NO_TRANSLATE_MODEL_SIZES = {"large-v3-turbo"}
 
 _AVAILABLE_MODEL_SIZE_CODES = {code for code, _ in AVAILABLE_MODEL_SIZES}
 

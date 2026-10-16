@@ -9,6 +9,21 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.8.0": (
+        "- New: change what you just dictated by voice. Say \"capitalize that\", "
+        "\"all caps\", \"lowercase that\" or \"replace noon with one\", on its own "
+        "or at the end of the same sentence.\n"
+        "- New: say \"send it\" to press Enter, for example to send a chat message. "
+        "Off until you turn it on in Settings, Text.\n"
+        "- New: right-click a word in the transcript and pick \"Always correct\" to "
+        "add a word replacement.\n"
+        "- New: export and import your vocabulary and replacements as one file, "
+        "for a backup, another PC or the Android app.\n"
+        "- New: the speech models have plain names (Fast, Balanced, Most "
+        "accurate), and Large turbo is added for Pro: close to Large, but quicker.\n"
+        "- Fixed: a spoken command said right after a long dictation now waits for "
+        "the typing to finish."
+    ),
     "1.7.2": (
         "- Fixed: importing a file never replaces an existing .srt, .vtt, .md or "
         ".docx any more. A hand corrected caption file is kept and the new one is "

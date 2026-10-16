@@ -43,6 +43,10 @@ def test_model_cache_dir_names(monkeypatch, tmp_path):
     monkeypatch.setenv("HF_HUB_CACHE", str(tmp_path))
     assert transcribe.model_cache_dir("small").name == "models--Systran--faster-whisper-small"
     assert transcribe.model_cache_dir("large").name == "models--Systran--faster-whisper-large-v3"
+    assert (
+        transcribe.model_cache_dir("large-v3-turbo").name
+        == "models--mobiuslabsgmbh--faster-whisper-large-v3-turbo"
+    )
 
 
 def test_purge_removes_only_that_model(monkeypatch, tmp_path):
