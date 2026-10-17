@@ -90,9 +90,9 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 - When a newer Android release is published, the app shows an update banner with a download button
 
 <p align="center">
-  <img src="docs/assets/android-intro.png" width="230" alt="VoxScribe for Android opening animation">
+  <img src="docs/assets/android-chat.png" width="230" alt="The VoxScribe button floating over a chat app, with a dictated message typed in">
   <img src="docs/assets/android-dictation.png" width="230" alt="VoxScribe for Android dictation screen">
-  <img src="docs/assets/android-text-tools.png" width="230" alt="VoxScribe for Android Text tools">
+  <img src="docs/assets/android-settings.png" width="230" alt="VoxScribe for Android Settings">
 </p>
 
 The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutter for the app screens, Kotlin for the floating button, typing service and speech engine.
