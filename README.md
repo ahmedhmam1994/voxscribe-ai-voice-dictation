@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme-banner.png" alt="VoxScribe: local voice dictation for Windows" width="100%">
+  <img src="docs/assets/readme-banner.png" alt="VoxScribe: free, offline voice typing for Windows and Android" width="100%">
 </p>
 
 <p align="center">
@@ -11,9 +11,12 @@
 
 # VoxScribe
 
-A free, open-source Windows desktop voice dictation app. Hold a global hotkey anywhere on your system, talk, release. Your speech is transcribed **locally on your PC** and typed directly into whatever window has focus.
+Free, open-source voice typing for **Windows** and **Android**. Talk, and your words are typed straight into whatever app you are using. Your speech is transcribed **locally on your own device** and never uploaded anywhere.
 
-Free and privacy-first: your voice audio is never uploaded anywhere.
+- **Windows:** hold a hotkey (F9 by default) anywhere, talk, release. Also turns audio and video files into text and .srt captions. [Download the installer](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest) or run `winget install ahmedhmam1994.VoxScribe`.
+- **Android:** a small floating button appears above your keyboard in any app. Hold or tap it and talk; it works in airplane mode. [Get the APK](#android).
+
+No account, no subscription. MIT licensed.
 
 <p align="center">
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/raw/main/docs/assets/voxscribe-features.mp4">

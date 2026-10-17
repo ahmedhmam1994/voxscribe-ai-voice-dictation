@@ -176,7 +176,9 @@ def make_readme_banner() -> QPixmap:
     tagline_font = QFont("Segoe UI", 22)
     painter.setFont(tagline_font)
     tagline_rect = QRectF(0, group_y + icon_size + 18, w, 50)
-    painter.drawText(tagline_rect, Qt.AlignHCenter, "Local voice dictation for Windows")
+    painter.drawText(
+        tagline_rect, Qt.AlignHCenter, "Free, offline voice typing for Windows and Android"
+    )
 
     painter.end()
     return pm
