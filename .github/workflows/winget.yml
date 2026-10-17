@@ -75,4 +75,6 @@ jobs:
             exit 0
           }
           Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
-          .\wingetcreate.exe update ahmedhmam1994.VoxScribe --version $env:VERSION --urls $env:INSTALLER_URL --submit --token $env:WINGET_TOKEN
+          # The setup program itself is 32-bit, so wingetcreate reads it as x86,
+          # but it installs the 64-bit app and the manifest lists it as x64.
+          .\wingetcreate.exe update ahmedhmam1994.VoxScribe --version $env:VERSION --urls "$($env:INSTALLER_URL)|x64" --submit --token $env:WINGET_TOKEN
