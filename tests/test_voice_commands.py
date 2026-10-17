@@ -11,6 +11,7 @@ from core.voice_commands import (
     get_replace_command,
     get_transform_command,
     is_send_command,
+    split_trailing_send,
     split_trailing_transform,
     is_undo_command,
 )
@@ -205,7 +206,10 @@ def test_rewrite_keeps_the_shared_start():
 
 
 def test_a_command_after_a_pause_ends_the_sentence():
-    assert split_trailing_transform("Bring the notes, all caps.") == ("Bring the notes", "uppercase")
+    assert split_trailing_transform("Bring the notes, all caps.") == (
+        "Bring the notes",
+        "uppercase",
+    )
     assert split_trailing_transform("bring the notes. Capitalize that") == (
         "bring the notes",
         "capitalize",
@@ -282,3 +286,31 @@ def test_an_it_command_needs_a_pause_so_ordinary_sentences_are_safe():
         "Here is the title",
         "capitalize",
     )
+
+
+def test_send_it_at_the_end_of_a_message_after_a_pause():
+    assert (
+        split_trailing_send("Send me a DM after you wake up tomorrow, send it")
+        == "Send me a DM after you wake up tomorrow"
+    )
+    assert split_trailing_send("How are you? Send it.") == "How are you?"
+    assert split_trailing_send("Sounds good. Press enter") == "Sounds good"
+
+
+def test_send_it_at_the_end_counts_without_a_pause_too():
+    # What the speech model actually wrote in testing: no comma.
+    assert split_trailing_send("You tomorrow at noon send it") == "You tomorrow at noon"
+    assert split_trailing_send("See you tomorrow at noon send it.") == "See you tomorrow at noon"
+    assert split_trailing_send("Done hit enter") == "Done"
+
+
+def test_send_it_that_is_part_of_the_sentence_is_typed():
+    assert split_trailing_send("please send it to Sam") is None
+    assert split_trailing_send("I will send it") is None
+    assert split_trailing_send("Don't send it.") is None
+    assert split_trailing_send("Remember to send it") is None
+    assert split_trailing_send("Can you send it") is None
+    assert split_trailing_send("Please send it") is None
+    assert split_trailing_send("Let me send that") is None
+    assert split_trailing_send("Send it.") is None
+    assert split_trailing_send(", send it") is None

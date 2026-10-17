@@ -383,6 +383,51 @@ def is_send_command(text: str) -> bool:
     return bool(text) and _normalize(text) in _SEND_PHRASES
 
 
+_TRAILING_SEND_RE = re.compile(
+    r"^(.+?)\s*([,.;:!?])\s*(" + _alternatives(_SEND_PHRASES) + r")\s*[.!?]*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+# "send it" also counts at the end without a pause, because the speech model
+# rarely writes a comma there ("see you at noon send it"). Only these phrases,
+# and only when the word before is not one that makes it part of the sentence.
+_UNPAUSED_SEND_RE = re.compile(
+    r"^(.+?)\s+(send it|press enter|hit enter)\s*[.!?]*$", re.IGNORECASE | re.DOTALL
+)
+_PART_OF_SENTENCE = frozenset(
+    """i you we they he she it i'll you'll we'll they'll he'll she'll will would
+    could can should must might may shall to please just and or but then not
+    don't didn't won't can't couldn't wouldn't shouldn't never gonna wanna let's
+    lets me us them him her also already always did do does go going need
+    needs want wants try tried forgot remember who what when why how if""".split()
+)
+
+
+def split_trailing_send(text: str) -> str | None:
+    """The sentence to type before pressing Enter, for "how are you? send it":
+    "send it" at the end of the same utterance. After a pause (a comma, full
+    stop or question mark) any send phrase counts. Without one, only "send it"
+    and "press enter" count, and not after a word such as "will", "to" or
+    "don't", so "I will send it" and "don't send it" stay ordinary dictation.
+    None otherwise."""
+    stripped = text.strip()
+    match = _TRAILING_SEND_RE.match(stripped)
+    if match:
+        sentence, mark = match.group(1).strip(), match.group(2)
+        if not sentence:
+            return None
+        return sentence + mark if mark in ("?", "!") else sentence
+    match = _UNPAUSED_SEND_RE.match(stripped)
+    if not match:
+        return None
+    sentence = match.group(1).strip()
+    words = sentence.split()
+    if not re.search(r"\w", sentence) or words[-1].lower().strip(",;:") in _PART_OF_SENTENCE:
+        return None
+    return sentence
+
+
 def compute_rewrite(old: str, new: str) -> tuple[int, str]:
     """(backspace_count, text_to_type): the fewest keystrokes that turn the
     typed text `old` into `new`, keeping whatever start they share."""

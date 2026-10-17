@@ -108,6 +108,7 @@ from core.voice_commands import (
     get_replace_command,
     get_transform_command,
     is_send_command,
+    split_trailing_send,
     split_trailing_transform,
 )
 
@@ -1513,6 +1514,8 @@ class MainWindow(QMainWindow):
 
         self._model_failed = False
         self._typing_lock = threading.Lock()
+        # Set for "how are you? send it": press Enter once that text is typed.
+        self._send_after_typing = False
         self._start_model_load()
 
         # Global hold-to-talk hotkey: works even when this window isn't
@@ -2645,10 +2648,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(send_it_checkbox)
 
         send_it_hint = QLabel(
-            'Say "send it", "send that" or "press enter" on its own to press '
-            'Enter in the app you dictated into, for example to send a chat '
-            'message. Off by default, because it can send a message you meant '
-            'to read through first.'
+            'Say "send it" on its own, or at the end of your message after a '
+            'short pause ("see you at noon, send it"), to press Enter in the '
+            'app you dictated into, for example to send a chat message. Off by '
+            'default, because it can send a message you meant to read through '
+            'first.'
         )
         send_it_hint.setObjectName("settingsHint")
         send_it_hint.setWordWrap(True)
@@ -3661,6 +3665,7 @@ class MainWindow(QMainWindow):
         return bool(self._recording_profile.get(name, default))
 
     def _on_transcribed(self, text: str) -> None:
+        self._send_after_typing = False
         voice_commands_on = self._option(
             "voice_commands", hotkey_settings.get_voice_commands_enabled()
         )
@@ -3698,6 +3703,12 @@ class MainWindow(QMainWindow):
         if text and hotkey_settings.get_send_it_enabled() and is_send_command(text):
             self._after_typing(self._handle_send_command)
             return
+        # "how are you? send it": type the sentence, then press Enter.
+        if text and hotkey_settings.get_send_it_enabled():
+            sentence = split_trailing_send(text)
+            if sentence is not None:
+                text = sentence
+                self._send_after_typing = True
 
         # "meet me at noon, replace noon with one": a replace at the end of the same sentence.
         if text and voice_commands_on:
@@ -3958,6 +3969,9 @@ class MainWindow(QMainWindow):
         # Windows refuses the focus change -- see focus_window()'s
         # docstring), don't type anywhere: see _hold_text().
         target_hwnd = self._recording_target_hwnd
+        # Taken now, so text that is held instead of typed never sends anything.
+        send_after = self._send_after_typing
+        self._send_after_typing = False
         if target_hwnd is not None:
             focus_window(target_hwnd)
             if not self._wait_for_foreground(target_hwnd):
@@ -3987,6 +4001,13 @@ class MainWindow(QMainWindow):
                     keyboard.write(text, delay=typing_delay)
                     self._last_typed_text = text
                     self._last_typed_hwnd = target_hwnd
+                    if send_after:
+                        # A moment for the app to take the last characters.
+                        time.sleep(0.15)
+                        keyboard.send("enter")
+                        # Sent, so "scratch that" must not Backspace into
+                        # whatever comes next in that window.
+                        self._last_typed_text = ""
                 except Exception:  # noqa: BLE001
                     pass
 
