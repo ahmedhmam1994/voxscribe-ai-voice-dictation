@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml"><img src="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><img src="https://img.shields.io/github/v/release/ahmedhmam1994/voxscribe-ai-voice-dictation" alt="Latest release"></a>
-  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases"><img src="https://img.shields.io/github/downloads/ahmedhmam1994/voxscribe-ai-voice-dictation/total?cacheSeconds=3600" alt="Downloads"></a>
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases"><img src="https://voxscribe-ai-voice-dictation.vercel.app/api/downloads" alt="Downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 </p>
 
