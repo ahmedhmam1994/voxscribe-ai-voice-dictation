@@ -79,6 +79,8 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 
 **Install:** download `VoxScribe-Android-1.1.0.apk` from the [Android 1.1.0 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
 
+**Automatic updates:** add this repository to [Obtainium](https://obtainium.imranr.dev/) (Add App, paste the repo URL) and set "Filter release titles by regular expression" to `Android`, so it skips the Windows releases.
+
 - Android 8 or newer, 64-bit phone (almost every phone from the last several years)
 - The speech model is bundled in the app, so the download is about 115 MB and it works in airplane mode
 - Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
