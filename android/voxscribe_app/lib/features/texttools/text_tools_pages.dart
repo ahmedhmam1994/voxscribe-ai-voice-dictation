@@ -266,14 +266,95 @@ class ProfilesPage extends StatelessWidget {
             label: 'App package => options',
             hint: 'com.termux => code=on, cleanup=off',
             help:
-                "One per line, using the app's package name. Options: cleanup, "
-                'voice_commands, code and smart, each on or off. Anything not '
-                'set uses your normal settings.',
+                "One per line, using the app's package name. Options: mode "
+                '(chat, email, code, notes or default), and cleanup, '
+                'voice_commands, code, smart and period, each on or off. '
+                'Anything not set uses the mode, then your normal settings.',
             initial: controller.settings.profiles,
             enabled: pro.isPro,
             onChanged: controller.setProfiles,
           ),
       ],
+    );
+  }
+}
+
+/// Names and one-line descriptions of the dictation modes, in display order.
+const dictationModes = <(String, String, String)>[
+  ('default', 'Default', 'Your settings exactly as they are.'),
+  ('chat', 'Chat', 'Tidy text, no full stop at the end of a one-line message.'),
+  ('email', 'Email', 'Full sentences with punctuation.'),
+  ('code', 'Code', 'Code dictation. Pro.'),
+  ('notes', 'Notes', 'Tidy text, nothing rewritten.'),
+];
+
+String modeName(String mode) =>
+    dictationModes.firstWhere((m) => m.$1 == mode, orElse: () => dictationModes.first).$2;
+
+/// Pick the dictation mode, and (Pro) let it switch with the app in front.
+class ModesPage extends StatelessWidget {
+  const ModesPage({required this.controller, required this.pro, super.key});
+
+  final TextToolsController controller;
+  final ProController pro;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context).textTheme;
+    return _ToolScaffold(
+      title: 'Dictation mode',
+      listenable: Listenable.merge([controller, pro]),
+      builder: (context) {
+        final settings = controller.settings;
+        return [
+          Text(
+            'A mode sets how your words are tidied up, to match what you are '
+            'writing.',
+            style: theme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          RadioGroup<String>(
+            groupValue: settings.mode,
+            onChanged: (value) {
+              if (value != null) controller.setMode(value);
+            },
+            child: Column(
+              children: [
+                for (final (id, name, description) in dictationModes)
+                  ProGate(
+                    unlocked: id != 'code' || pro.isPro,
+                    child: RadioListTile<String>(
+                      value: id,
+                      title: Text(name),
+                      subtitle: Text(description),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          ProGate(
+            unlocked: pro.isPro,
+            child: SwitchListTile(
+              value: settings.autoModes,
+              onChanged: (value) => controller.setAutoModes(value: value),
+              title: const Text('Switch by app automatically (Pro)'),
+              subtitle: const Text(
+                'Chat apps use Chat, mail apps use Email, Termux uses Code, '
+                'and Keep, Notion, Obsidian and Word use Notes. Every other '
+                'app uses the mode above.',
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Decided from the app name only. VoxScribe never reads your screen.',
+            style: theme.bodySmall,
+          ),
+        ];
+      },
     );
   }
 }

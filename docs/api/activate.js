@@ -8,8 +8,10 @@
 // in a serverless function). Needs UPSTASH_REDIS_REST_URL and
 // UPSTASH_REDIS_REST_TOKEN set as Vercel project env vars.
 //
-// One key unlocks one Windows PC and one Android phone: each platform
-// claims its own slot, so activating on the phone never collides with the PC.
+// One key unlocks two Windows PCs and two Android phones: each platform has
+// its own slots, so activating on the phone never collides with the PC.
+// action "deactivate" frees this device's slot, so a key can move to a new
+// PC or phone without writing to support.
 //
 // Verifies the key's Ed25519 signature itself (same public key as
 // core/license.py) rather than trusting the client -- a request claiming
@@ -66,6 +68,10 @@ function verifyLicenseKey(key) {
   return valid ? licenseId.toString("hex") : null;
 }
 
+// Redis script: delete KEYS[1] only if it holds ARGV[1]. Returns 1 or 0.
+const RELEASE_IF_OWNER =
+  "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+
 async function upstash(command) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -93,7 +99,7 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { key, hardware_id: hardwareId, platform } = body || {};
+  const { key, hardware_id: hardwareId, platform, action } = body || {};
 
   const licenseId = verifyLicenseKey(key);
   if (!licenseId) {
@@ -102,24 +108,46 @@ module.exports = async (req, res) => {
   }
   const safeHardwareId = (hardwareId || "unknown").toString().slice(0, 128);
 
-  // Windows keeps the original key name so existing activations still match.
-  const redisKey = platform === "android" ? `license:${licenseId}:android` : `license:${licenseId}`;
+  // Windows keeps the original key name for its first slot so existing
+  // activations still match; each platform's second slot adds ":2".
+  const base = platform === "android" ? `license:${licenseId}:android` : `license:${licenseId}`;
+  const slots = [base, `${base}:2`];
   try {
-    const existing = await upstash(["get", redisKey]);
-    if (existing === null) {
-      await upstash(["set", redisKey, safeHardwareId]);
-      res.status(200).json({ ok: true, message: "activated" });
+    if (action === "deactivate") {
+      // Deletes a slot only if this device holds it (compare and delete in
+      // one step), so one device can never free another device's slot.
+      let freed = 0;
+      for (const slot of slots) {
+        freed += Number(await upstash(["eval", RELEASE_IF_OWNER, "1", slot, safeHardwareId]));
+      }
+      res.status(200).json({ ok: true, message: freed ? "deactivated" : "not_active_here" });
       return;
     }
-    if (existing === safeHardwareId) {
+
+    const holders = await Promise.all(slots.map((slot) => upstash(["get", slot])));
+    if (holders.includes(safeHardwareId)) {
       res.status(200).json({ ok: true, message: "already_this_device" });
       return;
     }
+    // SET ... NX claims a slot only if nobody holds it, in one step. A
+    // separate GET then SET let two devices activating at the same moment
+    // both see an empty slot and both "win".
+    for (const slot of slots) {
+      if ((await upstash(["set", slot, safeHardwareId, "NX"])) === "OK") {
+        res.status(200).json({ ok: true, message: "activated" });
+        return;
+      }
+    }
+    const where = platform === "android" ? "phones" : "PCs";
     res.status(409).json({
       ok: false,
-      message: "This key is already activated on a different device.",
+      message:
+        `This key is already active on two ${where}. Open VoxScribe on one of them ` +
+        "and choose Remove license to free a slot, then try again.",
     });
   } catch (exc) {
-    res.status(500).json({ ok: false, message: `Activation server error: ${exc.message}` });
+    // The details go to the Vercel log only; the app just needs to know it failed.
+    console.error("activation failed:", exc);
+    res.status(500).json({ ok: false, message: "Activation server error. Please try again later." });
   }
 };

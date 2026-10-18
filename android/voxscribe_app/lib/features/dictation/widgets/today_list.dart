@@ -3,14 +3,26 @@ import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/core/formatting.dart';
 import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 
-/// Today's dictations, newest first.
+/// Today's dictations, newest first. A dictation that has only just been
+/// made fades and slides in; older ones are simply there.
 class TodayList extends StatelessWidget {
-  const TodayList({required this.entries, this.onFixWord, super.key});
+  const TodayList({
+    required this.entries,
+    this.onFixWord,
+    this.clock = DateTime.now,
+    super.key,
+  });
 
   final List<DictationEntry> entries;
 
   /// Opens the "Fix a word" sheet for an entry's text. Null hides the button.
   final void Function(String text)? onFixWord;
+
+  /// The current time. Replaced in tests.
+  final DateTime Function() clock;
+
+  /// How recent an entry must be to count as "just made" and fade in.
+  static const freshFor = Duration(seconds: 10);
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +36,16 @@ class TodayList extends StatelessWidget {
     return Column(
       children: [
         for (var i = 0; i < entries.length; i++)
-          _EntryRow(
-            entry: entries[i],
-            showDivider: i > 0,
-            onFixWord: onFixWord,
+          _FadeInOnce(
+            // Keyed by the entry, so a row that is already shown keeps its
+            // state and does not fade in again when a new one arrives.
+            key: ValueKey(entries[i].createdAt),
+            animate: clock().difference(entries[i].createdAt) < freshFor,
+            child: _EntryRow(
+              entry: entries[i],
+              showDivider: i > 0,
+              onFixWord: onFixWord,
+            ),
           ),
       ],
     );
@@ -90,6 +108,61 @@ class _EntryRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Fades and slides its child in once, when first shown, if [animate] is on
+/// and reduced motion is off.
+class _FadeInOnce extends StatefulWidget {
+  const _FadeInOnce({required this.animate, required this.child, super.key});
+
+  final bool animate;
+  final Widget child;
+
+  @override
+  State<_FadeInOnce> createState() => _FadeInOnceState();
+}
+
+class _FadeInOnceState extends State<_FadeInOnce>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 360),
+  );
+  late final Animation<double> _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOutCubic,
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller.isAnimating || _controller.isCompleted) return;
+    if (widget.animate && !MediaQuery.disableAnimationsOf(context)) {
+      _controller.forward();
+    } else {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _curve,
+      child: SlideTransition(
+        position: Tween(
+          begin: const Offset(0, -0.15),
+          end: Offset.zero,
+        ).animate(_curve),
+        child: widget.child,
       ),
     );
   }

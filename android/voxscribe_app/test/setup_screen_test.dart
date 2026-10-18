@@ -9,6 +9,15 @@ Future<FakeSetupPlatform> _openSetup(
   WidgetTester tester,
   SetupStatus status,
 ) async {
+  // The looping how-it-works demo never settles; these tests are about the
+  // steps, so show it as its still picture.
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  // A taller screen than the default, so the steps below the demo are on screen.
+  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   final platform = FakeSetupPlatform(status);
   await tester.pumpWidget(buildTestApp(setup: platform));
   await openTab(tester, 'Settings');

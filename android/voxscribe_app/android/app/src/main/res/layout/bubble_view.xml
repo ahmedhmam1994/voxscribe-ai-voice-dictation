@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The floating button: one circular ImageView. BubbleService sets the background
+  The floating button: one circular BubbleView (an ImageView that can also draw
+  a live mic level). BubbleService sets the background
   and icon tint together per state (green mic idle, darker green stop while
   recording, amber while transcribing) so the pair always stays matched.
 -->
-<androidx.appcompat.widget.AppCompatImageView
+<com.voxscribe.android.BubbleView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/bubble_icon"
     android:layout_width="56dp"

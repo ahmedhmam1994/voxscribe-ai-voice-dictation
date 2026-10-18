@@ -9,6 +9,36 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.8.1": (
+        "- New: Try harder. A word came out wrong? Press F8 within 2 minutes and the "
+        "same recording is run again through a bigger model, and only what changed "
+        "is retyped. Free uses Small; Pro uses Large turbo, Large or Medium; with no "
+        "bigger model, the one in use runs again in careful mode. Change "
+        "the key in Settings.\n"
+        "- New: dictation modes. Chat, Email, Code and Notes tidy your words to fit "
+        "what you write. With Pro, the mode switches by itself with the app.\n"
+        "- New: one Pro key now covers two PCs and two phones, and Remove license "
+        "frees this PC so the key can move to a new one.\n"
+        "- New: the recording pill shows a live mic level while you talk, so you "
+        "can see the microphone is really hearing you.\n"
+        "- New: a small animation while your words are being transcribed.\n"
+        "- New: a check mark when the text is typed, and a short shake with the "
+        "reason when it isn't (no speech heard, window changed, nothing to undo).\n"
+        "- New: the pill slides in and fades out instead of popping.\n"
+        "- New: the first-run model download has a progress bar, and batch "
+        "imports move smoothly.\n"
+        "- New: a redesigned Insights page with typing time saved, your speaking "
+        "speed against typing, this week's chart, a 12 week activity grid and "
+        "highlights. The numbers count up, and a new dictation fades into the "
+        "Today list.\n"
+        "- New: VoxScribe never types into a password box, in browsers and apps, "
+        "and keeps what was said there out of the history.\n"
+        "- New: a short welcome with a demo on first launch, also in the tray menu "
+        "under How to use VoxScribe.\n"
+        "- Safer updates: a downloaded update must match GitHub's checksum before "
+        "it is offered to run.\n"
+        "- Animations follow the Windows \"Show animations\" setting."
+    ),
     "1.8.0": (
         "- New: change what you just dictated by voice. Say \"capitalize that\", "
         "\"all caps\", \"lowercase that\" or \"replace noon with one\", on its own "

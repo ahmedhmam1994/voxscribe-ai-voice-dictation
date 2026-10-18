@@ -60,7 +60,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.floating_indicator import FloatingIndicator
+from app.insights_page import InsightsPage
+from app.motion import animate_progress, fade_in
+from app.speed_test import SpeedTestDialog
 from app.version import __version__
+from app.welcome import WelcomeDialog
 from app.whats_new import whats_new_text
 from core import (
     app_profiles,
@@ -68,6 +72,7 @@ from core import (
     code_dictation,
     diarize,
     history,
+    modes,
     network_guard,
     replacements,
     smart_format,
@@ -94,8 +99,22 @@ from core.cleanup import clean_transcript
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.hold_gate import HoldGate
+from core.password_field import focused_is_password
+from core.redo import (
+    CAREFUL_BEAM_SIZE,
+    LATE_HINT_SEC,
+    REDO_WINDOW_SEC,
+    TYPED_HINT_COUNT,
+    pick_redo_model,
+)
 from core.srt import format_srt, format_timestamp
-from core.transcribe import MODEL_APPROX_MB, Transcriber, load_transcriber, model_cache_bytes
+from core.transcribe import (
+    MODEL_APPROX_MB,
+    Transcriber,
+    is_model_downloaded,
+    load_transcriber,
+    model_cache_bytes,
+)
 from core.updater import UpdateCheckThread, UpdateDownloadThread, UpdateInfo
 from core.voice_commands import (
     apply_replace,
@@ -266,6 +285,9 @@ class HotkeyBridge(QObject):
     # The Pro second-language key.
     alt_press_requested = Signal()
     alt_release_requested = Signal()
+    # The Try harder key (core/redo.py).
+    redo_requested = Signal()
+    redo_too_late = Signal()
 
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
@@ -812,6 +834,8 @@ class ModelLoaderThread(QThread):
     done = Signal(object)
     failed = Signal(str)
     progress = Signal(str)
+    # Megabytes downloaded so far and the expected total, for the progress bar.
+    download = Signal(int, int)
 
     def _watch_download(self, model_size: str, stop: threading.Event) -> None:
         """Reports first-run download progress by watching the cache folder
@@ -826,6 +850,7 @@ class ModelLoaderThread(QThread):
             if 0 < mb < expected_mb * 0.97 and mb != last_mb:
                 last_mb = mb
                 self.progress.emit(f"Downloading model... {mb} of about {expected_mb} MB")
+                self.download.emit(mb, expected_mb)
 
     def run(self) -> None:
         stop = threading.Event()
@@ -893,6 +918,8 @@ class TranscribeThread(QThread):
         language: str | None = "en",
         initial_prompt: str | None = None,
         task: str = "transcribe",
+        beam_size: int = 1,
+        load_size: str | None = None,
     ) -> None:
         super().__init__()
         self.transcriber = transcriber
@@ -900,14 +927,24 @@ class TranscribeThread(QThread):
         self.language = language
         self.initial_prompt = initial_prompt
         self.task = task
+        self.beam_size = beam_size
+        # Try harder: load this (already downloaded) model first, offline.
+        # The loaded model is handed back on `loaded` so it can be reused.
+        self.load_size = load_size
+
+    loaded = Signal(object)
 
     def run(self) -> None:
         try:
+            if self.load_size is not None:
+                self.transcriber = Transcriber(self.load_size, local_files_only=True)
+                self.loaded.emit(self.transcriber)
             text = self.transcriber.transcribe(
                 self.audio,
                 language=self.language,
                 initial_prompt=self.initial_prompt,
                 task=self.task,
+                beam_size=self.beam_size,
             )
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
@@ -1266,6 +1303,19 @@ class MainWindow(QMainWindow):
         status_row = QHBoxLayout()
         self.status_pill = StatusPill()
         status_row.addWidget(self.status_pill)
+        # First-run model download: a bar that glides along next to the
+        # status text, so a slow download reads as moving, not frozen.
+        self._model_progress = QProgressBar()
+        self._model_progress.setRange(0, 100)
+        self._model_progress.setTextVisible(False)
+        self._model_progress.setFixedSize(140, 6)
+        self._model_progress.setStyleSheet(
+            f"QProgressBar {{ background: {BG_CARD}; border: 1px solid {BORDER};"
+            " border-radius: 3px; }"
+            f"QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}"
+        )
+        self._model_progress.hide()
+        status_row.addWidget(self._model_progress)
         status_row.addStretch(1)
 
         self.language_badge = QPushButton()
@@ -1527,6 +1577,26 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.alt_press_requested.connect(self._handle_alt_press)
         self._hotkey_bridge.alt_release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_bridge.redo_requested.connect(self._try_harder)
+        self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
+        self._last_typed_at = 0.0
+        self._redo_hook = None
+        self._redo_key_down = False
+        # Try harder state: the last recording (memory only, see core/redo.py),
+        # what was typed from it, and a loaded bigger model kept for reuse.
+        self._last_audio: np.ndarray | None = None
+        self._last_audio_params: tuple | None = None
+        self._redo: dict | None = None
+        self._redo_armed = False
+        self._redo_worker: TranscribeThread | None = None
+        self._redo_model: tuple[str, Transcriber] | None = None
+        self._redo_model_timer = QTimer(self)
+        self._redo_model_timer.setSingleShot(True)
+        # A bigger model holds 1-3 GB of memory; let it go after a quiet spell.
+        self._redo_model_timer.timeout.connect(lambda: setattr(self, "_redo_model", None))
+        self._redo_expiry_timer = QTimer(self)
+        self._redo_expiry_timer.setSingleShot(True)
+        self._redo_expiry_timer.timeout.connect(self._clear_redo)
         self._alt_press_hook = None
         self._alt_release_hook = None
         self._hotkey_press_hook = None
@@ -1615,6 +1685,7 @@ class MainWindow(QMainWindow):
             chunk = indata[:, 0].copy()
             if self._capturing:
                 self._chunks.append(chunk)
+                self._indicator.feed_audio(chunk)
             else:
                 buffer.push(chunk)
 
@@ -1641,6 +1712,7 @@ class MainWindow(QMainWindow):
             self._hold_other_hook,
             self._alt_press_hook,
             self._alt_release_hook,
+            self._redo_hook,
         ):
             if hook is not None:
                 try:
@@ -1652,6 +1724,7 @@ class MainWindow(QMainWindow):
         self._hold_other_hook = None
         self._alt_press_hook = None
         self._alt_release_hook = None
+        self._redo_hook = None
         self._hold_gate = None
         self._hotkey_registration_error = None
 
@@ -1695,6 +1768,9 @@ class MainWindow(QMainWindow):
                 self._alt_release_hook = keyboard.on_release_key(
                     second, lambda e: self._hotkey_bridge.alt_release_requested.emit()
                 )
+            redo_key = hotkey_settings.get_redo_hotkey()
+            if redo_key and redo_key not in (self._hotkey, second):
+                self._redo_hook = keyboard.hook_key(redo_key, self._on_redo_key, suppress=True)
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
             # the app still works fine via the on-screen button, but the
@@ -1997,8 +2073,26 @@ class MainWindow(QMainWindow):
                 )
 
         def _remove_license() -> None:
+            # Frees this PC's slot on the server first, so the key can move to
+            # a new PC without writing to support. Removed here either way.
+            key = hotkey_license.get_license_key() or ""
+            license_status_label.setText("Removing...")
+            license_remove_button.setEnabled(False)
+            QApplication.processEvents()
+            ok, message = hotkey_license.deactivate_online(key)
+            license_remove_button.setEnabled(True)
             hotkey_license.clear_license_key()
             _refresh_license_ui()
+            if ok:
+                license_status_label.setText(
+                    "License removed from this PC. The key is free to use on another PC."
+                )
+            else:
+                license_status_label.setText(
+                    "License removed from this PC, but the server could not be reached, "
+                    f"so this PC may still count as one of the key's two. ({message}) "
+                    "Unlock and remove again when online to free it."
+                )
 
         license_unlock_button.clicked.connect(_try_unlock_license)
         license_remove_button.clicked.connect(_remove_license)
@@ -2209,6 +2303,20 @@ class MainWindow(QMainWindow):
         model_hint.setWordWrap(True)
         layout.addWidget(model_hint)
 
+        # Speed depends on the PC far more than a label can say, so let people
+        # measure it with their own voice before picking (app/speed_test.py).
+        speed_row = QHBoxLayout()
+        speed_test_button = QPushButton("Test speed on this PC...")
+        speed_test_button.setObjectName("secondaryButton")
+        speed_test_button.setCursor(Qt.PointingHandCursor)
+        speed_test_button.setMinimumHeight(32)
+        speed_test_button.clicked.connect(
+            lambda: SpeedTestDialog(SETTINGS_DIALOG_STYLESHEET, self.transcriber, self).exec()
+        )
+        speed_row.addWidget(speed_test_button)
+        speed_row.addStretch(1)
+        layout.addLayout(speed_row)
+
         def _update_model_lock_state() -> None:
             unlocked = hotkey_license.is_pro()
             item_model = model_combo.model()
@@ -2414,6 +2522,43 @@ class MainWindow(QMainWindow):
         templates_hint.setWordWrap(True)
         layout.addWidget(templates_hint)
 
+        layout = text
+        mode_label = QLabel("DICTATION MODE")
+        mode_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(mode_label)
+        mode_combo = self._new_settings_combo()
+        for mode_name, mode_text in modes.MODE_LABELS.items():
+            mode_combo.addItem(mode_text, mode_name)
+        mode_combo.setCurrentIndex(max(0, mode_combo.findData(hotkey_settings.get_mode())))
+        layout.addWidget(mode_combo)
+        auto_modes_checkbox = QCheckBox("Switch modes by app automatically (Pro)")
+        auto_modes_checkbox.setChecked(hotkey_settings.get_auto_modes_enabled())
+        layout.addWidget(auto_modes_checkbox)
+        mode_hint = QLabel(
+            "Chat: tidy text and no full stop at the end of a one-line message. "
+            "Email: full sentences with punctuation. Code: code dictation. Notes: "
+            "tidy text, nothing rewritten. With Pro and automatic switching, chat "
+            "apps (Slack, Discord, WhatsApp, Teams) use Chat, Outlook and Thunderbird "
+            "use Email, code editors and terminals use Code, and Word, Notion, Obsidian "
+            "and Notepad use Notes; every other app uses the mode above. Decided from "
+            "the program's name only, never from the screen."
+        )
+        mode_hint.setObjectName("settingsHint")
+        mode_hint.setWordWrap(True)
+        layout.addWidget(mode_hint)
+
+        def _update_mode_lock_state() -> None:
+            unlocked = hotkey_license.is_pro()
+            item_model = mode_combo.model()
+            for i in range(mode_combo.count()):
+                if mode_combo.itemData(i) in modes.PRO_MODES:
+                    item_model.item(i).setEnabled(unlocked)
+            auto_modes_checkbox.setEnabled(unlocked)
+
+        _update_mode_lock_state()
+        license_unlock_button.clicked.connect(_update_mode_lock_state)
+        license_remove_button.clicked.connect(_update_mode_lock_state)
+
         layout = general
         second_label = QLabel("SECOND LANGUAGE KEY (PRO)")
         second_label.setObjectName("settingsSectionLabel")
@@ -2446,6 +2591,30 @@ class MainWindow(QMainWindow):
         second_hint.setWordWrap(True)
         layout.addWidget(second_hint)
 
+        redo_label = QLabel("TRY HARDER KEY")
+        redo_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(redo_label)
+        redo_key_combo = QComboBox()
+        redo_key_combo.addItem("Off", "")
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            if key not in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                redo_key_combo.addItem(key.upper(), key)
+        redo_key_combo.setCurrentIndex(
+            max(0, redo_key_combo.findData(hotkey_settings.get_redo_hotkey()))
+        )
+        layout.addWidget(redo_key_combo)
+        redo_hint = QLabel(
+            "A word came out wrong? Press this key within 2 minutes and VoxScribe "
+            "runs the same recording again through a bigger model and retypes only "
+            "what changed. Free uses Small; Pro uses Large turbo, Large or Medium, "
+            "whichever is downloaded. With no bigger model, the model in use runs again "
+            "in careful mode. The key works normally in other apps the rest of the "
+            "time, and the recording is kept in memory only."
+        )
+        redo_hint.setObjectName("settingsHint")
+        redo_hint.setWordWrap(True)
+        layout.addWidget(redo_hint)
+
         layout = pro
         profiles_label = QLabel("PER-APP PROFILES (PRO)")
         profiles_label.setObjectName("settingsSectionLabel")
@@ -2458,10 +2627,11 @@ class MainWindow(QMainWindow):
         layout.addWidget(profiles_edit)
 
         profiles_hint = QLabel(
-            "One per line: program.exe => option=value, ... Options: language "
-            "(a code like en or ar, or auto), cleanup, voice_commands, code, smart "
-            "(on or off). Applies while that program has focus; anything not set "
-            "uses your normal settings."
+            "One per line: program.exe => option=value, ... Options: mode (chat, "
+            "email, code, notes or default), language (a code like en or ar, or auto), "
+            "cleanup, voice_commands, code, smart, period (on or off). Applies while "
+            "that program has focus; anything not set uses the mode, then your normal "
+            "settings."
         )
         profiles_hint.setObjectName("settingsHint")
         profiles_hint.setWordWrap(True)
@@ -2822,6 +2992,32 @@ class MainWindow(QMainWindow):
                 )
 
             new_replacements = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            new_mode = mode_combo.currentData()
+            if new_mode in modes.PRO_MODES and not hotkey_license.is_pro():
+                new_mode = modes.DEFAULT_MODE
+            if new_mode != hotkey_settings.get_mode():
+                hotkey_settings.set_mode(new_mode)
+                changes.append(f"Dictation mode: {modes.MODE_LABELS[new_mode].split(' (')[0]}.")
+            if hotkey_license.is_pro():
+                new_auto_modes = auto_modes_checkbox.isChecked()
+                if new_auto_modes != hotkey_settings.get_auto_modes_enabled():
+                    hotkey_settings.set_auto_modes_enabled(new_auto_modes)
+                    changes.append(
+                        "Modes switch by app."
+                        if new_auto_modes
+                        else "Modes no longer switch by app."
+                    )
+
+            new_redo_key = redo_key_combo.currentData()
+            if new_redo_key != hotkey_settings.get_redo_hotkey():
+                hotkey_settings.set_redo_hotkey(new_redo_key)
+                self._register_global_hotkey()
+                changes.append(
+                    f"Try harder key set to {new_redo_key.upper()}."
+                    if new_redo_key
+                    else "Try harder key off."
+                )
+
             if new_replacements != replacements.get_replacements():
                 replacements.set_replacements(new_replacements)
                 changes.append(
@@ -3031,6 +3227,10 @@ class MainWindow(QMainWindow):
         and a "what's new" balloon makes no sense before someone has used
         the app at all."""
         last_seen = hotkey_settings.get_last_seen_version()
+        if last_seen is None:
+            # A brand-new install: the app starts hidden in the tray, so show
+            # the welcome with its short demo once, after start-up settles.
+            QTimer.singleShot(900, self._show_welcome)
         if last_seen != __version__:
             if last_seen is not None:
                 notes = whats_new_text(__version__)
@@ -3042,6 +3242,27 @@ class MainWindow(QMainWindow):
                         8000,
                     )
             hotkey_settings.set_last_seen_version(__version__)
+
+    def _show_welcome(self) -> None:
+        """The first-run welcome with its looping demo (app/welcome.py)."""
+        if getattr(self, "_welcome", None) is not None:
+            self._welcome.raise_()
+            self._welcome.activateWindow()
+            return
+        dialog = WelcomeDialog(self._hotkey, SETTINGS_DIALOG_STYLESHEET)
+        dialog.setWindowIcon(self.windowIcon())
+        self._welcome = dialog
+
+        def _closed(result: int) -> None:
+            self._welcome = None
+            dialog.deleteLater()
+            if result == 2:
+                self._show_and_raise()
+
+        dialog.finished.connect(_closed)
+        dialog.show()
+        dialog.raise_()
+        dialog.activateWindow()
 
     def _setup_tray_icon(self) -> None:
         """Adds a tray icon so the app can keep running (hotkey + indicator
@@ -3062,6 +3283,14 @@ class MainWindow(QMainWindow):
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(self._open_settings_dialog)
         menu.addAction(settings_action)
+
+        redo_action = QAction("Try harder on the last dictation", self)
+        redo_action.triggered.connect(self._try_harder)
+        menu.addAction(redo_action)
+
+        welcome_action = QAction("How to use VoxScribe", self)
+        welcome_action.triggered.connect(self._show_welcome)
+        menu.addAction(welcome_action)
 
         # Hidden until an update is found, then stays in the menu (and the
         # tray tooltip changes) until it's acted on, so a missed 8-second
@@ -3265,7 +3494,9 @@ class MainWindow(QMainWindow):
                 QSystemTrayIcon.MessageIcon.Information,
                 4000,
             )
-        self._update_downloader = UpdateDownloadThread(info.asset_url, info.asset_name)
+        self._update_downloader = UpdateDownloadThread(
+            info.asset_url, info.asset_name, info.asset_sha256
+        )
         self._update_downloader.done.connect(self._on_update_downloaded)
         self._update_downloader.failed.connect(self._on_update_download_failed)
         self._update_downloader.start()
@@ -3393,13 +3624,27 @@ class MainWindow(QMainWindow):
 
     def _start_model_load(self) -> None:
         self._model_failed = False
+        # What will really be loaded (a size change in Settings only applies
+        # after a restart); Try harder compares against this, not the setting.
+        size = hotkey_settings.get_model_size()
+        if size in hotkey_settings.PRO_MODEL_SIZES and not hotkey_license.is_pro():
+            size = hotkey_settings.DEFAULT_MODEL_SIZE
+        self._loaded_model_size = size
+        animate_progress(self._model_progress, 0)
         self._loader = ModelLoaderThread()
         self._loader.done.connect(self._on_model_loaded)
         self._loader.failed.connect(self._on_model_load_failed)
         self._loader.progress.connect(lambda text: self._set_status(text, "transcribing"))
+        self._loader.download.connect(self._on_model_download)
         self._loader.start()
 
+    def _on_model_download(self, mb: int, expected_mb: int) -> None:
+        self._model_progress.show()
+        # Reports arrive once a second, so glide over about that long.
+        animate_progress(self._model_progress, min(100, mb * 100 // expected_mb), 950)
+
     def _on_model_loaded(self, transcriber: Transcriber) -> None:
+        self._model_progress.hide()
         self.transcriber = transcriber
         self._model_failed = False
         self.record_button.setText("Start Recording")
@@ -3408,6 +3653,7 @@ class MainWindow(QMainWindow):
         self._set_import_enabled(True)
 
     def _on_model_load_failed(self, message: str) -> None:
+        self._model_progress.hide()
         self._model_failed = True
         self._set_status("Model failed to load. Click Retry.", "error")
         self.transcript_area.append(
@@ -3470,14 +3716,15 @@ class MainWindow(QMainWindow):
             # here that used to run with transcriber=None and surface a
             # confusing "'NoneType' object has no attribute 'transcribe'"
             # instead of telling the user what's actually happening.
-            self._indicator.show_status("model_failed" if self._model_failed else "not_ready")
-            QTimer.singleShot(2500 if self._model_failed else 1500, self._indicator.hide_indicator)
+            if self._model_failed:
+                self._indicator.flash_error("Model failed to load", 2500)
+            else:
+                self._indicator.flash_error("Still loading model...", 1500)
             return
         if self._import_active():
             # A file import is using the model; dictating now would run two
             # transcriptions at once and re-enable buttons mid-import.
-            self._indicator.show_status("busy")
-            QTimer.singleShot(1500, self._indicator.hide_indicator)
+            self._indicator.flash_error("Busy with file import", 1500)
             return
         if hotkey_settings.get_talk_mode() == "toggle":
             # Toggle mode: a press either starts or stops -- release (below)
@@ -3519,10 +3766,19 @@ class MainWindow(QMainWindow):
         if excluded_process and excluded_process in hotkey_settings.get_excluded_apps():
             self._hotkey_active_session = False
             self._set_status(f"Dictation disabled for {excluded_process}", "error")
+            self._indicator.flash_error("Dictation is off in this app")
             return
 
-        self._recording_profile = (
-            app_profiles.profile_for(excluded_process) if hotkey_license.is_pro() else {}
+        # A new dictation starts: the previous one can no longer be redone.
+        self._clear_redo()
+        # The dictation mode for this app (core/modes.py), with any per-app
+        # profile options on top (Pro).
+        self._recording_mode, self._recording_profile = modes.effective_options(
+            excluded_process,
+            app_profiles.profile_for(excluded_process),
+            hotkey_settings.get_mode(),
+            hotkey_settings.get_auto_modes_enabled(),
+            hotkey_license.is_pro(),
         )
         self._chunks = []
         # Falls back to auto-detection if the user's chosen device (Settings
@@ -3544,7 +3800,7 @@ class MainWindow(QMainWindow):
             self._set_record_button_recording(True)
             self._set_import_enabled(False)
             self._set_status("Recording...", "recording")
-            self._indicator.show_status("recording")
+            self._indicator.show_status("recording", self._mode_badge())
             _play_start_sound()
             return
 
@@ -3555,7 +3811,9 @@ class MainWindow(QMainWindow):
         self._record_rate = device_native_samplerate(device)
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
-            self._chunks.append(indata[:, 0].copy())
+            chunk = indata[:, 0].copy()
+            self._chunks.append(chunk)
+            self._indicator.feed_audio(chunk)
 
         try:
             self.stream = sd.InputStream(
@@ -3570,12 +3828,13 @@ class MainWindow(QMainWindow):
             self.stream = None
             self._hotkey_active_session = False
             self._set_status(f"No microphone available: {exc}", "error")
+            self._indicator.flash_error("No microphone available")
             return
         self.record_button.setText("Stop Recording")
         self._set_record_button_recording(True)
         self._set_import_enabled(False)
         self._set_status("Recording...", "recording")
-        self._indicator.show_status("recording")
+        self._indicator.show_status("recording", self._mode_badge())
         _play_start_sound()
 
     def _stop_recording(self) -> None:
@@ -3610,17 +3869,25 @@ class MainWindow(QMainWindow):
         self._chunks = []
         self._last_recording_duration = len(audio) / SAMPLE_RATE
 
-        self._worker = TranscribeThread(
-            self.transcriber,
-            audio,
+        params = (
             self._effective_language(),
             hotkey_settings.custom_vocabulary_prompt(),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
+        # Kept in memory only, for Try harder; dropped once the text is typed
+        # and the redo window passes (core/redo.py).
+        self._last_audio = audio
+        self._last_audio_params = params
+        self._worker = TranscribeThread(self.transcriber, audio, *params)
         self._language_override = None
         self._worker.done.connect(self._on_transcribed)
         self._worker.failed.connect(self._on_transcribe_failed)
         self._worker.start()
+
+    def _mode_badge(self) -> str:
+        """The mode's name for the recording pill, or "" for the default mode."""
+        mode = getattr(self, "_recording_mode", modes.DEFAULT_MODE)
+        return "" if mode == modes.DEFAULT_MODE else modes.MODE_LABELS[mode].split(" (")[0]
 
     def _effective_language(self) -> str | None:
         """The second key's language, else the focused app's profile, else Settings."""
@@ -3726,6 +3993,15 @@ class MainWindow(QMainWindow):
         if text and pro and self._handle_template_turn(text):
             return
 
+        text = self._finish_formatting(text, pro, voice_commands_on, trailing_mode)
+        self._deliver_text(text)
+
+    def _finish_formatting(
+        self, text: str, pro: bool, voice_commands_on: bool, trailing_mode: str | None
+    ) -> str:
+        """Code dictation or cleanup, spoken punctuation, smart formatting,
+        replacements, snippets and a trailing "all caps"-style command. Shared
+        by normal dictation and Try harder, so a redo is formatted the same."""
         if text and pro and self._option("code", hotkey_settings.get_code_dictation_enabled()):
             # Code is not prose: no capitalizing, no full stops, no filler cleanup.
             text = code_dictation.to_code(text)
@@ -3737,13 +4013,168 @@ class MainWindow(QMainWindow):
             smart_on = self._option("smart", hotkey_settings.get_smart_formatting_enabled())
             if text and pro and smart_on:
                 text = smart_format.smart_format(text)
+            if text and self._option("period", True) is False:
+                # Chat mode: no full stop at the end of a one-sentence message.
+                text = modes.drop_final_period(text)
         if text:
             text = replacements.apply_replacements(text)
         if text and pro:
             text = snippets.expand_snippet(text)
         if text and trailing_mode:
             text = apply_transform(text, trailing_mode)
-        self._deliver_text(text)
+        return text
+
+    # -- Try harder (core/redo.py) ------------------------------------------
+
+    def _on_redo_key(self, event) -> bool:  # noqa: ANN001
+        """Runs on the keyboard hook's thread. Takes the key only while a redo
+        is possible; the rest of the time it reaches the app as usual."""
+        if not self._redo_armed and not self._redo_key_down:
+            if (
+                event.event_type == "down"
+                and 0 < time.monotonic() - self._last_typed_at < LATE_HINT_SEC
+            ):
+                # Too late to redo: let the key through, but say why nothing
+                # happens instead of failing silently.
+                self._hotkey_bridge.redo_too_late.emit()
+            return True
+        if event.event_type == "down":
+            if not self._redo_key_down:
+                self._redo_key_down = True
+                self._hotkey_bridge.redo_requested.emit()
+            return False
+        self._redo_key_down = False
+        return False
+
+    def _redo_too_late(self) -> None:
+        if self._indicator.isVisible():
+            return
+        key = hotkey_settings.get_redo_hotkey().upper()
+        self._indicator.flash_error(
+            f"Too late to redo. Press {key} within {REDO_WINDOW_SEC // 60} min of dictating", 3000
+        )
+
+    def _set_redo(self, redo: dict | None) -> None:
+        self._redo = redo
+        self._redo_armed = redo is not None
+        if redo is None:
+            self._redo_expiry_timer.stop()
+        else:
+            self._redo_expiry_timer.start(REDO_WINDOW_SEC * 1000)
+
+    def _clear_redo(self) -> None:
+        self._set_redo(None)
+        self._last_audio = None
+
+    def _try_harder(self) -> None:
+        redo = self._redo
+        if redo is None or time.monotonic() - redo["at"] > REDO_WINDOW_SEC:
+            self._clear_redo()
+            self._indicator.flash_error("Nothing to redo")
+            return
+        if self._redo_worker is not None and self._redo_worker.isRunning():
+            return
+        if foreground_window_handle() != redo["hwnd"] or self._last_typed_text != redo["typed"]:
+            self._clear_redo()
+            self._indicator.flash_error("Can't redo, the text or window changed")
+            return
+        downloaded = {
+            size for size, _ in hotkey_settings.AVAILABLE_MODEL_SIZES if is_model_downloaded(size)
+        }
+        current = self._loaded_model_size
+        size, bigger = pick_redo_model(current, hotkey_license.is_pro(), downloaded)
+        if not bigger:
+            # No bigger model to use: the model already loaded runs again in
+            # careful mode (core/redo.py), so nothing new has to load.
+            cached = (current, self.transcriber) if self.transcriber is not None else None
+        else:
+            cached = (
+                self._redo_model if self._redo_model and self._redo_model[0] == size else None
+            )
+        language, prompt, task = redo["params"]
+        self._indicator.show_status("redo")
+        self._set_status("Trying harder...", "transcribing")
+        worker = TranscribeThread(
+            cached[1] if cached else None,
+            redo["audio"],
+            language,
+            prompt,
+            task,
+            beam_size=CAREFUL_BEAM_SIZE,
+            load_size=None if cached else size,
+        )
+        worker.loaded.connect(lambda model: setattr(self, "_redo_model", (size, model)))
+        worker.done.connect(lambda text: self._on_redo_done(redo, size, text, bigger))
+        worker.failed.connect(self._on_redo_failed)
+        self._redo_worker = worker
+        worker.start()
+
+    def _on_redo_done(self, redo: dict, size: str, raw: str, bigger: bool = True) -> None:
+        self._redo_model_timer.start(5 * 60 * 1000)
+        if self._redo is not redo:
+            # A new dictation started meanwhile; this result is stale.
+            return
+        saved_profile = self._recording_profile
+        self._recording_profile = redo["profile"]
+        try:
+            voice_commands_on = self._option(
+                "voice_commands", hotkey_settings.get_voice_commands_enabled()
+            )
+            text = raw
+            if text and hotkey_settings.get_send_it_enabled():
+                text = split_trailing_send(text) or text
+            if text and voice_commands_on:
+                text = apply_trailing_replace(text) or text
+            trailing_mode = None
+            if text and voice_commands_on:
+                split = split_trailing_transform(text)
+                if split:
+                    text, trailing_mode = split
+            new = self._finish_formatting(
+                text, hotkey_license.is_pro(), voice_commands_on, trailing_mode
+            )
+        finally:
+            self._recording_profile = saved_profile
+
+        old = redo["typed"]
+        name = next(
+            (n for s, n in hotkey_settings.AVAILABLE_MODEL_SIZES if s == size), size
+        ).split(":", 1)[-1].split(",")[0].strip()
+        if not bigger:
+            name += ", careful mode"
+        self._clear_redo()
+        if not new or new == old:
+            self._set_status("Try harder found the same words", "ready")
+            self._indicator.flash_success("Same result")
+            return
+        if foreground_window_handle() != redo["hwnd"] or self._last_typed_text != old:
+            self._set_status("Try harder: the text or window changed", "error")
+            self._indicator.flash_error("Can't redo, the text or window changed")
+            return
+        backspaces, to_type = compute_rewrite(old, new)
+        typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
+        self._last_typed_text = new
+
+        def _retype() -> None:
+            with self._typing_lock:
+                try:
+                    for _ in range(backspaces):
+                        keyboard.send("backspace")
+                    if to_type:
+                        keyboard.write(to_type, delay=typing_delay)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        threading.Thread(target=_retype, daemon=True).start()
+        history.replace_last_text(old, new)
+        self._refresh_history_feed()
+        self.transcript_area.append(f"[tried harder with {name}] {new}")
+        self._set_status(f"Retyped with {name}", "ready")
+        self._indicator.flash_success(f"Fixed with {name}", 1400)
+
+    def _on_redo_failed(self, message: str) -> None:
+        self._set_status(f"Try harder failed: {message}", "error")
+        self._indicator.flash_error("Try harder failed")
 
     # How long a half-filled template waits for the next answer before it is dropped.
     _TEMPLATE_TIMEOUT_SEC = 120
@@ -3752,6 +4183,10 @@ class MainWindow(QMainWindow):
         """Pro. Starts a spoken template, or takes the next answer for one in
         progress. Returns True when the utterance was consumed by a template."""
         session = self._template_session
+        if session is not None or templates.find_template(text, templates.get_templates()):
+            # A template's text is built from several answers; redoing only
+            # the last recording would replace all of it with one answer.
+            self._last_audio = None
         if session is not None and time.monotonic() - self._template_last_turn > (
             self._TEMPLATE_TIMEOUT_SEC
         ):
@@ -3769,6 +4204,7 @@ class MainWindow(QMainWindow):
         elif session.feed(text) == "cancel":
             self._template_session = None
             self._deliver_text("")
+            self._indicator.hide_indicator()
             self._set_status("Template cancelled", "ready")
             return True
 
@@ -3787,12 +4223,23 @@ class MainWindow(QMainWindow):
 
     def _deliver_text(self, text: str) -> None:
         """Shows the finished text and types it into the focused window."""
-        self.transcript_area.append(text if text else "[no speech recognized]")
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        self._indicator.hide_indicator()
+
+        if text and focused_is_password():
+            # Never type dictation into a password box, and keep what was said
+            # out of the transcript and history too. Checked again after
+            # refocusing, in _type_into_focused_window.
+            self.transcript_area.append("[not typed: password field]")
+            self._set_status("Not typed: the box is a password field", "error")
+            self._indicator.flash_error("Not typing into a password field", 2500)
+            return
+
+        self.transcript_area.append(text if text else "[no speech recognized]")
 
         if text:
+            # The pill stays on "Transcribing" until the text is really typed
+            # (or held): _type_into_focused_window shows the check or the error.
             hotkey_settings.record_dictation(len(text.split()))
             history.add_entry(text, self._last_recording_duration)
             self._refresh_history_feed()
@@ -3804,6 +4251,9 @@ class MainWindow(QMainWindow):
             self._set_status("Typed into active window", "ready")
         else:
             self._set_status("Ready", "ready")
+            # Usually a mic that is too quiet or muted: say so instead of
+            # silently vanishing.
+            self._indicator.flash_error("No speech heard")
 
     def _open_connection_log(self, parent: QWidget) -> None:
         """Shows every outside connection VoxScribe has tried, newest first."""
@@ -3852,52 +4302,16 @@ class MainWindow(QMainWindow):
         for i, btn in self._nav_buttons.items():
             btn.setChecked(i == index)
         if index == 1:
-            self._refresh_insights()
-
-    def _new_stat_card(self, label_text: str) -> tuple[QLabel, QWidget]:
-        card = QWidget()
-        card.setObjectName("statCard")
-        card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(18, 16, 18, 16)
-        card_layout.setSpacing(4)
-
-        value_label = QLabel("0")
-        value_label.setObjectName("statCardValue")
-        card_layout.addWidget(value_label)
-
-        caption_label = QLabel(label_text)
-        caption_label.setObjectName("statCardLabel")
-        card_layout.addWidget(caption_label)
-
-        return value_label, card
+            self._refresh_insights(from_zero=True)
 
     def _build_insights_page(self) -> None:
-        page = QWidget()
-        page_layout = QVBoxLayout(page)
-        page_layout.setContentsMargins(24, 20, 24, 18)
-        page_layout.setSpacing(16)
+        self._insights_page = InsightsPage()
+        self._pages.addWidget(self._insights_page)
 
-        title = QLabel("Insights")
-        title.setObjectName("pageTitle")
-        page_layout.addWidget(title)
-
-        cards_row = QHBoxLayout()
-        cards_row.setSpacing(12)
-        self._stat_words_value, words_card = self._new_stat_card("Total words")
-        self._stat_wpm_value, wpm_card = self._new_stat_card("Avg. words/min")
-        self._stat_streak_value, streak_card = self._new_stat_card("Day streak")
-        for card in (words_card, wpm_card, streak_card):
-            cards_row.addWidget(card)
-        page_layout.addLayout(cards_row)
-        page_layout.addStretch(1)
-
-        self._pages.addWidget(page)
-
-    def _refresh_insights(self) -> None:
-        stats = history.compute_stats()
-        self._stat_words_value.setText(f"{stats['total_words']:,}")
-        self._stat_wpm_value.setText(str(stats["wpm"]))
-        self._stat_streak_value.setText(str(stats["streak_days"]))
+    def _refresh_insights(self, from_zero: bool = False) -> None:
+        """Opening the page counts everything up from zero; a new dictation
+        counts up from the old numbers."""
+        self._insights_page.refresh(animate=from_zero)
 
     def _refresh_history_feed(self) -> None:
         """Rebuilds the Dictation page's "Today" feed from core/history.py,
@@ -3915,6 +4329,9 @@ class MainWindow(QMainWindow):
             empty.setObjectName("historyEmpty")
             self._history_feed_layout.insertWidget(0, empty)
         else:
+            newest = (entries[0].timestamp, entries[0].text)
+            # The first build at startup has nothing "new" to fade in.
+            previous_top = getattr(self, "_last_feed_top", newest)
             for entry in entries:
                 row = QWidget()
                 row.setObjectName("historyItem")
@@ -3933,6 +4350,11 @@ class MainWindow(QMainWindow):
                 row_layout.addWidget(text_label, stretch=1)
 
                 self._history_feed_layout.insertWidget(self._history_feed_layout.count() - 1, row)
+                if entry is entries[0] and newest != previous_top:
+                    # Only the dictation that just arrived fades in, not the
+                    # whole list every time it is rebuilt.
+                    fade_in(row)
+            self._last_feed_top = newest
 
         self._refresh_insights()
 
@@ -3950,6 +4372,7 @@ class MainWindow(QMainWindow):
     def _hold_text(self, text: str) -> None:
         self._held_text = text
         self._set_status("Text not typed: the original window changed", "error")
+        self._indicator.flash_error("Window changed, text held", 3000)
         if self.tray_icon is not None:
             self._show_balloon(
                 "VoxScribe held your text",
@@ -3982,6 +4405,32 @@ class MainWindow(QMainWindow):
                 # transcript and history; clicking the balloon copies it.
                 self._hold_text(text)
                 return
+        if focused_is_password():
+            self._set_status("Not typed: the box is a password field", "error")
+            self._indicator.flash_error("Not typing into a password field", 2500)
+            return
+        self._last_typed_at = time.monotonic()
+        redo_key = hotkey_settings.get_redo_hotkey()
+        hints_left = TYPED_HINT_COUNT - hotkey_settings.get_redo_hints_shown()
+        if redo_key and hints_left > 0 and not send_after:
+            hotkey_settings.set_redo_hints_shown(TYPED_HINT_COUNT - hints_left + 1)
+            self._indicator.flash_success(f"Typed. {redo_key.upper()} to try harder", 1800)
+        else:
+            self._indicator.flash_success("Typed")
+        if not send_after and self._last_audio is not None:
+            # Try harder can now redo this dictation for REDO_WINDOW_SEC.
+            self._set_redo(
+                {
+                    "audio": self._last_audio,
+                    "params": self._last_audio_params,
+                    "profile": self._recording_profile,
+                    "typed": text,
+                    "hwnd": target_hwnd if target_hwnd is not None else foreground_window_handle(),
+                    "at": time.monotonic(),
+                }
+            )
+        else:
+            self._clear_redo()
         typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
 
         def _type() -> None:
@@ -4030,15 +4479,15 @@ class MainWindow(QMainWindow):
         so a second "delete last word" in a row keeps peeling words off."""
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        self._indicator.hide_indicator()
-
         if not self._last_typed_text:
             self._set_status("Nothing to undo", "ready")
+            self._indicator.flash_error("Nothing to undo")
             return
 
         current_hwnd = foreground_window_handle()
         if self._last_typed_hwnd is None or current_hwnd != self._last_typed_hwnd:
             self._set_status("Can't undo -- active window changed", "error")
+            self._indicator.flash_error("Can't undo, window changed")
             return
 
         # Refocus the window the text was typed into (already confirmed to be
@@ -4058,6 +4507,7 @@ class MainWindow(QMainWindow):
         if not remaining_text:
             self._last_typed_hwnd = None
         self._set_status(self._EDITING_STATUS_TEXT[mode], "ready")
+        self._indicator.flash_success(self._EDITING_STATUS_TEXT[mode])
 
     def _after_typing(self, command) -> None:
         """Runs a spoken command once the dictation before it has been typed
@@ -4076,18 +4526,19 @@ class MainWindow(QMainWindow):
         rather than Backspace into text the user never dictated."""
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        self._indicator.hide_indicator()
-
         old = self._last_typed_text
         if not old:
             self._set_status("Nothing to change", "ready")
+            self._indicator.flash_error("Nothing to change")
             return
         if self._last_typed_hwnd is None or foreground_window_handle() != self._last_typed_hwnd:
             self._set_status("Can't change -- active window changed", "error")
+            self._indicator.flash_error("Can't change, window changed")
             return
         new = rewrite(old)
         if new is None:
             self._set_status("Nothing to change", "ready")
+            self._indicator.flash_error("Nothing to change")
             return
 
         focus_window(self._last_typed_hwnd)
@@ -4107,6 +4558,7 @@ class MainWindow(QMainWindow):
 
         threading.Thread(target=_retype, daemon=True).start()
         self._set_status(status_text, "ready")
+        self._indicator.flash_success(status_text)
 
     def _handle_send_command(self) -> None:
         """Spoken "send it" (opt-in): presses Enter in the app being dictated
@@ -4114,16 +4566,16 @@ class MainWindow(QMainWindow):
         VoxScribe itself is the active window, where Enter means nothing."""
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        self._indicator.hide_indicator()
-
         if self.isActiveWindow():
             self._set_status("Click into the app you want to send from first", "error")
+            self._indicator.flash_error("Click into an app first")
             return
         if (
             self._last_typed_hwnd is not None
             and foreground_window_handle() != self._last_typed_hwnd
         ):
             self._set_status("Can't send -- active window changed", "error")
+            self._indicator.flash_error("Can't send, window changed")
             return
         try:
             keyboard.send("enter")
@@ -4134,13 +4586,14 @@ class MainWindow(QMainWindow):
         self._last_typed_text = ""
         self._last_typed_hwnd = None
         self._set_status("Pressed Enter", "ready")
+        self._indicator.flash_success("Sent")
 
     def _on_transcribe_failed(self, message: str) -> None:
         self.transcript_area.append(f"[error] {message}")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        self._indicator.hide_indicator()
+        self._indicator.flash_error("Transcription failed")
 
     # -- import existing audio/video file ---------------------------------
 
@@ -4233,7 +4686,7 @@ class MainWindow(QMainWindow):
         self._batch_retry_button.hide()
         self._retry_paths = []
         if is_batch:
-            self._batch_progress.setValue(0)
+            animate_progress(self._batch_progress, 0)
             self._batch_progress.show()
             self._batch_pause_button.setText("Pause")
             self._batch_pause_button.show()
@@ -4309,8 +4762,9 @@ class MainWindow(QMainWindow):
         if self._batch is None:
             return
         b = self._batch
-        self._batch_progress.setValue(
-            batch.overall_percent(b["done"] + b["failed"], b["total"], percent)
+        animate_progress(
+            self._batch_progress,
+            batch.overall_percent(b["done"] + b["failed"], b["total"], percent),
         )
         self._refresh_batch_label(percent)
 
@@ -4344,7 +4798,7 @@ class MainWindow(QMainWindow):
         self._batch_retry_button.setVisible(bool(self._retry_paths))
         self._batch_label.setText(summary)
         if not b["cancelled"]:
-            self._batch_progress.setValue(100)
+            animate_progress(self._batch_progress, 100)
         self._batch_pause_button.hide()
         self._batch_cancel_button.hide()
         self._batch_progress.hide()

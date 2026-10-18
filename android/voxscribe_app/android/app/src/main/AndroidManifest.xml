@@ -14,9 +14,12 @@
          captured audio of a service that is not a visible foreground activity. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
+    <!-- No cloud backup and no device-to-device copy: history, word lists and
+         the Pro key stay on this phone, as the privacy page promises. -->
     <application
         android:name=".VoxScribeApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"

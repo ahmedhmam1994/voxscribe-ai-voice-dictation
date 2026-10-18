@@ -13,6 +13,7 @@ packaged bundle small (see the v1.3 packaging fix in the project history).
 
 from __future__ import annotations
 
+import hashlib
 import http.client
 import json
 import urllib.error
@@ -64,6 +65,20 @@ class UpdateInfo:
     # way) -- callers must check before offering a one-click download.
     asset_url: str | None = None
     asset_name: str | None = None
+    # The SHA-256 GitHub lists for the asset ("digest": "sha256:..."), lower
+    # case hex, or None for older releases that predate GitHub publishing it.
+    asset_sha256: str | None = None
+
+
+def asset_sha256(asset: dict) -> str | None:
+    """The asset's SHA-256 from GitHub's release API, if it lists one."""
+    digest = asset.get("digest") or ""
+    if not isinstance(digest, str) or not digest.lower().startswith("sha256:"):
+        return None
+    value = digest.split(":", 1)[1].strip().lower()
+    if len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+        return None
+    return value
 
 
 class UpdateCheckThread(QThread):
@@ -86,15 +101,23 @@ class UpdateCheckThread(QThread):
         html_url = data.get("html_url") or RELEASES_PAGE_URL
         asset_url = None
         asset_name = None
+        sha256 = None
         for asset in data.get("assets", []):
             name = asset.get("name", "")
             if name.lower().endswith(".exe"):
                 asset_url = asset.get("browser_download_url")
                 asset_name = name
+                sha256 = asset_sha256(asset)
                 break
         if tag and is_newer(tag):
             self.found.emit(
-                UpdateInfo(version=tag, url=html_url, asset_url=asset_url, asset_name=asset_name)
+                UpdateInfo(
+                    version=tag,
+                    url=html_url,
+                    asset_url=asset_url,
+                    asset_name=asset_name,
+                    asset_sha256=sha256,
+                )
             )
         else:
             self.none_found.emit()
@@ -109,10 +132,14 @@ class UpdateDownloadThread(QThread):
     done = Signal(str)  # local file path
     failed = Signal(str)
 
-    def __init__(self, asset_url: str, asset_name: str) -> None:
+    def __init__(self, asset_url: str, asset_name: str, sha256: str | None = None) -> None:
         super().__init__()
         self.asset_url = asset_url
         self.asset_name = asset_name
+        # When GitHub lists the asset's SHA-256, the download must match it
+        # before it is offered to run: a file altered on the way (or a broken
+        # mirror or proxy) is thrown away instead.
+        self.sha256 = sha256
 
     def run(self) -> None:
         dest = Path.home() / "Downloads" / self.asset_name
@@ -128,14 +155,18 @@ class UpdateDownloadThread(QThread):
             ) as resp, open(part, "wb") as out:
                 expected = resp.headers.get("Content-Length")
                 received = 0
+                hasher = hashlib.sha256()
                 while chunk := resp.read(1024 * 256):
                     out.write(chunk)
+                    hasher.update(chunk)
                     received += len(chunk)
             # A connection that drops mid-download can end the read loop
             # without an error; without this check the short file would be
             # renamed to the installer name as if it were complete.
             if expected is not None and expected.isdigit() and received != int(expected):
                 raise OSError(f"Download incomplete ({received} of {expected} bytes)")
+            if self.sha256 is not None and hasher.hexdigest() != self.sha256:
+                raise OSError("Download does not match the release checksum, so it was deleted")
             part.replace(dest)
         except (
             urllib.error.URLError,

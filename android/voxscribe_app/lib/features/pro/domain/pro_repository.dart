@@ -15,7 +15,9 @@ abstract interface class ProRepository {
   /// Checks the key, claims it for this phone and, if accepted, keeps it.
   Future<ActivationResult> activate(String key);
 
-  Future<void> deactivate();
+  /// Frees this phone's slot on the server and removes the key here. The key
+  /// is removed even when [ActivationResult.ok] is false (server not reached).
+  Future<ActivationResult> deactivate();
 
   Future<void> openPurchasePage();
 }

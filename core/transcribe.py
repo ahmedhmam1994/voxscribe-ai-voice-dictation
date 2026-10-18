@@ -122,6 +122,11 @@ def purge_model_cache(model_size: str) -> bool:
 _LOCKED_FILE_RETRY_DELAYS_SEC = (3, 6, 12)
 
 
+def is_model_downloaded(model_size: str) -> bool:
+    """Whether this model is already on disk, so it can load without internet."""
+    return _model_bin_present(model_size)
+
+
 def _model_bin_present(model_size: str) -> bool:
     """Whether the cached model has a non-trivial model.bin file."""
     try:
@@ -183,8 +188,17 @@ class Transcriber:
         model_size: str = DEFAULT_MODEL_SIZE,
         device: str = "cpu",
         compute_type: str = "int8",
+        local_files_only: bool = False,
     ):
-        self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        # local_files_only: load from the cache without even asking Hugging
+        # Face whether there is a newer copy (used by the Settings speed test,
+        # which must never download or go online).
+        self.model = WhisperModel(
+            model_size,
+            device=device,
+            compute_type=compute_type,
+            local_files_only=local_files_only,
+        )
 
     def transcribe(
         self,
@@ -192,8 +206,15 @@ class Transcriber:
         language: str | None = "en",
         initial_prompt: str | None = None,
         task: str = "transcribe",
+        beam_size: int = 1,
     ) -> str:
         """Transcribe a float32 mono buffer at 16kHz, return the text.
+
+        `beam_size`: 1 (greedy decoding) for live dictation. faster-whisper's
+        default of 5 weighs five candidate sentences at every step; on a
+        short dictation that changed nothing in testing but cost about 20%
+        more time on every press of the hotkey. File imports keep the default
+        (see transcribe_file), where a long recording has more to gain.
 
         `language`: an ISO 639-1 code (e.g. "en", "es", "ar") to force a
         specific spoken language, or None to let Whisper auto-detect which
@@ -240,6 +261,7 @@ class Transcriber:
             language=language,
             initial_prompt=initial_prompt,
             task=task,
+            beam_size=beam_size,
             # Let faster-whisper's own bundled VAD trim leading/trailing
             # silence within the clip -- useful now that recording is
             # manually started/stopped (push-to-talk) rather than gated by

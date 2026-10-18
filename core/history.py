@@ -75,6 +75,18 @@ def add_entry(text: str, duration_seconds: float) -> None:
     _save(entries)
 
 
+def replace_last_text(old: str, new: str) -> None:
+    """Swaps the newest entry's text after Try harder retyped it, so the
+    history shows what is really in the document. Does nothing if the newest
+    entry is not `old` (another dictation came in meanwhile)."""
+    entries = _load()
+    if not entries or entries[-1].text != old:
+        return
+    entries[-1].text = new
+    entries[-1].words = len(new.split())
+    _save(entries)
+
+
 def get_recent(limit: int = 50) -> list[HistoryEntry]:
     """Newest first."""
     return list(reversed(_load()))[:limit]
@@ -83,6 +95,111 @@ def get_recent(limit: int = 50) -> list[HistoryEntry]:
 def get_today(limit: int = 100) -> list[HistoryEntry]:
     today = date.today()
     return [e for e in get_recent(limit=_MAX_ENTRIES) if e.local_datetime().date() == today][:limit]
+
+
+# A typical typing speed, used only for the Insights "typing saved" estimate.
+TYPING_WPM = 40
+ACTIVITY_WEEKS = 12
+
+
+@dataclass
+class Insights:
+    """Everything the Insights page shows, worked out from the saved history."""
+
+    total_words: int
+    dictations: int
+    wpm: int
+    streak_days: int
+    today_words: int
+    today_dictations: int
+    minutes_saved: float
+    # Words per day for the last 7 days, oldest first; the last one is today.
+    week: list[int]
+    # True for each of the last 7 days that had a dictation, oldest first.
+    week_active: list[bool]
+    # Words per day from activity_start (a Monday) to today, for the grid.
+    activity_start: date
+    activity: list[int]
+    longest_words: int
+    longest_seconds: float
+    # Hour of the day (0-23) with the most words, or None with too little data.
+    busiest_hour: int | None
+
+
+def compute_insights(
+    entries: list[HistoryEntry] | None = None, today: date | None = None
+) -> Insights:
+    """All the numbers for the Insights page in one pass. `entries` and
+    `today` are only passed in tests."""
+    if entries is None:
+        entries = _load()
+    if today is None:
+        today = date.today()
+
+    words_by_day: dict[date, int] = {}
+    words_by_hour: dict[int, int] = {}
+    for e in entries:
+        moment = e.local_datetime()
+        words_by_day[moment.date()] = words_by_day.get(moment.date(), 0) + e.words
+        words_by_hour[moment.hour] = words_by_hour.get(moment.hour, 0) + e.words
+
+    total_words = sum(e.words for e in entries)
+    talk_minutes = sum(e.duration_seconds for e in entries) / 60
+    wpm = round(total_words / talk_minutes) if talk_minutes > 0 else 0
+
+    streak = 0
+    cursor = today
+    while cursor in words_by_day:
+        streak += 1
+        cursor -= timedelta(days=1)
+
+    week_days = [today - timedelta(days=6 - i) for i in range(7)]
+    # The grid starts on a Monday so each column is one calendar week.
+    first = today - timedelta(weeks=ACTIVITY_WEEKS - 1)
+    activity_start = first - timedelta(days=first.weekday())
+    span = (today - activity_start).days + 1
+
+    longest = max(entries, key=lambda e: e.words, default=None)
+    today_entries = [e for e in entries if e.local_datetime().date() == today]
+
+    return Insights(
+        total_words=total_words,
+        dictations=len(entries),
+        wpm=wpm,
+        streak_days=streak,
+        today_words=sum(e.words for e in today_entries),
+        today_dictations=len(today_entries),
+        minutes_saved=max(0.0, total_words / TYPING_WPM - talk_minutes),
+        week=[words_by_day.get(d, 0) for d in week_days],
+        week_active=[d in words_by_day for d in week_days],
+        activity_start=activity_start,
+        activity=[words_by_day.get(activity_start + timedelta(days=i), 0) for i in range(span)],
+        longest_words=longest.words if longest else 0,
+        longest_seconds=longest.duration_seconds if longest else 0.0,
+        busiest_hour=(
+            max(words_by_hour, key=lambda h: words_by_hour[h]) if len(entries) >= 3 else None
+        ),
+    )
+
+
+def format_minutes_saved(minutes: float) -> str:
+    """142.5 -> "2 h 22 min", 12.2 -> "12 min", 0.4 -> "under a minute"."""
+    if minutes < 1:
+        return "under a minute"
+    whole = int(round(minutes))
+    hours, mins = divmod(whole, 60)
+    if hours == 0:
+        return f"{mins} min"
+    return f"{hours} h {mins} min" if mins else f"{hours} h"
+
+
+def format_hour(hour: int) -> str:
+    """0 -> "midnight", 9 -> "9 am", 12 -> "noon", 15 -> "3 pm"."""
+    if hour == 0:
+        return "midnight"
+    if hour == 12:
+        return "noon"
+    return f"{hour} am" if hour < 12 else f"{hour - 12} pm"
 
 
 def compute_stats() -> dict:

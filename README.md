@@ -50,7 +50,10 @@ No account, no subscription. MIT licensed.
 - **Rule-based text cleanup:** strips filler words ("um", "uh", "like", "you know") without calling any paid AI API
 - **Spoken commands:** say "period", "new line" or "question mark" for symbols, "scratch that" or "delete last word" to take back what you just typed, and "capitalize that", "all caps" or "replace X with Y" to change it. An optional "send it" presses Enter
 - **Custom vocabulary and word replacements:** teach it names and jargon, and fix words it mishears the same way every time. Right-click a word in the transcript to always correct it, and export or import both lists as one file (the Android app reads it too)
-- **Speech models by speed:** Fast, Balanced (the default) and, with Pro, three more accurate ones including Large turbo
+- **Speech models by speed:** Fast, Balanced (the default) and, with Pro, three more accurate ones including Large turbo. "Test speed on this PC" in Settings times each one with your own voice
+- **Try harder:** a word came out wrong? Press F8 within 2 minutes and the same recording runs again, through a bigger model if you have one (Small free, Medium or Large with Pro) or the same one more carefully, and only what changed is retyped
+- **Dictation modes:** Chat, Email, Code and Notes tidy your words to fit what you write. With Pro the mode switches by itself with the app (chat apps use Chat, mail apps use Email, and so on)
+- **Never types into password boxes:** in browsers and apps, and what was said there stays out of the history
 - **Audio and video to captions:** import a file or a whole folder and get an .srt next to each one, capped at two short lines, timed from the word timestamps and cut at pauses. It never overwrites an existing caption file, and a report lists what was saved, skipped or failed, with a retry. Folder import has 2 free runs, then it is a Pro feature
 - **Floating status indicator:** small pill shows Recording/Transcribing state
 - **Runs from the system tray:** starts hidden, stays out of your way
@@ -80,7 +83,7 @@ The installer does not require admin rights (per-user install). On first launch,
 
 VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
 
-**Install:** download `VoxScribe-Android-1.1.0.apk` from the [Android 1.1.0 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.0) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+**Install:** download `VoxScribe-Android-1.1.1.apk` from the [Android 1.1.1 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.1) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
 
 **Automatic updates:** add this repository to [Obtainium](https://obtainium.imranr.dev/) (Add App, paste the repo URL) and set "Filter release titles by regular expression" to `Android`, so it skips the Windows releases.
 
@@ -88,6 +91,8 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 - The speech model is bundled in the app, so the download is about 115 MB and it works in airplane mode
 - Setup takes three permissions, and the app walks you through them: microphone, the Accessibility service (Android requires it to let an app type into other apps), and display over other apps
 - Tap the button to start and stop, or hold it. Drag it to the bottom of the screen to hide it for 10 minutes. It never appears in password or PIN boxes
+- Transcribe audio and video files on the phone and save the text or .srt captions. A whole folder at once has 2 free runs, then it is Pro
+- Dictation modes (Chat, Email, Code, Notes), switching by app with Pro
 - Email, web address and number boxes get the text the way they expect, for example "sam at gmail dot com" becomes sam@gmail.com
 - Spoken commands ("period", "new line", "scratch that", "capitalize that", "replace X with Y"), an optional "send it" that taps the Send button, "Fix a word", and word replacements with export and import are free, each with its own page in Settings. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same Pro key as Windows, which also unlocks Snippets
 - When a newer Android release is published, the app shows an update banner with a download button

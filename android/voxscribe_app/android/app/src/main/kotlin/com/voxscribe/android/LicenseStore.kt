@@ -15,6 +15,9 @@ object LicenseStore {
         return LicenseKey.isValid(stored)
     }
 
+    /** The saved key, or null. Only Remove license needs it, to free this phone's slot. */
+    fun key(context: Context): String? = prefs(context).getString(KEY_LICENSE, null)
+
     fun save(context: Context, key: String) {
         prefs(context).edit().putString(KEY_LICENSE, key.trim()).apply()
     }

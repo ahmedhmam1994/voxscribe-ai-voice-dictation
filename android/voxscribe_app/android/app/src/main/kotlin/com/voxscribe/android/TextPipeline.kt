@@ -38,6 +38,10 @@ data class TextOptions(
     val templates: List<Template> = emptyList(),
     /** Opt in: "send it" presses Enter. Separate from voice commands, because it can send a message. */
     val sendIt: Boolean = false,
+    /** False in Chat mode: a one-sentence message gets no full stop at the end. */
+    val endPeriod: Boolean = true,
+    /** The dictation mode in use (see [Modes]). */
+    val mode: String = Modes.DEFAULT,
 )
 
 /**
@@ -113,6 +117,7 @@ object TextPipeline {
             if (text.isNotEmpty() && options.cleanup) text = TranscriptCleanup.clean(text)
             if (text.isNotEmpty() && options.voiceCommands) text = VoiceCommands.apply(text)
             if (text.isNotEmpty() && options.pro && options.smartFormat) text = SmartFormat.format(text)
+            if (text.isNotEmpty() && !options.endPeriod) text = Modes.dropFinalPeriod(text)
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
         if (text.isNotEmpty() && options.pro) text = SnippetExpander.expand(text, options.snippets)
@@ -156,13 +161,19 @@ object TextPipeline {
         } else {
             emptyMap()
         }
+        val profileMode = packageName?.let { AppProfiles.parseModes(saved.profiles)[it.lowercase()] }
+        val mode = Modes.modeFor(packageName, profileMode, saved.mode, saved.autoModes, pro)
+        // A profile's own option wins, then the mode, then the normal setting.
+        val chosen = (Modes.options[mode] ?: emptyMap()) + profile
         return TextOptions(
             pro = pro,
-            cleanup = profile["cleanup"] ?: SettingsStore.cleanupEnabled(context),
-            voiceCommands = profile["voice_commands"] ?: saved.voiceCommands,
+            cleanup = chosen["cleanup"] ?: SettingsStore.cleanupEnabled(context),
+            voiceCommands = chosen["voice_commands"] ?: saved.voiceCommands,
             sendIt = saved.sendIt,
-            smartFormat = profile["smart"] ?: saved.smartFormat,
-            codeDictation = profile["code"] ?: saved.codeDictation,
+            smartFormat = chosen["smart"] ?: saved.smartFormat,
+            codeDictation = chosen["code"] ?: saved.codeDictation,
+            endPeriod = chosen["period"] ?: true,
+            mode = mode,
             replacements = Replacements.parse(saved.replacements),
             snippets = if (pro) SnippetStore.all(context) else emptyList(),
             templates = if (pro) Templates.parseLines(saved.templates) else emptyList(),

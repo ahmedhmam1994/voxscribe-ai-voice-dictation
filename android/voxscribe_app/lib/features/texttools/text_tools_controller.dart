@@ -105,6 +105,12 @@ class TextToolsController extends ChangeNotifier {
         'replacement${merge.added == 1 ? '' : 's'}$changed.$skipped';
   }
 
+  Future<void> setMode(String value) =>
+      _change(_settings.copyWith(mode: value));
+
+  Future<void> setAutoModes({required bool value}) =>
+      _change(_settings.copyWith(autoModes: value));
+
   Future<void> setSendIt({required bool value}) =>
       _change(_settings.copyWith(sendIt: value));
 

@@ -159,7 +159,7 @@
         <tr><td class="first">Speech model download (Windows)</td><td data-label="When">First launch, or when you pick a model you do not have yet</td><td data-label="What is sent">A normal file download from Hugging Face</td></tr>
         <tr><td class="first">Usage ping (both)</td><td data-label="When">Windows: each launch. Android: at most once a day. Unless you turn it off in Settings</td><td data-label="What is sent">App version, Windows or Android version and a random id made on your device</td></tr>
         <tr><td class="first">Update check (both)</td><td data-label="When">When the app starts</td><td data-label="What is sent">A request for the latest version number on GitHub</td></tr>
-        <tr><td class="first">Pro activation (both)</td><td data-label="When">Once, when you unlock Pro</td><td data-label="What is sent">Your key and a device id, so one key covers one PC and one phone</td></tr>
+        <tr><td class="first">Pro activation (both)</td><td data-label="When">Once, when you unlock Pro</td><td data-label="What is sent">Your key and a device id, so one key covers two PCs and two phones. Remove license sends them once more to free that device</td></tr>
         <tr><td class="first">Android's own recognizer</td><td data-label="When">Only if you turn off the built-in model, or it cannot run</td><td data-label="What is sent">Your audio may go to Google if its offline language pack is missing</td></tr>
       </tbody>
     </table>
@@ -177,6 +177,12 @@
     <li>It does nothing at all unless you hold or tap the button.</li>
   </ul>
   <p>It never reads the rest of your screen, never sees what you type with your keyboard, and stores or sends none of it.</p>
+
+  <h2>Password boxes on Windows</h2>
+  <p>Before typing, the Windows app asks Windows whether the focused box is a password box, through the same accessibility interface screen readers use. If it is, nothing is typed, and what you said is kept out of the transcript and the history. It only asks about the one focused box and stores nothing.</p>
+
+  <h2>Files you transcribe</h2>
+  <p>Audio and video files you import, on Windows or Android, are read and transcribed on your device. Only the files you pick are opened, and the text or captions are saved where you choose (or next to the originals for a folder). Nothing is uploaded.</p>
 
   <h2>Check it yourself</h2>
   <ul>

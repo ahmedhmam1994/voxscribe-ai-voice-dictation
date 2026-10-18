@@ -34,8 +34,14 @@ class FakeProRepository implements ProRepository {
     return const ActivationResult(ok: false, message: 'That key is not valid.');
   }
 
+  /// When true, removing the license cannot reach the server.
+  bool offline = false;
+
   @override
-  Future<void> deactivate() async => unlocked = false;
+  Future<ActivationResult> deactivate() async {
+    unlocked = false;
+    return ActivationResult(ok: !offline, message: '');
+  }
 
   @override
   Future<void> openPurchasePage() async => purchasePageOpened = true;

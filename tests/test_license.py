@@ -76,3 +76,30 @@ def test_activate_online_handles_network_failure():
         ok, message = activate_online("ANYTHING")
         assert ok is False
         assert "activation server" in message.lower()
+
+
+def test_deactivate_online_sends_this_pc_and_the_deactivate_action():
+    from core.license import deactivate_online
+
+    sent = {}
+
+    def fake_urlopen(request, timeout):
+        sent.update(json.loads(request.data.decode("utf-8")))
+        return _fake_response({"ok": True, "message": "deactivated"})
+
+    with patch("core.license.verify_license_key", return_value=True), \
+         patch("core.license._hardware_id", return_value="PC-UUID"), \
+         patch("core.license.urllib.request.urlopen", side_effect=fake_urlopen):
+        ok, message = deactivate_online("ANYTHING")
+    assert ok is True
+    assert sent["action"] == "deactivate"
+    assert sent["hardware_id"] == "PC-UUID"
+
+
+def test_deactivate_online_handles_network_failure():
+    from core.license import deactivate_online
+
+    with patch("core.license.verify_license_key", return_value=True), \
+         patch("core.license.urllib.request.urlopen", side_effect=OSError("no internet")):
+        ok, message = deactivate_online("ANYTHING")
+    assert ok is False

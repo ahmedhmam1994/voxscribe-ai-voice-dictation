@@ -168,8 +168,11 @@ object WhisperEngine {
 
     /**
      * Blocking and CPU-bound -- always call from a background thread, never
-     * the main thread that owns the IME's InputConnection.
+     * the main thread that owns the IME's InputConnection. Synchronized: a
+     * file import and a dictation from the floating button can run at the
+     * same time, and they take turns on the one recognizer.
      */
+    @Synchronized
     fun transcribe(samples: FloatArray): String {
         val r = recognizer ?: return ""
         val stream = r.createStream()

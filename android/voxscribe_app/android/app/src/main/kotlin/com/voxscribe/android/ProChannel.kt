@@ -21,10 +21,7 @@ class ProChannel(private val context: Context) : MethodChannel.MethodCallHandler
         when (call.method) {
             "isPro" -> result.success(LicenseStore.isPro(context))
             "activate" -> activate(call.argument<String>("key").orEmpty(), result)
-            "deactivate" -> {
-                LicenseStore.clear(context)
-                result.success(null)
-            }
+            "deactivate" -> deactivate(result)
             "openPurchasePage" -> {
                 context.startActivity(
                     Intent(Intent.ACTION_VIEW, Uri.parse(PURCHASE_URL)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -54,6 +51,23 @@ class ProChannel(private val context: Context) : MethodChannel.MethodCallHandler
         Thread {
             val outcome = ActivationClient.activate(context, key)
             if (outcome.ok) LicenseStore.save(context, key)
+            mainHandler.post { result.success(mapOf("ok" to outcome.ok, "message" to outcome.message)) }
+        }.start()
+    }
+
+    /**
+     * Frees this phone's slot on the server, then removes the key here either
+     * way, so Pro always turns off when asked even without a connection.
+     */
+    private fun deactivate(result: MethodChannel.Result) {
+        val key = LicenseStore.key(context)
+        Thread {
+            val outcome = if (key != null && LicenseKey.isValid(key)) {
+                ActivationClient.deactivate(context, key)
+            } else {
+                ActivationResult(true, "")
+            }
+            LicenseStore.clear(context)
             mainHandler.post { result.success(mapOf("ok" to outcome.ok, "message" to outcome.message)) }
         }.start()
     }

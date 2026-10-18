@@ -16,7 +16,7 @@ package com.voxscribe.android
  */
 object AppProfiles {
     /** The on or off options a profile may set. */
-    val flagOptions = setOf("cleanup", "voice_commands", "code", "smart")
+    val flagOptions = setOf("cleanup", "voice_commands", "code", "smart", "period")
 
     private val on = setOf("on", "true", "yes", "1")
     private val off = setOf("off", "false", "no", "0")
@@ -40,6 +40,25 @@ object AppProfiles {
             if (flags.isNotEmpty()) profiles[app] = flags
         }
         return profiles
+    }
+
+    /** `package => mode=chat, ...` lines to {package: mode}, for the dictation modes (see [Modes]). */
+    fun parseModes(text: String): Map<String, String> {
+        val modes = linkedMapOf<String, String>()
+        for (line in text.lines()) {
+            val arrow = line.indexOf("=>")
+            if (arrow < 0) continue
+            val app = line.substring(0, arrow).trim().lowercase()
+            if (app.isEmpty()) continue
+            for (part in line.substring(arrow + 2).split(",")) {
+                val equals = part.indexOf('=')
+                if (equals < 0) continue
+                if (part.substring(0, equals).trim().lowercase() != "mode") continue
+                val value = part.substring(equals + 1).trim().lowercase()
+                if (value in Modes.options) modes[app] = value
+            }
+        }
+        return modes
     }
 
     /** The options set for this app, or an empty map when it has none. */

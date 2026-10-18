@@ -25,6 +25,8 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         "templates" to saved.templates,
                         "profiles" to saved.profiles,
                         "sendIt" to saved.sendIt,
+                        "mode" to saved.mode,
+                        "autoModes" to saved.autoModes,
                     ),
                 )
             }
@@ -39,6 +41,8 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         templates = call.argument<String>("templates").orEmpty(),
                         profiles = call.argument<String>("profiles").orEmpty(),
                         sendIt = call.argument<Boolean>("sendIt") == true,
+                        mode = call.argument<String>("mode") ?: Modes.DEFAULT,
+                        autoModes = call.argument<Boolean>("autoModes") != false,
                     ),
                 )
                 result.success(null)

@@ -57,7 +57,7 @@ class _FakeResp:
         return False
 
 
-def _run_download(monkeypatch, tmp_path, resp):
+def _run_download(monkeypatch, tmp_path, resp, sha256=None):
     import urllib.request
     from pathlib import Path
 
@@ -65,7 +65,7 @@ def _run_download(monkeypatch, tmp_path, resp):
 
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: resp)
-    thread = UpdateDownloadThread("https://example.invalid/x.exe", "Setup.exe")
+    thread = UpdateDownloadThread("https://example.invalid/x.exe", "Setup.exe", sha256)
     results = []
     thread.done.connect(lambda p: results.append(("done", p)))
     thread.failed.connect(lambda m: results.append(("failed", m)))
@@ -102,3 +102,31 @@ def test_download_without_content_length_still_succeeds(monkeypatch, tmp_path):
     results, dest = _run_download(monkeypatch, tmp_path, _FakeResp([b"xyz"], None))
     assert results[0][0] == "done"
     assert dest.read_bytes() == b"xyz"
+
+
+def test_download_matching_checksum_succeeds(monkeypatch, tmp_path):
+    import hashlib
+
+    good = hashlib.sha256(b"abcdef").hexdigest()
+    results, dest = _run_download(monkeypatch, tmp_path, _FakeResp([b"abc", b"def"], 6), good)
+    assert results[0][0] == "done"
+    assert dest.read_bytes() == b"abcdef"
+
+
+def test_download_with_wrong_checksum_is_deleted(monkeypatch, tmp_path):
+    results, dest = _run_download(monkeypatch, tmp_path, _FakeResp([b"abc"], 3), "0" * 64)
+    assert results[0][0] == "failed"
+    assert "checksum" in results[0][1]
+    assert not dest.exists()
+    assert not dest.with_name(dest.name + ".part").exists()
+
+
+def test_asset_sha256_reads_github_digest():
+    from core.updater import asset_sha256
+
+    digest = "A" * 64
+    assert asset_sha256({"digest": f"sha256:{digest}"}) == digest.lower()
+    assert asset_sha256({"digest": "sha1:abc"}) is None
+    assert asset_sha256({"digest": "sha256:not-hex"}) is None
+    assert asset_sha256({}) is None
+    assert asset_sha256({"digest": None}) is None

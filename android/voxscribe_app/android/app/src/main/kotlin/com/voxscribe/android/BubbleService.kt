@@ -1,6 +1,9 @@
 package com.voxscribe.android
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -13,6 +16,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
@@ -26,12 +30,14 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
+import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import kotlin.math.abs
+import kotlin.math.sin
 
 /**
  * Hosts the floating dictation bubble: a WindowManager overlay window plus
@@ -51,7 +57,7 @@ import kotlin.math.abs
 class BubbleService : Service() {
 
     private var windowManager: WindowManager? = null
-    private var bubbleView: AppCompatImageView? = null
+    private var bubbleView: BubbleView? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dictationEngine: DictationEngine? = null
     private var state = BubbleState.IDLE
@@ -113,6 +119,7 @@ class BubbleService : Service() {
         getSystemService(NotificationManager::class.java)?.cancel(ALERT_NOTIFICATION_ID)
         dictationEngine?.destroy()
         dictationEngine = null
+        hideSnoozeTarget()
         bubbleView?.let { view -> runCatching { windowManager?.removeView(view) } }
         bubbleView = null
     }
@@ -128,7 +135,7 @@ class BubbleService : Service() {
         val themedContext = ContextThemeWrapper(this, R.style.Theme_VoxScribe)
         @Suppress("InflateParams") // correct here: this view IS the WindowManager root, no parent exists yet
         val view = LayoutInflater.from(themedContext)
-            .inflate(R.layout.bubble_view, null) as AppCompatImageView
+            .inflate(R.layout.bubble_view, null) as BubbleView
         bubbleView = view
 
         // TYPE_APPLICATION_OVERLAY unconditionally -- minSdk is 26 (O), the
@@ -178,6 +185,10 @@ class BubbleService : Service() {
             val params = layoutParams ?: return false
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    // A shake still running would move the button under the finger.
+                    stopShake()
+                    // Sinks a little under the finger, so the touch is felt before any sound.
+                    v.animate().scaleX(PRESSED_SCALE).scaleY(PRESSED_SCALE).setDuration(90).start()
                     downRawX = event.rawX
                     downRawY = event.rawY
                     downParamX = params.x
@@ -192,17 +203,24 @@ class BubbleService : Service() {
                     if (!dragging && (abs(dx) > touchSlop || abs(dy) > touchSlop)) {
                         dragging = true
                         perform(gesture.dragged())
+                        showSnoozeTarget()
                     }
                     if (dragging) {
                         params.x = downParamX + dx.toInt()
                         params.y = downParamY + dy.toInt()
                         windowManager?.updateViewLayout(v, params)
+                        updateSnoozeTarget(event.rawY)
                     }
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(140)
+                        .setInterpolator(DecelerateInterpolator()).start()
                     perform(gesture.up(SystemClock.elapsedRealtime()))
-                    if (dragging) finishDrag(v, params, event.rawY)
+                    if (dragging) {
+                        hideSnoozeTarget()
+                        finishDrag(v, params, event.rawY)
+                    }
                     dragging = false
                 }
             }
@@ -235,6 +253,7 @@ class BubbleService : Service() {
                 if (onHoldStart()) {
                     watchHandler.removeCallbacks(recordingTimeout)
                     watchHandler.postDelayed(recordingTimeout, MAX_RECORDING_MS)
+                    bubbleView?.recordingDeadline = SystemClock.elapsedRealtime() + MAX_RECORDING_MS
                 } else {
                     gesture.reset()
                 }
@@ -301,18 +320,113 @@ class BubbleService : Service() {
         applyVisibility()
     }
 
+    private var shown: Boolean? = null
+
+    /**
+     * Fades the button in when a text box gets focus and out when it loses it,
+     * with a slight grow and shrink, instead of snapping on and off. The system
+     * animation scale applies, so with animations off it is instant.
+     */
     private fun applyVisibility() {
         val view = bubbleView ?: return
         // Never hide it under the user's finger while recording or transcribing.
-        val target = if ((fieldFocused && !isSnoozed()) || state != BubbleState.IDLE) View.VISIBLE else View.GONE
-        if (view.visibility != target) view.visibility = target
+        val show = (fieldFocused && !isSnoozed()) || state != BubbleState.IDLE
+        if (show == shown) return
+        shown = show
+        view.animate().cancel()
+        if (show) {
+            if (view.visibility != View.VISIBLE) {
+                view.alpha = 0f
+                view.scaleX = HIDDEN_SCALE
+                view.scaleY = HIDDEN_SCALE
+                view.visibility = View.VISIBLE
+            }
+            view.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160)
+                .setInterpolator(DecelerateInterpolator()).start()
+        } else {
+            view.animate().alpha(0f).scaleX(HIDDEN_SCALE).scaleY(HIDDEN_SCALE).setDuration(140)
+                .withEndAction {
+                    if (shown == false) {
+                        view.visibility = View.GONE
+                        view.alpha = 1f
+                        view.scaleX = 1f
+                        view.scaleY = 1f
+                    }
+                }.start()
+        }
+    }
+
+    // -- drop target shown while dragging: "drop here to hide" --------------------
+
+    private var snoozeTarget: TextView? = null
+    private var snoozeTargetHot = false
+
+    /**
+     * A small label at the bottom of the screen while the button is dragged, so
+     * the hide-for-ten-minutes gesture can be found. It lights up once the
+     * finger is low enough that letting go would hide the button.
+     */
+    private fun showSnoozeTarget() {
+        val wm = windowManager ?: return
+        if (snoozeTarget != null) return
+        val density = resources.displayMetrics.density
+        val label = TextView(this).apply {
+            text = getString(R.string.bubble_snooze_target)
+            textSize = 13f
+            setPadding((18 * density).toInt(), (10 * density).toInt(), (18 * density).toInt(), (10 * density).toInt())
+            alpha = 0f
+        }
+        snoozeTargetHot = false
+        styleSnoozeTarget(label, hot = false)
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSLUCENT,
+        )
+        params.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        // Inside the strip where a release snoozes (the bottom 12% of the screen).
+        params.y = (resources.displayMetrics.heightPixels * 0.04f).toInt()
+        if (runCatching { wm.addView(label, params) }.isFailure) return
+        snoozeTarget = label
+        label.animate().alpha(1f).setDuration(150).start()
+    }
+
+    private fun updateSnoozeTarget(rawY: Float) {
+        val label = snoozeTarget ?: return
+        val hot = BubblePlacement.shouldSnooze(rawY, resources.displayMetrics.heightPixels)
+        if (hot == snoozeTargetHot) return
+        snoozeTargetHot = hot
+        styleSnoozeTarget(label, hot)
+        val scale = if (hot) 1.08f else 1f
+        label.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
+    }
+
+    private fun styleSnoozeTarget(label: TextView, hot: Boolean) {
+        val density = resources.displayMetrics.density
+        label.background = GradientDrawable().apply {
+            cornerRadius = 100 * density
+            setColor(ContextCompat.getColor(this@BubbleService, if (hot) R.color.vox_primary else R.color.vox_surface_container_high))
+            setStroke((1 * density).toInt(), ContextCompat.getColor(this@BubbleService, if (hot) R.color.vox_primary else R.color.vox_outline))
+        }
+        label.setTextColor(ContextCompat.getColor(this, if (hot) R.color.vox_on_primary else R.color.vox_on_surface))
+    }
+
+    private fun hideSnoozeTarget() {
+        val label = snoozeTarget ?: return
+        snoozeTarget = null
+        runCatching { windowManager?.removeView(label) }
     }
 
     private fun setState(newState: BubbleState) {
         state = newState
+        watchHandler.removeCallbacks(endFlash)
         val view = bubbleView ?: return
+        if (newState != BubbleState.RECORDING) view.recordingDeadline = 0L
         when (newState) {
             BubbleState.IDLE -> {
+                view.mode = BubbleView.Mode.ICON
                 view.setImageResource(R.drawable.ic_mic)
                 view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_primary)
                 view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_primary)
@@ -320,6 +434,9 @@ class BubbleService : Service() {
             }
 
             BubbleState.RECORDING -> {
+                // Live mic level instead of the stop icon, so you can see it hears you.
+                view.mode = BubbleView.Mode.LEVEL
+                view.barColor = ContextCompat.getColor(this, R.color.vox_on_primary)
                 view.setImageResource(R.drawable.ic_stop)
                 view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_primary)
                 view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_primary_pressed)
@@ -327,6 +444,8 @@ class BubbleService : Service() {
             }
 
             BubbleState.TRANSCRIBING -> {
+                view.mode = BubbleView.Mode.WORKING
+                view.barColor = ContextCompat.getColor(this, R.color.vox_on_primary)
                 view.setImageResource(R.drawable.ic_mic)
                 view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_primary)
                 view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_transcribing)
@@ -334,6 +453,67 @@ class BubbleService : Service() {
             }
         }
         applyVisibility()
+    }
+
+    // -- result feedback: a check when the text landed, a red "!" and a shake when not --
+
+    private val endFlash = Runnable { if (state == BubbleState.IDLE) setState(BubbleState.IDLE) }
+    private var shakeAnimator: ValueAnimator? = null
+    private var shakeBaseX = 0
+
+    /**
+     * Shows for a moment whether the dictation worked. Only while idle: a new
+     * recording started in the meantime keeps its own look. The toast that
+     * goes with a failure still carries the reason.
+     */
+    private fun flash(success: Boolean) {
+        if (state != BubbleState.IDLE) return
+        val view = bubbleView ?: return
+        view.mode = BubbleView.Mode.ICON
+        if (success) {
+            view.setImageResource(R.drawable.ic_check)
+            view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_primary)
+            view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_primary)
+        } else {
+            view.setImageResource(R.drawable.ic_alert)
+            view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_error)
+            view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_error)
+            shake()
+        }
+        watchHandler.removeCallbacks(endFlash)
+        watchHandler.postDelayed(endFlash, if (success) FLASH_OK_MS else FLASH_ERROR_MS)
+    }
+
+    /** A short sideways shake of the overlay window. Skipped when animations are off. */
+    private fun shake() {
+        val view = bubbleView ?: return
+        val params = layoutParams ?: return
+        if (!ValueAnimator.areAnimatorsEnabled() || view.visibility != View.VISIBLE) return
+        stopShake()
+        shakeBaseX = params.x
+        val amplitude = 7f * resources.displayMetrics.density
+        shakeAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = SHAKE_MS
+            addUpdateListener { animator ->
+                val t = animator.animatedValue as Float
+                val offset = amplitude * (1f - t) * sin(t * 2.0 * Math.PI * 4.0).toFloat()
+                params.x = shakeBaseX + offset.toInt()
+                runCatching { windowManager?.updateViewLayout(view, params) }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    params.x = shakeBaseX
+                    runCatching { windowManager?.updateViewLayout(view, params) }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun stopShake() {
+        val animator = shakeAnimator ?: return
+        shakeAnimator = null
+        animator.cancel() // onAnimationEnd puts the button back where it was
     }
 
     private fun hasRecordAudioPermission(): Boolean =
@@ -359,12 +539,14 @@ class BubbleService : Service() {
                 watchHandler.removeCallbacks(recordingTimeout)
                 gesture.reset()
                 setState(BubbleState.IDLE)
+                flash(success = false)
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             },
             interactive = true,
             focusedPackage = { VoxScribeAccessibilityService.instance?.focusedPackage() },
             onSpecial = { spoken -> onSpecialResult(spoken) },
             onSend = { kind -> sendAfterTyping(kind) },
+            onLevel = { level -> bubbleView?.pushLevel(level) },
         ).also { it.startListening() }
         return true
     }
@@ -388,16 +570,18 @@ class BubbleService : Service() {
             is Spoken.Edit -> {
                 val done = service?.applyEdit(spoken.edit) ?: false
                 if (service == null) Log.d("VoxPipeline", "edit refused: accessibility service not connected")
+                flash(done)
                 if (!done) Toast.makeText(this, R.string.edit_cant_undo, Toast.LENGTH_SHORT).show()
             }
             is Spoken.Transform -> {
                 val done = service?.applyTransform(spoken.transform) ?: false
+                flash(done)
                 if (!done) Toast.makeText(this, R.string.edit_cant_change, Toast.LENGTH_SHORT).show()
             }
             is Spoken.Replace -> {
                 // "replace the battery with a new one" is ordinary speech unless
                 // the last dictation really contains it, so type it as it was said.
-                if (!(service?.applyReplace(spoken.from, spoken.to) ?: false)) typeAsDictation(spoken.raw)
+                if (service?.applyReplace(spoken.from, spoken.to) == true) flash(true) else typeAsDictation(spoken.raw)
             }
             is Spoken.Send -> performSend(spoken.kind)
             is Spoken.TemplatePrompt -> Toast.makeText(
@@ -412,6 +596,7 @@ class BubbleService : Service() {
 
     private fun performSend(kind: VoiceCommands.SendKind) {
         val done = VoxScribeAccessibilityService.instance?.sendMessage(kind) ?: false
+        flash(done)
         if (!done) Toast.makeText(this, R.string.send_cant_press, Toast.LENGTH_SHORT).show()
     }
 
@@ -433,17 +618,24 @@ class BubbleService : Service() {
     private fun onDictationResult(heard: String) {
         setState(BubbleState.IDLE)
         lastInsertWorked = false
-        if (heard.isBlank()) return
+        if (heard.isBlank()) {
+            // Usually a muted or too quiet mic: say so instead of doing nothing.
+            flash(success = false)
+            Toast.makeText(this, R.string.bubble_no_speech, Toast.LENGTH_SHORT).show()
+            return
+        }
         // An email, web address, number or phone box gets the text the way it expects.
         val inputType = VoxScribeAccessibilityService.instance?.focusedInputType() ?: 0
         val text = FieldShape.shape(heard, inputType)
         if (text.isBlank()) {
+            flash(success = false)
             Toast.makeText(this, R.string.bubble_field_no_match, Toast.LENGTH_SHORT).show()
             return
         }
 
         // A password field must never receive dictation, or see it in the history or on the clipboard.
         if (VoxScribeAccessibilityService.instance?.focusedFieldIsSensitive() == true) {
+            flash(success = false)
             Toast.makeText(this, R.string.bubble_password_blocked, Toast.LENGTH_SHORT).show()
             return
         }
@@ -461,6 +653,7 @@ class BubbleService : Service() {
         val toInsert = if (spaceAfter) "$text " else text
         val inserted = VoxScribeAccessibilityService.instance?.insertText(toInsert) ?: false
         lastInsertWorked = inserted
+        flash(inserted)
         if (!inserted) {
             val clipboard = getSystemService(ClipboardManager::class.java)
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
@@ -585,6 +778,11 @@ class BubbleService : Service() {
         private const val ACTION_UNSNOOZE = "com.voxscribe.android.UNSNOOZE"
         private const val MAX_RECORDING_MS = 120_000L
         private const val SEND_DELAY_MS = 350L
+        private const val FLASH_OK_MS = 700L
+        private const val FLASH_ERROR_MS = 1_200L
+        private const val SHAKE_MS = 360L
+        private const val PRESSED_SCALE = 0.9f
+        private const val HIDDEN_SCALE = 0.85f
 
         /**
          * There is exactly one instance of this service at a time (Android

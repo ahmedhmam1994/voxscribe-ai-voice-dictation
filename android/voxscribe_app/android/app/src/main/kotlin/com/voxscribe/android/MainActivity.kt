@@ -7,6 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 /** Hosts the Flutter UI. The floating button, typing service and engine stay native. */
 class MainActivity : FlutterActivity() {
     private val wordListFiles = WordListFilesChannel(this)
+    private val fileImport = ImportChannel(this)
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -19,12 +20,14 @@ class MainActivity : FlutterActivity() {
         TextToolsChannel(this).register(messenger)
         ReleaseChannel(this).register(messenger)
         wordListFiles.register(messenger)
+        fileImport.register(messenger)
         Telemetry.sendIfDue(this)
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (wordListFiles.onActivityResult(requestCode, resultCode, data)) return
+        if (fileImport.onActivityResult(requestCode, resultCode, data)) return
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
     }

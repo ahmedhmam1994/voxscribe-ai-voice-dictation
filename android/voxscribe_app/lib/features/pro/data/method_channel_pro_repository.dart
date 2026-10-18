@@ -33,11 +33,15 @@ class MethodChannelProRepository implements ProRepository {
   }
 
   @override
-  Future<void> deactivate() async {
+  Future<ActivationResult> deactivate() async {
     try {
-      await _channel.invokeMethod<void>('deactivate');
+      final raw = await _channel.invokeMapMethod<String, Object?>('deactivate');
+      return ActivationResult(
+        ok: raw?['ok'] as bool? ?? false,
+        message: raw?['message'] as String? ?? '',
+      );
     } on PlatformException {
-      // Nothing to undo; the screen reads the state again afterwards.
+      return const ActivationResult(ok: false, message: '');
     }
   }
 

@@ -86,4 +86,6 @@
     <string name="edit_cant_change">Nothing to change here</string>
     <string name="bubble_field_no_match">That box only takes numbers</string>
     <string name="send_cant_press">Could not send here</string>
+    <string name="bubble_snooze_target">Drop here to hide for 10 minutes</string>
+    <string name="bubble_no_speech">No speech heard. Check the microphone is not muted.</string>
 </resources>

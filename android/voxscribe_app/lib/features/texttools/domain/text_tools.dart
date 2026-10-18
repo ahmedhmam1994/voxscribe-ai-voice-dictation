@@ -10,7 +10,15 @@ class TextToolsSettings {
     this.templates = '',
     this.profiles = '',
     this.sendIt = false,
+    this.mode = 'default',
+    this.autoModes = true,
   });
+
+  /// The dictation mode: 'default', 'chat', 'email', 'code' (Pro) or 'notes'.
+  final String mode;
+
+  /// Pro: the mode switches with the app in front (chat apps use Chat, and so on).
+  final bool autoModes;
 
   /// "period", "new line" and "scratch that" become punctuation and edits.
   final bool voiceCommands;
@@ -43,6 +51,8 @@ class TextToolsSettings {
     String? templates,
     String? profiles,
     bool? sendIt,
+    String? mode,
+    bool? autoModes,
   }) {
     return TextToolsSettings(
       voiceCommands: voiceCommands ?? this.voiceCommands,
@@ -52,6 +62,8 @@ class TextToolsSettings {
       templates: templates ?? this.templates,
       profiles: profiles ?? this.profiles,
       sendIt: sendIt ?? this.sendIt,
+      mode: mode ?? this.mode,
+      autoModes: autoModes ?? this.autoModes,
     );
   }
 
@@ -64,7 +76,9 @@ class TextToolsSettings {
       other.replacements == replacements &&
       other.templates == templates &&
       other.profiles == profiles &&
-      other.sendIt == sendIt;
+      other.sendIt == sendIt &&
+      other.mode == mode &&
+      other.autoModes == autoModes;
 
   @override
   int get hashCode => Object.hash(
@@ -75,5 +89,7 @@ class TextToolsSettings {
     templates,
     profiles,
     sendIt,
+    mode,
+    autoModes,
   );
 }

@@ -19,6 +19,10 @@ class ProController extends ChangeNotifier {
   /// Why the last unlock failed, or null.
   String? get errorMessage => _errorMessage;
 
+  /// What happened to the license after it was removed, or null.
+  String? get notice => _notice;
+  String? _notice;
+
   Future<void> load() async {
     _isPro = await repository.isPro();
     notifyListeners();
@@ -33,6 +37,7 @@ class ProController extends ChangeNotifier {
     }
     _busy = true;
     _errorMessage = null;
+    _notice = null;
     notifyListeners();
 
     final result = await repository.activate(key);
@@ -46,8 +51,17 @@ class ProController extends ChangeNotifier {
   }
 
   Future<void> deactivate() async {
-    await repository.deactivate();
+    if (_busy) return;
+    _busy = true;
+    notifyListeners();
+    final result = await repository.deactivate();
+    _busy = false;
     _errorMessage = null;
+    _notice = result.ok
+        ? 'License removed. The key is free to use on another phone.'
+        : 'License removed from this phone, but the server could not be '
+              'reached, so this phone may still count as one of the key\'s two. '
+              'Unlock and remove it again when online to free it.';
     await load();
   }
 

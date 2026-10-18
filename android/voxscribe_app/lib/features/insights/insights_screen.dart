@@ -4,6 +4,7 @@ import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/insights/domain/insights.dart';
 import 'package:voxscribe_app/features/insights/widgets/week_bars.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
+import 'package:voxscribe_app/shared/widgets/count_up_text.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
 import 'package:voxscribe_app/shared/widgets/vox_card.dart';
 
@@ -66,7 +67,8 @@ class InsightsScreen extends StatelessWidget {
       VoxCard(
         padding: const EdgeInsets.all(18),
         child: _Stat(
-          value: _thousands(insights.totalWords),
+          value: insights.totalWords,
+          format: _thousands,
           caption: 'words dictated, all time',
           valueStyle: theme.displayMedium,
         ),
@@ -78,9 +80,8 @@ class InsightsScreen extends StatelessWidget {
             child: VoxCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: _Stat(
-                value: insights.wordsPerMinute == 0
-                    ? '-'
-                    : '${insights.wordsPerMinute}',
+                value: insights.wordsPerMinute,
+                format: (n) => n == 0 ? '-' : '$n',
                 caption: 'words per minute',
                 valueStyle: _smallStat(theme),
               ),
@@ -91,9 +92,8 @@ class InsightsScreen extends StatelessWidget {
             child: VoxCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: _Stat(
-                value: insights.streakDays == 1
-                    ? '1 day'
-                    : '${insights.streakDays} days',
+                value: insights.streakDays,
+                format: (n) => n == 1 ? '1 day' : '$n days',
                 caption: 'current streak',
                 valueStyle: _smallStat(theme),
               ),
@@ -173,11 +173,13 @@ class _Header extends StatelessWidget {
 class _Stat extends StatelessWidget {
   const _Stat({
     required this.value,
+    required this.format,
     required this.caption,
     required this.valueStyle,
   });
 
-  final String value;
+  final int value;
+  final String Function(int value) format;
   final String caption;
   final TextStyle? valueStyle;
 
@@ -186,7 +188,7 @@ class _Stat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: valueStyle),
+        CountUpText(value: value, format: format, style: valueStyle),
         const SizedBox(height: 4),
         Text(caption, style: Theme.of(context).textTheme.bodySmall),
       ],

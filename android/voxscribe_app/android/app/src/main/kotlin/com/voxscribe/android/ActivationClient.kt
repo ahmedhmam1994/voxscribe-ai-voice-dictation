@@ -10,9 +10,9 @@ import java.net.URL
 data class ActivationResult(val ok: Boolean, val message: String)
 
 /**
- * Claims a license key for this phone, once, when the user unlocks Pro. The
- * server holds one Windows PC and one phone per key. After that, Pro is
- * checked offline and this is not called again.
+ * Claims a license key for this phone, once, when the user unlocks Pro, and
+ * frees it again when the user removes the license. The server holds two
+ * Windows PCs and two phones per key. In between, Pro is checked offline.
  */
 object ActivationClient {
     private const val ENDPOINT = "https://getvoxscribe.vercel.app/api/activate"
@@ -20,12 +20,21 @@ object ActivationClient {
     private const val TIMEOUT_MILLIS = 8000
 
     /** Blocks on the network, so call it off the main thread. */
-    fun activate(context: Context, key: String): ActivationResult {
-        val body = JSONObject()
+    fun activate(context: Context, key: String): ActivationResult = post(context, key, action = null)
+
+    /**
+     * Frees this phone's slot so the key can be used on another phone. Only
+     * this phone's own slot can be freed. Blocks on the network.
+     */
+    fun deactivate(context: Context, key: String): ActivationResult = post(context, key, action = "deactivate")
+
+    private fun post(context: Context, key: String, action: String?): ActivationResult {
+        val json = JSONObject()
             .put("key", key.trim())
             .put("hardware_id", deviceId(context))
             .put("platform", PLATFORM)
-            .toString()
+        if (action != null) json.put("action", action)
+        val body = json.toString()
         return try {
             val connection = URL(ENDPOINT).openConnection() as HttpURLConnection
             connection.requestMethod = "POST"

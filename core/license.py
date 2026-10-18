@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import base64
 import json
+import os
 import subprocess
 import urllib.error
 import urllib.request
@@ -105,8 +106,23 @@ def set_license_key(key: str) -> bool:
     return True
 
 
+def get_license_key() -> str | None:
+    """The stored key, or None. Only Remove license needs it (to free this
+    PC's slot on the activation server)."""
+    stored = _settings().value("license_key", "")
+    return str(stored) if stored else None
+
+
 def clear_license_key() -> None:
     _settings().remove("license_key")
+
+
+def _powershell_path() -> str:
+    """The real PowerShell in System32, not whatever "powershell" resolves to
+    first on PATH or in the current folder."""
+    root = os.environ.get("SystemRoot", r"C:\Windows")
+    path = os.path.join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+    return path if os.path.isfile(path) else "powershell"
 
 
 def _hardware_id() -> str:
@@ -122,7 +138,7 @@ def _hardware_id() -> str:
     try:
         result = subprocess.run(
             [
-                "powershell", "-NoProfile", "-NonInteractive", "-Command",
+                _powershell_path(), "-NoProfile", "-NonInteractive", "-Command",
                 "(Get-CimInstance Win32_ComputerSystemProduct).UUID",
             ],
             capture_output=True,
@@ -148,8 +164,22 @@ def activate_online(key: str, timeout: float = 8.0) -> tuple[bool, str]:
     """
     if not verify_license_key(key):
         return False, "That key isn't valid -- check for typos and try again."
+    return _post_activation({"key": key.strip(), "hardware_id": _hardware_id()}, timeout)
 
-    payload = json.dumps({"key": key.strip(), "hardware_id": _hardware_id()}).encode("utf-8")
+
+def deactivate_online(key: str, timeout: float = 8.0) -> tuple[bool, str]:
+    """Frees this PC's slot for `key` on the activation server, so the key
+    can be activated on another PC (one key covers two PCs and two phones).
+    Only this PC's own slot can be freed. Called from Remove license."""
+    if not verify_license_key(key):
+        return False, "The saved key isn't valid."
+    return _post_activation(
+        {"key": key.strip(), "hardware_id": _hardware_id(), "action": "deactivate"}, timeout
+    )
+
+
+def _post_activation(body: dict, timeout: float) -> tuple[bool, str]:
+    payload = json.dumps(body).encode("utf-8")
     request = urllib.request.Request(
         ACTIVATION_ENDPOINT,
         data=payload,

@@ -136,6 +136,24 @@ def device_native_samplerate(device: int | None) -> int:
         return SAMPLE_RATE
 
 
+def chunk_level(chunk: np.ndarray, floor_db: float = -55.0, ceil_db: float = -15.0) -> float:
+    """Loudness of one small audio chunk as 0.0-1.0, for the live mic meter
+    in the floating pill.
+
+    Mapped on a decibel scale (RMS between `floor_db` and `ceil_db`) rather
+    than raw amplitude: the quiet Bluetooth headsets this app was built on
+    peak around 0.02, which a linear meter would show as nothing at all,
+    while normal speech on a laptop mic still lands near the top.
+    """
+    if len(chunk) == 0:
+        return 0.0
+    rms = float(np.sqrt(np.mean(np.square(chunk, dtype=np.float64))))
+    if rms <= 0.0:
+        return 0.0
+    db = 20.0 * np.log10(rms)
+    return float(min(1.0, max(0.0, (db - floor_db) / (ceil_db - floor_db))))
+
+
 def peak_levels(
     device: int | None = None,
     chunk_ms: int = 50,

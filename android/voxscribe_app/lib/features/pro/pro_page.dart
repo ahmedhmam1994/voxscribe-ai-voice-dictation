@@ -83,7 +83,9 @@ class _ProPageState extends State<ProPage> {
         children: [
           SettingsRow(
             title: 'Remove license from this phone',
-            subtitle: 'Pro turns off here. Your key still works on Windows.',
+            subtitle:
+                'Pro turns off here and the key is freed for another phone. '
+                'It keeps working on Windows.',
             titleColor: context.vox.red,
             onTap: widget.pro.deactivate,
           ),
@@ -95,8 +97,13 @@ class _ProPageState extends State<ProPage> {
   List<Widget> _locked(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final error = widget.pro.errorMessage;
+    final notice = widget.pro.notice;
     return [
-      Text('One key for Windows and this phone.', style: theme.titleLarge),
+      if (notice != null) ...[
+        Text(notice, style: theme.bodyMedium),
+        const SizedBox(height: 16),
+      ],
+      Text('One key for two PCs and two phones.', style: theme.titleLarge),
       const SizedBox(height: 8),
       Text(
         'Pro adds snippets here: say a short phrase and the full text is '

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
+import 'package:voxscribe_app/features/setup/widgets/how_it_works_demo.dart';
 import 'package:voxscribe_app/features/setup/widgets/step_card.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
@@ -205,6 +206,8 @@ class _Intro extends StatelessWidget {
               fontSize: 15,
             ),
           ),
+          const SizedBox(height: 14),
+          const HowItWorksDemo(),
         ],
       ),
     );

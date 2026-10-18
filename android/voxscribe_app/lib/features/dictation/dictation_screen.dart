@@ -10,6 +10,7 @@ import 'package:voxscribe_app/features/dictation/widgets/today_list.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_actions.dart';
 import 'package:voxscribe_app/features/dictation/widgets/transcript_card.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
+import 'package:voxscribe_app/features/import/file_import_screen.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
@@ -116,6 +117,14 @@ class _AppBar extends StatelessWidget {
                 ?.copyWith(fontSize: 19, letterSpacing: -0.2),
           ),
           const Spacer(),
+          IconButton(
+            tooltip: 'Transcribe an audio or video file',
+            icon: const Icon(Icons.audio_file_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FileImportScreen()),
+            ),
+          ),
+          const SizedBox(width: 4),
           LanguageChip(
             languageCode: controller.language,
             enabled: controller.canStart,

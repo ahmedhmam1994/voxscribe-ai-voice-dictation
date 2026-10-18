@@ -69,3 +69,46 @@ def test_models_ready_needs_both_files(monkeypatch, tmp_path):
 
     emb.write_bytes(b"x")
     assert diarize.models_ready()
+
+
+class _Resp:
+    def __init__(self, data):
+        self._data = [data]
+
+    def read(self, _n=-1):
+        return self._data.pop() if self._data else b""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_download_checks_size_and_checksum(monkeypatch):
+    import hashlib
+    import urllib.request
+
+    import pytest
+
+    from core import diarize
+
+    data = b"model bytes"
+    good = hashlib.sha256(data).hexdigest()
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _Resp(data))
+    assert diarize._download("https://example.invalid/m", len(data), good, None) == data
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _Resp(data))
+    with pytest.raises(OSError, match="checksum"):
+        diarize._download("https://example.invalid/m", len(data), "0" * 64, None)
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **k: _Resp(data[:3]))
+    with pytest.raises(OSError, match="incomplete"):
+        diarize._download("https://example.invalid/m", len(data), good, None)
+
+
+def test_pinned_checksums_match_the_published_files():
+    from core import diarize
+
+    assert len(diarize._SEGMENTATION_ARCHIVE_SHA256) == 64
+    assert len(diarize._EMBEDDING_SHA256) == 64

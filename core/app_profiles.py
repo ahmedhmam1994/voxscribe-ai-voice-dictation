@@ -11,6 +11,10 @@ Written in Settings as one line per app, in the same style as word
 replacements and snippets:
 
     code.exe => code=on, cleanup=off, language=en
+    slack.exe => mode=notes, smart=off
+
+`mode` picks one of the dictation modes (core/modes.py); the other options
+then override single settings of that mode.
 """
 
 from __future__ import annotations
@@ -19,13 +23,18 @@ import json
 
 from PySide6.QtCore import QSettings
 
-# option name -> kind. "language" takes a language code or "auto"; the rest are on/off.
+from core.modes import MODES
+
+# option name -> kind. "language" takes a language code or "auto", "mode" a mode
+# name from core/modes.py; the rest are on/off.
 OPTIONS = {
+    "mode": "mode",
     "language": "language",
     "cleanup": "flag",
     "voice_commands": "flag",
     "code": "flag",
     "smart": "flag",
+    "period": "flag",
 }
 _ON = {"on", "true", "yes", "1"}
 _OFF = {"off", "false", "no", "0"}
@@ -53,6 +62,8 @@ def parse_lines(text: str) -> dict[str, dict[str, object]]:
                 continue
             if kind == "language" and value:
                 chosen[name] = None if value == "auto" else value
+            elif kind == "mode" and value in MODES:
+                chosen[name] = value
             elif kind == "flag" and value in _ON | _OFF:
                 chosen[name] = value in _ON
         if chosen:
@@ -67,6 +78,8 @@ def format_lines(profiles: dict[str, dict[str, object]]) -> str:
         for name, value in options.items():
             if OPTIONS.get(name) == "language":
                 parts.append(f"{name}={value or 'auto'}")
+            elif OPTIONS.get(name) == "mode":
+                parts.append(f"{name}={value}")
             else:
                 parts.append(f"{name}={'on' if value else 'off'}")
         lines.append(f"{app} => {', '.join(parts)}")

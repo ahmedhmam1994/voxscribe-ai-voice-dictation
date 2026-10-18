@@ -16,6 +16,8 @@ object TextToolsStore {
     private const val KEY_REPLACEMENTS = "replacements"
     private const val KEY_TEMPLATES = "templates"
     private const val KEY_PROFILES = "profiles"
+    private const val KEY_MODE = "mode"
+    private const val KEY_AUTO_MODES = "auto_modes"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -29,6 +31,8 @@ object TextToolsStore {
         val templates: String,
         val profiles: String,
         val sendIt: Boolean = false,
+        val mode: String = Modes.DEFAULT,
+        val autoModes: Boolean = true,
     )
 
     fun snapshot(context: Context): Snapshot {
@@ -41,6 +45,8 @@ object TextToolsStore {
             templates = p.getString(KEY_TEMPLATES, "").orEmpty(),
             profiles = p.getString(KEY_PROFILES, "").orEmpty(),
             sendIt = p.getBoolean(KEY_SEND_IT, false),
+            mode = p.getString(KEY_MODE, Modes.DEFAULT) ?: Modes.DEFAULT,
+            autoModes = p.getBoolean(KEY_AUTO_MODES, true),
         )
     }
 
@@ -53,6 +59,8 @@ object TextToolsStore {
             .putString(KEY_TEMPLATES, snapshot.templates)
             .putString(KEY_PROFILES, snapshot.profiles)
             .putBoolean(KEY_SEND_IT, snapshot.sendIt)
+            .putString(KEY_MODE, snapshot.mode)
+            .putBoolean(KEY_AUTO_MODES, snapshot.autoModes)
             .apply()
     }
 }

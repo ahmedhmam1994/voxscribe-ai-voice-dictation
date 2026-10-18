@@ -309,14 +309,17 @@ def set_excluded_apps(apps: list[str]) -> None:
 DEFAULT_MODEL_SIZE = "small"
 
 # Plain names first, so the choice reads as speed against accuracy; the
-# Whisper size stays in the label for people who know them.
+# Whisper size stays in the label for people who know them. The bigger models
+# run on the processor here and are much slower than Small (measured on an
+# 8-thread laptop: a 15 s clip took Small 4.5 s and Large turbo 14 s), so the
+# labels say so rather than letting "turbo" suggest it is fast.
 AVAILABLE_MODEL_SIZES = [
     ("tiny", "Fastest: Tiny, least accurate (~75MB)"),
     ("base", "Fast: Base (~145MB)"),
     ("small", "Balanced: Small, recommended (~500MB)"),
-    ("medium", "More accurate: Medium (~1.5GB) (Pro)"),
-    ("large-v3-turbo", "Most accurate, quicker: Large turbo (~1.6GB) (Pro)"),
-    ("large", "Most accurate: Large, slowest (~3GB) (Pro)"),
+    ("medium", "More accurate: Medium, slower than Small (~1.5GB) (Pro)"),
+    ("large-v3-turbo", "Very accurate: Large turbo, about 3x slower than Small (~1.6GB) (Pro)"),
+    ("large", "Most accurate: Large, the slowest (~3GB) (Pro)"),
 ]
 
 # Larger models are gated behind a Pro license (see core/license.py) --
@@ -551,3 +554,49 @@ def get_speaker_names() -> list[str]:
 
 def set_speaker_names(names: list[str]) -> None:
     _settings().setValue("speaker_names", ", ".join(n.strip() for n in names))
+
+
+def get_redo_hotkey() -> str:
+    """The Try harder key (core/redo.py), or "" when it is off."""
+    from core.redo import DEFAULT_REDO_HOTKEY
+
+    value = _settings().value("redo_hotkey", DEFAULT_REDO_HOTKEY)
+    return value if value in AVAILABLE_HOTKEYS or value == "" else DEFAULT_REDO_HOTKEY
+
+
+def set_redo_hotkey(key: str) -> None:
+    _settings().setValue("redo_hotkey", key)
+
+
+def get_mode() -> str:
+    """The dictation mode used everywhere (core/modes.py). "default" changes nothing."""
+    from core.modes import DEFAULT_MODE, MODES
+
+    value = _settings().value("mode", DEFAULT_MODE)
+    return value if value in MODES else DEFAULT_MODE
+
+
+def set_mode(mode: str) -> None:
+    _settings().setValue("mode", mode)
+
+
+def get_auto_modes_enabled() -> bool:
+    """Pro. Default on: modes switch with the focused app (core/modes.py)."""
+    value = _settings().value("auto_modes_enabled", "true")
+    return str(value).lower() == "true"
+
+
+def set_auto_modes_enabled(enabled: bool) -> None:
+    _settings().setValue("auto_modes_enabled", "true" if enabled else "false")
+
+
+def get_redo_hints_shown() -> int:
+    """How many "Typed" pills have mentioned the Try harder key so far."""
+    try:
+        return int(_settings().value("redo_hints_shown", 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def set_redo_hints_shown(count: int) -> None:
+    _settings().setValue("redo_hints_shown", count)

@@ -112,6 +112,22 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
+                    label: 'Dictation mode',
+                    children: [
+                      SettingsRow(
+                        title: 'Mode',
+                        subtitle: unlocked && tools.autoModes
+                            ? '${modeName(tools.mode)}, switching by app.'
+                            : modeName(tools.mode),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          ModesPage(controller: textTools, pro: pro),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
                     label: 'Voice commands',
                     children: [
                       SettingsRow(

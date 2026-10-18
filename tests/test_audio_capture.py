@@ -62,6 +62,37 @@ def test_rolling_buffer_keeps_only_recent_audio():
     assert kept[-1] == 9
 
 
+def test_chunk_level_silence_and_empty_are_zero():
+    from core.audio_capture import chunk_level
+
+    assert chunk_level(np.zeros(480, dtype=np.float32)) == 0.0
+    assert chunk_level(np.zeros(0, dtype=np.float32)) == 0.0
+
+
+def test_chunk_level_quiet_mic_still_registers():
+    from core.audio_capture import chunk_level
+
+    # A quiet Bluetooth headset: speech peaking around 0.02 must still move
+    # the meter clearly, not sit at the bottom.
+    t = np.linspace(0, 0.03, 480, endpoint=False)
+    quiet = (0.02 * np.sin(2 * np.pi * 220 * t)).astype(np.float32)
+    assert 0.3 < chunk_level(quiet) < 0.9
+
+
+def test_chunk_level_loud_is_capped_at_one():
+    from core.audio_capture import chunk_level
+
+    assert chunk_level(np.ones(480, dtype=np.float32)) == 1.0
+
+
+def test_chunk_level_rises_with_volume():
+    from core.audio_capture import chunk_level
+
+    t = np.linspace(0, 0.03, 480, endpoint=False)
+    tone = np.sin(2 * np.pi * 220 * t).astype(np.float32)
+    assert chunk_level(0.005 * tone) < chunk_level(0.02 * tone) < chunk_level(0.08 * tone)
+
+
 def test_rolling_buffer_drain_empties_it():
     from core.audio_capture import RollingBuffer
 

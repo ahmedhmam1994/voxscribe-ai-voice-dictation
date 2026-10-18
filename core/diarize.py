@@ -16,6 +16,7 @@ helps when the automatic count is off.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import tarfile
 import urllib.request
@@ -32,11 +33,15 @@ _SEGMENTATION_URL = (
     f"{_RELEASES}/speaker-segmentation-models/sherpa-onnx-pyannote-segmentation-3-0.tar.bz2"
 )
 _SEGMENTATION_ARCHIVE_BYTES = 6_958_444
+# SHA-256 of each file as published, checked before anything is unpacked or
+# saved, so a file swapped or corrupted on the way is never loaded.
+_SEGMENTATION_ARCHIVE_SHA256 = "24615ee884c897d9d2ba09bb4d30da6bb1b15e685065962db5b02e76e4996488"
 _EMBEDDING_URL = (
     f"{_RELEASES}/speaker-recongition-models/"
     "3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx"
 )
 _EMBEDDING_BYTES = 28_281_164
+_EMBEDDING_SHA256 = "aa3cfc16963a10586a9393f5035d6d6b57e98d358b347f80c2a30bf4f00ceba2"
 
 SEGMENTATION_MODEL = MODEL_DIR / "sherpa-onnx-pyannote-segmentation-3-0" / "model.onnx"
 EMBEDDING_MODEL = MODEL_DIR / "campplus_zh_en_advanced.onnx"
@@ -62,7 +67,12 @@ def models_ready() -> bool:
     return SEGMENTATION_MODEL.is_file() and EMBEDDING_MODEL.is_file()
 
 
-def _download(url: str, expected_bytes: int, progress: Callable[[str], None] | None) -> bytes:
+def _download(
+    url: str,
+    expected_bytes: int,
+    expected_sha256: str,
+    progress: Callable[[str], None] | None,
+) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": "VoxScribe"})
     chunks = []
     received = 0
@@ -75,6 +85,8 @@ def _download(url: str, expected_bytes: int, progress: Callable[[str], None] | N
     data = b"".join(chunks)
     if len(data) != expected_bytes:
         raise OSError("The speaker model download was incomplete. Try again.")
+    if hashlib.sha256(data).hexdigest() != expected_sha256:
+        raise OSError("The speaker model download did not match its checksum. Try again.")
     return data
 
 
@@ -83,11 +95,13 @@ def download_models(progress: Callable[[str], None] | None = None) -> None:
     unavailable (including when offline mode is on) or the download is cut short."""
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     if not SEGMENTATION_MODEL.is_file():
-        archive = _download(_SEGMENTATION_URL, _SEGMENTATION_ARCHIVE_BYTES, progress)
+        archive = _download(
+            _SEGMENTATION_URL, _SEGMENTATION_ARCHIVE_BYTES, _SEGMENTATION_ARCHIVE_SHA256, progress
+        )
         with tarfile.open(fileobj=io.BytesIO(archive), mode="r:bz2") as tar:
             tar.extractall(MODEL_DIR, filter="data")  # noqa: S202 -- fixed archive, data filter
     if not EMBEDDING_MODEL.is_file():
-        data = _download(_EMBEDDING_URL, _EMBEDDING_BYTES, progress)
+        data = _download(_EMBEDDING_URL, _EMBEDDING_BYTES, _EMBEDDING_SHA256, progress)
         EMBEDDING_MODEL.write_bytes(data)
 
 
