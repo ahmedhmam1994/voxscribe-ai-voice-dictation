@@ -106,14 +106,16 @@ def make_og_image() -> QPixmap:
     painter.setFont(headline_font)
     painter.setPen(QColor("#f3f3fb"))
     headline_rect = QRectF(90, 270, 1020, 130)
-    painter.drawText(headline_rect, Qt.AlignLeft | Qt.TextWordWrap, "Talk anywhere on Windows.")
+    painter.drawText(
+        headline_rect, Qt.AlignLeft | Qt.TextWordWrap, "Offline, open source dictation"
+    )
 
     grad_text = QLinearGradient(QPointF(90, 0), QPointF(700, 0))
     grad_text.setColorAt(0.0, QColor(ACCENT))
     grad_text.setColorAt(0.5, QColor(ACCENT_HOVER))
     grad_text.setColorAt(1.0, QColor(CYAN))
     painter.setPen(QPen(QBrush(grad_text), 0))
-    painter.drawText(QRectF(90, 340, 1020, 90), Qt.AlignLeft, "VoxScribe types it for you.")
+    painter.drawText(QRectF(90, 340, 1020, 90), Qt.AlignLeft, "for your PC and your phone.")
 
     # Subhead / stats line
     painter.setPen(QColor("#9797ac"))
@@ -122,7 +124,7 @@ def make_og_image() -> QPixmap:
     painter.drawText(
         QRectF(90, 460, 1020, 60),
         Qt.AlignLeft,
-        "Free · 100% local transcription · Open source (MIT) · Windows 10/11",
+        "Free · 100% local · Open source (MIT) · Windows and Android",
     )
 
     painter.end()

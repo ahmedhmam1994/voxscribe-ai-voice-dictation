@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/readme-banner.png" alt="VoxScribe: free, offline voice typing for Windows and Android" width="100%">
+  <img src="docs/assets/readme-banner.png" alt="VoxScribe: offline, open source dictation for your PC and your phone" width="100%">
 </p>
 
 <p align="center">
@@ -10,6 +10,8 @@
 </p>
 
 # VoxScribe
+
+**Offline, open source dictation for your PC and your phone.**
 
 Free, open-source voice typing for **Windows** and **Android**. Talk, and your words are typed straight into whatever app you are using. Your speech is transcribed **locally on your own device** and never uploaded anywhere.
 
