@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Offline Alternative to Windows Voice Typing: VoxScribe</title>
+<meta name="description" content="Windows voice typing (Win+H) needs the cloud and a toggle. VoxScribe is a free, offline, hold-to-talk alternative that types into any Windows app.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/windows-voice-typing-alternative.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="An Offline Alternative to Windows Voice Typing">
+<meta property="og:description" content="Free, open source, hold-to-talk dictation that runs on your PC and works in every Windows app.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/windows-voice-typing-alternative.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="An Offline Alternative to Windows Voice Typing">
+<meta name="twitter:description" content="Free, open source, hold-to-talk dictation that runs on your PC and works in every Windows app.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Offline Alternative to Windows Voice Typing", "item": "https://voxscribe-ai-voice-dictation.vercel.app/windows-voice-typing-alternative.html"}]}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is VoxScribe a replacement for Windows voice typing?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It can be. VoxScribe is a separate app that does the same job in a different way: it runs speech recognition on your own PC, works offline, and uses a hold-to-talk key instead of a toggle. You can keep using Win+H for quick things and use VoxScribe when you want it offline or hands-on with a key."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does VoxScribe work without an internet connection?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The speech model downloads once on first run. After that, dictation works with the network disconnected, and your audio never leaves the computer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Do I need an account or a subscription?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Dictation is free and open source under the MIT license, with no account. An optional one-time Pro upgrade adds the largest models and extra features, but the core app is not limited by time or word count."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
+    --green: #34d399;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+  .keycap {
+    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
+    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
+    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
+    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>An Offline Alternative to Windows Voice Typing</h1>
+  <p class="subhead">Windows voice typing (<span class="keycap">Win</span>+<span class="keycap">H</span>) is built in and convenient, but it relies on Microsoft's online speech service and you switch it on and off by hand. VoxScribe is a free, open source option that runs on your PC and works the same way in every app.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html">See the full feature list</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; works offline</p>
+
+  <h2>What Windows voice typing does well</h2>
+  <p>It needs no install, it is available in many text fields, and for a quick sentence it is hard to beat. If that covers what you do, there is no reason to change.</p>
+
+  <h2>Why people look for something else</h2>
+  <p>The first reason is privacy and connectivity: Windows voice typing sends your speech to an online service, so it needs an internet connection and your audio leaves the machine. The second is how it starts and stops. It is a toggle, so you turn it on, talk, and turn it off again, which gets awkward in the middle of typing. The third is control: you cannot pick a larger or faster speech model, and the text is not adjusted to the app you are typing in.</p>
+
+  <h2>How VoxScribe is different</h2>
+  <ul>
+    <li><strong>It runs on your PC.</strong> Speech recognition uses OpenAI's Whisper model locally, so nothing is uploaded and it works with no internet after the first model download.</li>
+    <li><strong>Hold to talk.</strong> Hold <span class="keycap">F9</span> in any app, speak, and let go. The words are typed where your cursor is.</li>
+    <li><strong>It types, it does not paste.</strong> Text goes in as keystrokes, so your clipboard is never overwritten, and it skips password fields.</li>
+    <li><strong>It fits the app.</strong> Chat boxes drop the trailing period and emails keep full sentences, with an automatic mode per app.</li>
+    <li><strong>You can fix a bad sentence.</strong> Press <span class="keycap">F8</span> within two minutes and the last clip is rerun on a more careful model and corrected in place.</li>
+    <li><strong>You choose the model.</strong> Tiny, Base and Small are free. Pro adds Medium and the large models.</li>
+  </ul>
+
+  <div class="card">
+    <strong>You do not have to pick one.</strong> Keep <span class="keycap">Win</span>+<span class="keycap">H</span> for quick jobs and use VoxScribe when you want offline dictation, a hold-to-talk key, or longer text.
+  </div>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Is VoxScribe a replacement for Windows voice typing?</h3>
+    <p>It can be. VoxScribe is a separate app that does the same job in a different way: it runs speech recognition on your own PC, works offline, and uses a hold-to-talk key instead of a toggle. You can keep using Win+H for quick things and use VoxScribe when you want it offline or hands-on with a key.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does VoxScribe work without an internet connection?</h3>
+    <p>Yes. The speech model downloads once on first run. After that, dictation works with the network disconnected, and your audio never leaves the computer.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Do I need an account or a subscription?</h3>
+    <p>No. Dictation is free and open source under the MIT license, with no account. An optional one-time Pro upgrade adds the largest models and extra features, but the core app is not limited by time or word count.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="offline-whisper-dictation-windows.html">Offline Whisper Dictation for Windows</a>, <a href="arabic-voice-typing-windows.html">Arabic Voice Typing for Windows</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>, <a href="voice-dictation-for-ai-prompts.html">Dictate AI Prompts</a>, <a href="voice-typing-for-wrist-pain-rsi.html">Voice Typing for Wrist Pain</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>, <a href="offline-voice-typing-android-no-cloud.html">Android Voice Typing Without the Cloud</a>, <a href="privacy-at-a-glance.html">Privacy at a Glance</a>, <a href="windows-security-warning.html">Windows Security Warning Explained</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>

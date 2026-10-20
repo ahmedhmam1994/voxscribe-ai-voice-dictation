@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Arabic Voice Typing for Windows, Free and Offline: VoxScribe</title>
+<meta name="description" content="Dictate in Arabic on Windows with a free, offline app. VoxScribe uses Whisper, has an Arabic language setting, and types into any app.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/arabic-voice-typing-windows.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Free Offline Arabic Voice Typing for Windows">
+<meta property="og:description" content="Dictate in Arabic into any Windows app. Free, open source, and it runs on your PC with nothing uploaded.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/arabic-voice-typing-windows.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Offline Arabic Voice Typing for Windows">
+<meta name="twitter:description" content="Dictate in Arabic into any Windows app. Free, open source, and it runs on your PC with nothing uploaded.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Arabic Voice Typing for Windows", "item": "https://voxscribe-ai-voice-dictation.vercel.app/arabic-voice-typing-windows.html"}]}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does VoxScribe support Arabic?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Arabic is one of the dictation languages you can choose in Settings. VoxScribe uses Whisper's multilingual models, so the same app that dictates English can dictate Arabic."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which model works best for Arabic?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Accuracy in Arabic depends on the model size and on the dialect. Smaller models make more mistakes in Arabic than in English, so start with Small or larger and test it with your own voice."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I switch between Arabic and English?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Choose one dictation language at a time. With the optional Pro upgrade you can give a second hold-to-talk key its own language, so one key dictates Arabic and the other English without opening Settings. Mixing both languages inside a single sentence is not something to rely on yet."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Arabic dictation work offline?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The multilingual model downloads once and then runs on your computer with no internet, and your audio is not uploaded."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
+    --green: #34d399;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+  .keycap {
+    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
+    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
+    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
+    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>Free Offline Arabic Voice Typing for Windows</h1>
+  <p class="subhead">VoxScribe lets you dictate in Arabic into any Windows app. It runs OpenAI's Whisper on your own PC, so it works with no internet, needs no account, and never uploads your voice.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="index.html">See the full feature list</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; works with any microphone</p>
+
+  <h2>How to dictate in Arabic</h2>
+  <ol>
+    <li>Install VoxScribe and let it download its speech model on first run.</li>
+    <li>Open Settings and choose <strong>Arabic</strong> as the dictation language.</li>
+    <li>Hold <span class="keycap">F9</span> in any app, speak, and release. The Arabic text is typed where your cursor is.</li>
+  </ol>
+  <p>Text goes in as normal keystrokes, so it works in browsers, chat apps, documents and editors. How right-to-left text looks on screen depends on the app you are typing into.</p>
+
+  <h2>Pick a model that suits Arabic</h2>
+  <p>Whisper handles Arabic, but accuracy depends on the model size and on the dialect you speak. Smaller models make more mistakes in Arabic than in English. Start with Small, the default, and try a larger model if you need more accuracy. If a sentence comes out wrong, press <span class="keycap">F8</span> within two minutes and VoxScribe reruns it on a more careful model and corrects the text.</p>
+
+  <div class="card">
+    <strong>Using Arabic and English together:</strong> choose one language at a time in Settings. With the optional Pro upgrade, a second hold-to-talk key can have its own language, so one key dictates Arabic and the other dictates English.
+  </div>
+
+  <h2>Privacy</h2>
+  <p>The speech model runs on your computer. Audio is transcribed and discarded locally, and it is never sent to a server. After the one-time model download, dictation works with the internet off.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Does VoxScribe support Arabic?</h3>
+    <p>Yes. Arabic is one of the dictation languages you can choose in Settings. VoxScribe uses Whisper's multilingual models, so the same app that dictates English can dictate Arabic.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Which model works best for Arabic?</h3>
+    <p>Accuracy in Arabic depends on the model size and on the dialect. Smaller models make more mistakes in Arabic than in English, so start with Small or larger and test it with your own voice.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Can I switch between Arabic and English?</h3>
+    <p>Choose one dictation language at a time. With the optional Pro upgrade you can give a second hold-to-talk key its own language, so one key dictates Arabic and the other English without opening Settings. Mixing both languages inside a single sentence is not something to rely on yet.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Does Arabic dictation work offline?</h3>
+    <p>Yes. The multilingual model downloads once and then runs on your computer with no internet, and your audio is not uploaded.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="windows-voice-typing-alternative.html">Offline Alternative to Windows Voice Typing</a>, <a href="offline-whisper-dictation-windows.html">Offline Whisper Dictation for Windows</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>, <a href="voice-dictation-for-ai-prompts.html">Dictate AI Prompts</a>, <a href="voice-typing-for-wrist-pain-rsi.html">Voice Typing for Wrist Pain</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>, <a href="offline-voice-typing-android-no-cloud.html">Android Voice Typing Without the Cloud</a>, <a href="privacy-at-a-glance.html">Privacy at a Glance</a>, <a href="windows-security-warning.html">Windows Security Warning Explained</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>

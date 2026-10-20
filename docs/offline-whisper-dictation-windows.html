@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>Offline Whisper Dictation for Windows: VoxScribe</title>
+<meta name="description" content="Run OpenAI's Whisper locally to dictate into any Windows app. Model sizes, real speeds on a CPU-only laptop, and which to pick. Free and open source.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/offline-whisper-dictation-windows.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Offline Whisper Dictation on Windows, No GPU Needed">
+<meta property="og:description" content="Whisper model sizes and real speeds on a laptop CPU, and how to dictate into any Windows app offline.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/offline-whisper-dictation-windows.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Offline Whisper Dictation on Windows, No GPU Needed">
+<meta name="twitter:description" content="Whisper model sizes and real speeds on a laptop CPU, and how to dictate into any Windows app offline.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Offline Whisper Dictation for Windows", "item": "https://voxscribe-ai-voice-dictation.vercel.app/offline-whisper-dictation-windows.html"}]}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Do I need a graphics card to run Whisper dictation on Windows?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. VoxScribe runs Whisper on the CPU, so a graphics card is not needed. On a laptop with an older graphics card that does not help, a 15 second clip took about 4 seconds with the Small model."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which Whisper model should I pick?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Small is the default and a good balance. Choose Base if your computer is slow and you want faster results, and choose a larger Pro model if accuracy matters more than speed. You can also press F8 after any dictation to rerun that clip on a more careful model."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is anything uploaded when I dictate?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Audio is transcribed on your computer and discarded. The only download is the speech model itself, once, on first run."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
+    --green: #34d399;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+  .keycap {
+    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
+    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
+    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
+    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Guide</span>
+  <h1>Offline Whisper Dictation on Windows, No GPU Needed</h1>
+  <p class="subhead">Whisper is OpenAI's open speech recognition model. VoxScribe runs it on your own PC, so you can dictate into any Windows app with no internet connection, no account and no audio leaving the machine.</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p class="fine-print">Free &amp; open source (MIT) &middot; Windows 10/11 &middot; CPU only</p>
+
+  <h2>How it runs</h2>
+  <p>VoxScribe uses faster-whisper, a fast implementation of Whisper, on the CPU. The speech model downloads once on first run and is stored on your computer. After that you hold <span class="keycap">F9</span> in any app, speak, and release, and the transcribed text is typed where your cursor is.</p>
+
+  <h2>The models</h2>
+  <ul>
+    <li><strong>Tiny</strong> (about 75 MB): the fastest, and the least accurate.</li>
+    <li><strong>Base</strong> (about 145 MB): fast, with a clear step up in accuracy.</li>
+    <li><strong>Small</strong> (about 500 MB): the default and recommended balance.</li>
+    <li><strong>Medium, Large turbo and Large</strong> (about 1.5 GB to 3 GB): more accurate and slower. These are part of the optional Pro upgrade.</li>
+  </ul>
+
+  <h2>Real speeds on a CPU</h2>
+  <p>These numbers come from a 15 second spoken clip on an older laptop, using the CPU only (its graphics card is too old to help). Your computer will differ, but the ratios hold up.</p>
+  <ul>
+    <li>Tiny: about 0.7 to 0.9 seconds</li>
+    <li>Base: about 1.3 to 1.7 seconds</li>
+    <li>Small: about 4 seconds</li>
+    <li>Large turbo: about 14 seconds</li>
+  </ul>
+  <p>The larger models are worth it for careful work, but for everyday dictation Small is quick enough that the text appears a few seconds after you let go of the key.</p>
+
+  <h2>Fast first, careful when you need it</h2>
+  <p>Live dictation uses a fast setting so the text appears quickly. If a sentence comes out wrong, press <span class="keycap">F8</span> within two minutes and VoxScribe reruns that clip on a bigger model with a more careful search, then replaces the text in place. You get speed by default and accuracy when it matters, without changing settings.</p>
+
+  <h2>Frequently asked questions</h2>
+  <div class="faq-item">
+    <h3>Do I need a graphics card to run Whisper dictation on Windows?</h3>
+    <p>No. VoxScribe runs Whisper on the CPU, so a graphics card is not needed. On a laptop with an older graphics card that does not help, a 15 second clip took about 4 seconds with the Small model.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Which Whisper model should I pick?</h3>
+    <p>Small is the default and a good balance. Choose Base if your computer is slow and you want faster results, and choose a larger Pro model if accuracy matters more than speed. You can also press F8 after any dictation to rerun that clip on a more careful model.</p>
+  </div>
+  <div class="faq-item">
+    <h3>Is anything uploaded when I dictate?</h3>
+    <p>No. Audio is transcribed on your computer and discarded. The only download is the speech model itself, once, on first run.</p>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:36px;color:var(--text-muted);">Related guides: <a href="free-voice-dictation-windows.html">Free Voice Dictation Guide</a>, <a href="dictate-into-any-app-windows.html">Dictate Into Any App Guide</a>, <a href="windows-voice-typing-alternative.html">Offline Alternative to Windows Voice Typing</a>, <a href="arabic-voice-typing-windows.html">Arabic Voice Typing for Windows</a>, <a href="free-srt-subtitle-generator-windows.html">Free .srt Subtitle Generator</a>, <a href="voice-dictation-for-ai-prompts.html">Dictate AI Prompts</a>, <a href="voice-typing-for-wrist-pain-rsi.html">Voice Typing for Wrist Pain</a>, <a href="free-offline-voice-typing-android.html">Android Voice Typing</a>, <a href="offline-voice-typing-android-no-cloud.html">Android Voice Typing Without the Cloud</a>, <a href="privacy-at-a-glance.html">Privacy at a Glance</a>, <a href="windows-security-warning.html">Windows Security Warning Explained</a>.</p>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
+</div>
+</body>
+</html>
