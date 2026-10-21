@@ -55,6 +55,7 @@ No account, no subscription. MIT licensed.
 - **Speech models by speed:** Fast, Balanced (the default) and, with Pro, three more accurate ones including Large turbo. "Test speed on this PC" in Settings times each one with your own voice
 - **Try harder:** a word came out wrong? Press F8 within 2 minutes and the same recording runs again, through a bigger model if you have one (Small free, Medium or Large with Pro) or the same one more carefully, and only what changed is retyped
 - **Dictation modes:** Chat, Email, Code and Notes tidy your words to fit what you write. With Pro the mode switches by itself with the app (chat apps use Chat, mail apps use Email, and so on)
+- **Many languages:** Windows dictates in about 28 languages plus auto-detect (including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean); Android offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so try Small or larger
 - **Never types into password boxes:** in browsers and apps, and what was said there stays out of the history
 - **Audio and video to captions:** import a file or a whole folder and get an .srt next to each one, capped at two short lines, timed from the word timestamps and cut at pauses. It never overwrites an existing caption file, and a report lists what was saved, skipped or failed, with a retry. Folder import has 2 free runs, then it is a Pro feature
 - **Floating status indicator:** small pill shows Recording/Transcribing state
