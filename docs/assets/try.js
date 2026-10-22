@@ -89,7 +89,7 @@
     els.progress.hidden = false;
     paintConn();
     try {
-      worker = new Worker('assets/try-worker.js', { type: 'module' });
+      worker = new Worker('assets/try-worker.js?v=2', { type: 'module' });
     } catch (e) {
       fail('This browser could not start the demo. The apps still work offline as described.');
       return;
