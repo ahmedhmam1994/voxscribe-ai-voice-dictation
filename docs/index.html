@@ -189,6 +189,51 @@
   .fine-print { font-size: 13px; color: var(--text-faint); }
   .fine-print a { color: var(--text-faint); text-decoration: underline; }
 
+  /* HERO DEMO: side by side with the copy on wide screens */
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 36px; align-items: center; }
+  .hero-demo {
+    border-radius: 16px; overflow: hidden; text-align: left;
+    border: 1px solid var(--border); background: var(--bg-card);
+    box-shadow: 0 24px 48px -20px rgba(0,0,0,0.55);
+  }
+  .hero-demo video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; background: #06060f; }
+  .demo-bar {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 14px; font-size: 12px; color: var(--text-muted);
+    border-top: 1px solid var(--border-soft); background: #17181f;
+  }
+  .demo-bar a { color: var(--accent-hover); }
+  .demo-pause {
+    flex: none; background: none; color: var(--text-muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 10px; font: inherit; cursor: pointer;
+  }
+  .demo-pause:hover { color: var(--text-primary); }
+  @media (min-width: 960px) {
+    .hero-grid { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 48px; text-align: left; }
+    .hero-grid h1 { font-size: 44px; }
+    .hero-grid .subhead { margin-left: 0; margin-right: 0; }
+    .hero-grid .cta-row { justify-content: flex-start; }
+  }
+
+  /* STICKY DOWNLOAD BAR (phones only, once the hero buttons have scrolled away) */
+  .sticky-dl { display: none; }
+  @media (max-width: 760px) {
+    .sticky-dl {
+      display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(18, 19, 25, 0.92); backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-soft);
+      transform: translateY(110%); visibility: hidden;
+      transition: transform 200ms ease, visibility 0s linear 200ms;
+    }
+    .sticky-dl.show { transform: none; visibility: visible; transition: transform 200ms ease, visibility 0s; }
+    .sticky-dl .btn { width: 100%; justify-content: center; }
+    body { padding-bottom: 72px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sticky-dl, .sticky-dl.show { transition: none; }
+  }
+
   /* PROOF (real recording, not a mockup) */
   .proof-shell {
     margin: 48px auto 0; max-width: 560px;
@@ -472,21 +517,34 @@
     <div class="glow-blob brand"></div>
   </div>
   <div class="wrap">
+    <div class="hero-grid">
+    <div class="hero-copy">
     <span class="eyebrow">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="2.2"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="2.2"/></svg>
       100% Local &middot; Free &amp; Open Source
     </span>
     <h1>Offline, open source dictation<br><span class="accent">for your PC and your phone.</span></h1>
-    <p class="subhead">On Windows, hold <kbd class="keycap">F9</kbd>, speak, release. On Android, tap the floating button above your keyboard. Your words are transcribed on your own device and typed straight into whatever app you're in. No subscription, no cloud upload, no clipboard hijacking.</p>
+    <p class="subhead">On Windows, hold <kbd class="keycap">F9</kbd>, speak, release. On Android, tap the floating button. Your words are transcribed on your own device and typed into any app. No cloud upload, no subscription.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">
+      <a class="btn btn-primary" id="dl-primary" data-label="Download for Windows" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v13M12 16l-5-5M12 16l5-5M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Download for Windows
+        <span class="dl-label">Download for Windows</span>
       </a>
       <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View on GitHub</a>
-      <a class="btn btn-secondary" href="free-offline-voice-typing-android.html">Android app</a>
+      <a class="btn btn-secondary" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
     </div>
     <p class="fine-print">Free &amp; open source (MIT) &middot; runs 100% locally &middot; Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.1">v1.8.1</a></p>
+    </div>
+    <div class="hero-demo">
+      <video id="demo-video" autoplay muted loop playsinline preload="metadata" poster="assets/airplane-demo.jpg" width="960" height="540" aria-label="Illustration: with airplane mode on, VoxScribe still turns speech into text on the device, while typical cloud dictation needs a connection.">
+        <source src="assets/airplane-demo.mp4" type="video/mp4">
+      </video>
+      <div class="demo-bar">
+        <span>Airplane mode on, still dictating. <a href="https://youtu.be/lLCGvhdJKjA">Watch with sound</a></span>
+        <button type="button" class="demo-pause" id="demo-pause" aria-pressed="false">Pause</button>
+      </div>
+    </div>
+    </div>
 
     <div class="proof-shell">
       <div class="proof-label"><span class="rec-dot"></span> Real recording, not a mockup</div>
@@ -500,9 +558,9 @@
 
     <div class="stats-bar">
       <div><div class="stat-num">$0</div><div class="stat-label">Cost, forever</div></div>
-      <div><div class="stat-num">100%</div><div class="stat-label">Local transcription</div></div>
+      <div><div class="stat-num" id="stat-downloads">100%</div><div class="stat-label" id="stat-downloads-label">Local transcription</div></div>
       <div><div class="stat-num">MIT</div><div class="stat-label">Open source license</div></div>
-      <div><div class="stat-num">10/11</div><div class="stat-label">Windows supported</div></div>
+      <div><div class="stat-num">v1.8.1</div><div class="stat-label">Windows, latest<br>Android v1.1.1</div></div>
     </div>
   </div>
 </header>
@@ -792,6 +850,10 @@
   </div>
 </footer>
 
+<div class="sticky-dl" id="sticky-dl">
+  <a class="btn btn-primary" id="dl-sticky" data-label="Download for Windows" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><span class="dl-label">Download for Windows</span></a>
+</div>
+
 <script>
   var navToggle = document.getElementById('nav-toggle');
   var navLinks = document.getElementById('nav-links');
@@ -805,6 +867,75 @@
       navToggle.setAttribute('aria-expanded', 'false');
     });
   });
+
+  // Platform-aware download: a phone visitor gets the Android app first, everyone else Windows.
+  (function () {
+    var android = /Android/i.test(navigator.userAgent || '');
+    var primary = document.getElementById('dl-primary');
+    var secondary = document.getElementById('dl-secondary');
+    var sticky = document.getElementById('dl-sticky');
+    var navBtn = document.querySelector('nav a.btn');
+    var windowsUrl = primary.getAttribute('href');
+    if (android) {
+      [primary, sticky].forEach(function (a) {
+        a.href = 'free-offline-voice-typing-android.html';
+        a.querySelector('.dl-label').textContent = 'Get the Android app';
+      });
+      secondary.href = windowsUrl;
+      secondary.textContent = 'Download for Windows';
+      if (navBtn) navBtn.href = 'free-offline-voice-typing-android.html';
+    }
+  })();
+
+  // Sticky download bar on phones: shown once the hero buttons are above the screen, hidden at the footer.
+  (function () {
+    var bar = document.getElementById('sticky-dl');
+    var row = document.querySelector('header.hero .cta-row');
+    var foot = document.querySelector('footer');
+    if (!bar || !row || !foot || !('IntersectionObserver' in window)) return;
+    var pastHero = false, atFooter = false;
+    function update() { bar.classList.toggle('show', pastHero && !atFooter); }
+    new IntersectionObserver(function (e) {
+      pastHero = !e[0].isIntersecting && e[0].boundingClientRect.top < 0;
+      update();
+    }).observe(row);
+    new IntersectionObserver(function (e) {
+      atFooter = e[0].isIntersecting;
+      update();
+    }).observe(foot);
+  })();
+
+  // Hero demo: pause button, and no autoplay for people who asked for reduced motion.
+  (function () {
+    var video = document.getElementById('demo-video');
+    var button = document.getElementById('demo-pause');
+    if (!video || !button) return;
+    function paint() {
+      var paused = video.paused;
+      button.textContent = paused ? 'Play' : 'Pause';
+      button.setAttribute('aria-pressed', String(paused));
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) video.pause();
+    button.addEventListener('click', function () {
+      if (video.paused) { video.play(); } else { video.pause(); }
+    });
+    video.addEventListener('play', paint);
+    video.addEventListener('pause', paint);
+    paint();
+  })();
+
+  // Live download total, from this site's own badge endpoint. Shown only once it is a meaningful number.
+  (function () {
+    var num = document.getElementById('stat-downloads');
+    var label = document.getElementById('stat-downloads-label');
+    if (!num || !window.fetch) return;
+    fetch('/api/downloads?json=1').then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (d && typeof d.downloads === 'number' && d.downloads >= 100) {
+        num.textContent = d.downloads.toLocaleString('en-US');
+        label.textContent = 'Downloads so far';
+      }
+    }).catch(function () {});
+  })();
 
   if ('IntersectionObserver' in window) {
     document.documentElement.classList.add('js-reveal');
