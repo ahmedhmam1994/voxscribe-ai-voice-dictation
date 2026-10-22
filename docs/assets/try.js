@@ -147,13 +147,24 @@
     if (meterCtx) { meterCtx.close(); meterCtx = null; }
   }
 
+  function micMessage(e) {
+    var name = (e && e.name) || 'Error';
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      return 'The browser blocked the microphone for this site. Tap the icon left of the address bar, open Permissions, set Microphone to Allow, then reload. Or use the sample voice. (' + name + ')';
+    }
+    if (name === 'NotFoundError') return 'No microphone was found on this device. Use the sample voice. (' + name + ')';
+    if (name === 'NotReadableError' || name === 'AbortError') return 'Another app may be using the microphone. Close it and try again. (' + name + ')';
+    if (name === 'SecurityError') return 'The browser does not allow the microphone on this page. Use the sample voice. (' + name + ')';
+    return 'The microphone could not start. Use the sample voice. (' + name + ')';
+  }
+
   async function startRecording() {
     if (state !== 'ready') return;
     if (!canMic) { setState('ready', 'This browser does not allow the microphone here. Use the sample voice.'); return; }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } });
     } catch (e) {
-      setState('ready', 'Microphone blocked. Allow it for this page, or use the sample voice.');
+      setState('ready', micMessage(e));
       return;
     }
     if (state !== 'ready') { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
