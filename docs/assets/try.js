@@ -13,13 +13,15 @@
     stage: $('try-stage'), hint: $('try-hint'),
   };
 
-  var supported = !!(window.Worker && window.AudioContext && window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  var supported = !!(window.Worker && window.AudioContext);
+  var canMic = !!(window.MediaRecorder && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var worker = null;
   var state = 'idle'; // idle, loading, ready, recording, working
   var stream = null, recorder = null, chunks = [], analyser = null, meterCtx = null, raf = 0, recStart = 0, autoStop = 0;
   var typingTimer = 0;
   var mainRequestsBefore = 0;
+  var pressing = false, downAt = 0, toggleMode = false;
 
   function setState(next, message) {
     state = next;
@@ -102,7 +104,7 @@
         els.progress.hidden = true;
         els.loadWrap.hidden = true;
         els.model.textContent = 'Whisper tiny (English)';
-        setState('ready', 'Ready. Hold the button or hold F9, then talk.');
+        setState('ready', canMic ? 'Ready. Hold the button (or hold F9), or tap once to start and again to stop.' : 'Ready. This browser does not allow the microphone here, so use the sample voice.');
         els.hint.hidden = false;
         paintConn();
       } else if (m.type === 'result') {
@@ -147,6 +149,7 @@
 
   async function startRecording() {
     if (state !== 'ready') return;
+    if (!canMic) { setState('ready', 'This browser does not allow the microphone here. Use the sample voice.'); return; }
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } });
     } catch (e) {
@@ -165,13 +168,15 @@
     analyser.fftSize = 512;
     source.connect(analyser);
     meterLoop();
-    setState('recording', 'Listening. Let go when you are done.');
+    if (!pressing) toggleMode = true;
+    setState('recording', toggleMode ? 'Listening. Tap again to stop.' : 'Listening. Let go when you are done.');
     autoStop = setTimeout(stopRecording, 30000);
   }
 
   function stopRecording() {
     if (state !== 'recording' || !recorder) return;
     clearTimeout(autoStop);
+    toggleMode = false;
     var rec = recorder;
     recorder = null;
     rec.onstop = async function () {
@@ -241,16 +246,39 @@
   // ---- wiring
   if (!supported) {
     card.setAttribute('data-state', 'unsupported');
-    els.status.textContent = 'This browser cannot run the demo. The apps work the same way, on your device.';
+    els.status.textContent = 'This browser cannot run the demo (it needs web workers and audio). Open this page in Chrome, Edge, Firefox or Safari. The apps work the same way, on your device.';
     els.talk.disabled = true;
+    els.talk.style.filter = 'none';
+    els.talk.style.opacity = '0.5';
     return;
   }
 
   els.talk.addEventListener('click', function () { if (state === 'idle') loadModel(); });
   els.sample.addEventListener('click', useSample);
-  els.talk.addEventListener('pointerdown', function (e) { if (state !== 'ready') return; e.preventDefault(); els.talk.setPointerCapture(e.pointerId); startRecording(); });
-  els.talk.addEventListener('pointerup', stopRecording);
-  els.talk.addEventListener('pointercancel', stopRecording);
+  els.talk.addEventListener('pointerdown', function (e) {
+    if (state === 'recording' && toggleMode) { e.preventDefault(); stopRecording(); return; }
+    if (state !== 'ready') return;
+    e.preventDefault();
+    try { els.talk.setPointerCapture(e.pointerId); } catch (err) {}
+    pressing = true;
+    downAt = performance.now();
+    toggleMode = false;
+    startRecording();
+  });
+  function released() {
+    if (!pressing) return;
+    pressing = false;
+    if (state !== 'recording') return;
+    if (performance.now() - downAt < 300) {
+      toggleMode = true;
+      els.status.textContent = 'Listening. Tap again to stop.';
+    } else {
+      stopRecording();
+    }
+  }
+  els.talk.addEventListener('pointerup', released);
+  els.talk.addEventListener('pointercancel', released);
+  els.talk.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   els.talk.addEventListener('keydown', function (e) {
     if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { e.preventDefault(); if (state === 'idle') loadModel(); else startRecording(); }
   });

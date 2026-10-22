@@ -375,6 +375,7 @@
     background: var(--gradient-brand); color: #060612; font: inherit; font-weight: 800; font-size: 13px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
     box-shadow: 0 14px 34px -10px rgba(16, 185, 129, 0.6); touch-action: none; user-select: none;
+    -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
     transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
   }
   .try-talk:disabled { filter: grayscale(0.85) brightness(0.55); cursor: not-allowed; box-shadow: none; }
@@ -727,7 +728,7 @@
             <span class="try-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
             <span id="try-talk-label">Tap to load<br>the model (40 MB)</span>
           </button>
-          <p class="try-hint" id="try-hint" hidden>Or hold <kbd class="keycap">F9</kbd>, like the app.</p>
+          <p class="try-hint" id="try-hint" hidden>Hold it, or tap once to start and again to stop. On a computer you can also hold <kbd class="keycap">F9</kbd>.</p>
           <button type="button" class="btn btn-secondary try-sample" id="try-sample" disabled>No microphone? Use a sample voice</button>
           <p class="try-status" id="try-status" role="status" aria-live="polite">Nothing is downloaded until you click.</p>
         </div>
