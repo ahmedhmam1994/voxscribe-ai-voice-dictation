@@ -356,6 +356,65 @@
     .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 28px 16px; }
   }
 
+  /* TRY IT NOW: Whisper running in the visitor's own browser */
+  .try-card [hidden] { display: none !important; }
+  .try-card {
+    max-width: 980px; margin: 0 auto; border: 1px solid var(--border); border-radius: 20px;
+    background: linear-gradient(180deg, #14142a 0%, var(--bg-card) 100%);
+    box-shadow: 0 28px 60px -28px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(16, 185, 129, 0.05);
+    padding: 22px; text-align: left;
+  }
+  .try-main { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr); gap: 20px; align-items: stretch; }
+  .try-stage {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    padding: 26px 16px; border-radius: 16px; background: rgba(6, 6, 15, 0.55); border: 1px solid var(--border-soft);
+    text-align: center; min-height: 250px;
+  }
+  .try-talk {
+    position: relative; width: 150px; height: 150px; border-radius: 50%; cursor: pointer; border: 0;
+    background: var(--gradient-brand); color: #060612; font: inherit; font-weight: 800; font-size: 13px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 14px 34px -10px rgba(16, 185, 129, 0.6); touch-action: none; user-select: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+  }
+  .try-talk:disabled { filter: grayscale(0.85) brightness(0.55); cursor: not-allowed; box-shadow: none; }
+  .try-talk:not(:disabled):hover { transform: scale(1.03); }
+  .try-card[data-state="recording"] .try-talk { transform: scale(0.96); box-shadow: 0 0 0 10px rgba(52, 211, 153, 0.16), 0 0 0 22px rgba(52, 211, 153, 0.07); }
+  .try-meter { display: flex; align-items: center; gap: 4px; height: 38px; }
+  .try-meter i { display: block; width: 5px; height: 100%; border-radius: 3px; background: #060612; transform: scaleY(0.15); transition: transform 70ms linear; }
+  .try-card[data-state="working"] .try-meter i { animation: tryWave 900ms ease-in-out infinite; }
+  .try-meter i:nth-child(2) { animation-delay: 90ms; } .try-meter i:nth-child(3) { animation-delay: 180ms; }
+  .try-meter i:nth-child(4) { animation-delay: 270ms; } .try-meter i:nth-child(5) { animation-delay: 360ms; }
+  @keyframes tryWave { 0%, 100% { transform: scaleY(0.2); } 50% { transform: scaleY(0.75); } }
+  .try-hint { margin: 0; font-size: 13px; color: var(--text-muted); }
+  .try-status { margin: 0; min-height: 20px; font-size: 13px; color: var(--text-muted); max-width: 300px; }
+  .try-load-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .try-progress { width: 220px; height: 6px; border-radius: 3px; background: var(--border-soft); overflow: hidden; }
+  .try-progress > div { height: 100%; width: 0; background: var(--gradient-brand); transition: width 200ms ease; }
+  .try-sample { font-size: 13px; padding: 8px 14px; }
+  .try-sample:disabled { opacity: 0.45; cursor: not-allowed; }
+  .try-editor { border-radius: 16px; border: 1px solid var(--border); background: #0b0b18; overflow: hidden; display: flex; flex-direction: column; min-height: 250px; }
+  .try-editor-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); background: #17181f; font-size: 12px; color: var(--text-muted); }
+  .try-editor-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--text-faint); display: inline-block; }
+  .try-editor-bar span { margin-left: 6px; }
+  .try-text { flex: 1; padding: 20px; font-size: 18px; line-height: 1.65; color: var(--text-primary); min-height: 140px; overflow-wrap: anywhere; }
+  .try-text:empty::before { content: 'Your words will be typed here.'; color: var(--text-faint); }
+  .try-proof { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+  .try-tile { padding: 14px 16px; border-radius: 14px; background: rgba(6, 6, 15, 0.55); border: 1px solid var(--border-soft); }
+  .try-key { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+  .try-val { margin-top: 6px; font-size: 20px; font-weight: 800; color: var(--accent-hover); }
+  .try-val.is-off { color: var(--amber); }
+  .try-tile.is-zero { border-color: rgba(52, 211, 153, 0.4); }
+  .try-sub { margin-top: 4px; font-size: 12px; color: var(--text-muted); }
+  .try-note { margin: 16px 4px 0; font-size: 12px; color: var(--text-faint); line-height: 1.55; }
+  .try-card[data-state="unsupported"] .try-load-wrap .btn { opacity: 0.5; }
+  @media (max-width: 760px) {
+    .try-main { grid-template-columns: minmax(0, 1fr); }
+    .try-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .try-text { font-size: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .try-card[data-state="working"] .try-meter i { animation: none; transform: scaleY(0.5); } }
+
   /* WHAT YOU SAY / WHAT YOU GET */
   .say-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 18px; align-items: stretch; max-width: 980px; margin: 0 auto; }
   .say-card {
@@ -652,6 +711,42 @@
     </div>
   </div>
 </header>
+
+<section id="try">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Try it now, in this page</span>
+      <h2>Hold a key, talk, then turn on airplane mode.</h2>
+      <p>This runs a small Whisper model inside your browser. Load it once, then disconnect and keep talking. The counter below shows every network request made while it transcribes.</p>
+    </div>
+    <div class="try-card" id="try-card" data-state="idle">
+      <div class="try-main">
+        <div class="try-stage" id="try-stage">
+          <div class="try-load-wrap" id="try-load-wrap"><div class="try-progress" id="try-progress" hidden><div id="try-progress-bar"></div></div></div>
+          <button type="button" class="try-talk" id="try-talk" aria-label="Load the model, then hold to talk">
+            <span class="try-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <span id="try-talk-label">Tap to load<br>the model (40 MB)</span>
+          </button>
+          <p class="try-hint" id="try-hint" hidden>Or hold <kbd class="keycap">F9</kbd>, like the app.</p>
+          <button type="button" class="btn btn-secondary try-sample" id="try-sample" disabled>No microphone? Use a sample voice</button>
+          <p class="try-status" id="try-status" role="status" aria-live="polite">Nothing is downloaded until you click.</p>
+        </div>
+        <div class="try-editor">
+          <div class="try-editor-bar"><i></i><i></i><i></i><span>Any text box</span></div>
+          <div class="try-text" id="try-text" aria-live="polite"></div>
+        </div>
+      </div>
+      <div class="try-proof">
+        <div class="try-tile"><div class="try-key">Connection</div><div class="try-val" id="try-conn">Online</div><div class="try-sub" id="try-conn-note"></div></div>
+        <div class="try-tile"><div class="try-key">Requests while transcribing</div><div class="try-val" id="try-reqs">-</div><div class="try-sub">Counted by your browser</div></div>
+        <div class="try-tile"><div class="try-key">Speed</div><div class="try-val" id="try-speed" style="font-size:15px;line-height:1.35;">-</div><div class="try-sub">On your hardware</div></div>
+        <div class="try-tile"><div class="try-key">Model</div><div class="try-val" id="try-model" style="font-size:15px;line-height:1.35;">Not loaded</div><div class="try-sub">The apps use larger ones</div></div>
+      </div>
+      <p class="try-note">Clicking Load downloads the speech engine from jsDelivr and a small English Whisper model (about 40 MB) from Hugging Face, once, with your browser's normal cache. Your voice is never sent anywhere: it is processed in this page and the audio is discarded afterward. This demo uses a small model and English only. The Windows and Android apps use larger models and about 28 languages.</p>
+    </div>
+    <noscript><p class="how-footnote">The live demo needs JavaScript.</p></noscript>
+  </div>
+</section>
 
 <section id="cleanup">
   <div class="wrap">
@@ -1135,6 +1230,7 @@
     });
   }
 </script>
+<script src="assets/try.js" defer></script>
 
 </body>
 </html>
