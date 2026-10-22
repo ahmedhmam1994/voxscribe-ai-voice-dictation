@@ -28,7 +28,7 @@ async function countFromGitHub() {
   const headers = { Accept: "application/vnd.github+json", "User-Agent": "voxscribe-badge" };
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
   let total = 0;
-  for (let page = 1; page <= 10; page++) {
+  for (let page = 1; page <= 50; page++) {
     const response = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100&page=${page}`, { headers });
     if (!response.ok) throw new Error(`GitHub answered ${response.status}`);
     const releases = await response.json();
@@ -65,16 +65,28 @@ function badge(label, value, color) {
 
 module.exports = async (req, res) => {
   let total = null;
+  let fresh = false;
   try {
     total = await countFromGitHub();
-    await upstash(["set", CACHE_KEY, String(total)]).catch(() => null);
+    fresh = true;
+    // A total of 0 never replaces a saved one: downloads only go up, so 0 means GitHub gave a bad answer.
+    if (total > 0) await upstash(["set", CACHE_KEY, String(total)]).catch(() => null);
   } catch {
+    // fall through to the saved total below
+  }
+  if (!fresh || total === 0) {
     const saved = await upstash(["get", CACHE_KEY]).catch(() => null);
-    total = saved === null ? null : Number(saved);
+    total = saved === null || saved === undefined ? null : Number(saved);
   }
 
-  // An hour at the CDN, and a stale copy for up to a week if a refresh fails.
-  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600, stale-while-revalidate=604800, stale-if-error=604800");
+  // An hour at the CDN after a good refresh. After a failed one, only five minutes, so the
+  // fallback is not served as fresh for an hour.
+  res.setHeader(
+    "Cache-Control",
+    fresh
+      ? "public, max-age=3600, s-maxage=3600, stale-while-revalidate=604800, stale-if-error=604800"
+      : "public, max-age=300, s-maxage=300, stale-while-revalidate=604800, stale-if-error=604800",
+  );
 
   if (req.query && req.query.json) {
     res.status(200).json({ downloads: total });

@@ -52,7 +52,8 @@ function ed25519PublicKeyFromRaw(hex) {
 }
 
 function verifyLicenseKey(key) {
-  const cleaned = (key || "").trim().replace(/[- ]/g, "").toUpperCase();
+  if (typeof key !== "string") return null;
+  const cleaned = key.trim().replace(/[- ]/g, "").toUpperCase();
   let raw;
   try {
     raw = base32Decode(cleaned);
