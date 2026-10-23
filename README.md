@@ -86,7 +86,7 @@ The installer does not require admin rights (per-user install). On first launch,
 
 VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
 
-**Install:** download `VoxScribe-Android-1.1.1.apk` from the [Android 1.1.1 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.1) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+**Install:** download `VoxScribe-Android-1.1.2.apk` from the [Android 1.1.2 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.2) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
 
 **Automatic updates:** add this repository to [Obtainium](https://obtainium.imranr.dev/) (Add App, paste the repo URL) and set "Filter release titles by regular expression" to `Android`, so it skips the Windows releases.
 
