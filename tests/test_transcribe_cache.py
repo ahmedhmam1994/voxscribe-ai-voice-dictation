@@ -24,6 +24,32 @@ def test_near_silence_is_not_sent_to_whisper(monkeypatch):
     assert t.transcribe(quiet) == ""
 
 
+def test_weak_steady_noise_is_not_sent_to_whisper(monkeypatch):
+    class Boom:
+        def transcribe(self, *a, **k):
+            raise AssertionError("background noise must not reach the model")
+
+    monkeypatch.setattr(transcribe, "WhisperModel", lambda *a, **k: Boom())
+    t = transcribe.Transcriber("small")
+    rng = np.random.default_rng(1)
+    hiss = (rng.standard_normal(32000) * 0.0008).astype(np.float32)
+    assert t.transcribe(hiss) == ""
+
+
+def test_quiet_but_clean_voice_is_accepted():
+    # A quiet mic: voice peaks near 0.017 over a noise floor near 0.0005.
+    rng = np.random.default_rng(2)
+    audio = (rng.standard_normal(32000) * 0.0005).astype(np.float32)
+    t = np.arange(8000)
+    audio[12000:20000] += (np.sin(t * 0.3) * 0.012 * np.hanning(8000)).astype(np.float32)
+    assert transcribe.looks_like_speech(audio)
+
+
+def test_loud_recording_is_always_accepted():
+    loud = (np.sin(np.linspace(0, 200, 16000)) * 0.2).astype(np.float32)
+    assert transcribe.looks_like_speech(loud)
+
+
 def test_normal_quiet_speech_still_reaches_model(monkeypatch):
     class Seg:
         text = " hello "

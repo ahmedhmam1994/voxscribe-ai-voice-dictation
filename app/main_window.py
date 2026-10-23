@@ -4278,7 +4278,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(150, lambda: self._type_into_focused_window(text))
             self._set_status("Typed into active window", "ready")
         else:
-            self._set_status("Ready", "ready")
+            self._set_status("No speech heard. Check the microphone volume.", "error")
             # Usually a mic that is too quiet or muted: say so instead of
             # silently vanishing.
             self._indicator.flash_error("No speech heard")

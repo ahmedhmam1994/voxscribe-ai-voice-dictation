@@ -55,6 +55,34 @@ _FRAME_DURATION_SEC = _FRAME_SIZE / SAMPLE_RATE  # 32ms
 # Recordings whose loudest sample is below this (about -54 dBFS) are treated
 # as silence instead of being normalized up and sent to Whisper.
 SILENCE_PEAK_FLOOR = 0.002
+# At or above this peak (about -30 dBFS) a recording is loud enough to trust.
+# Between the two, it must also stand clearly above its own background noise:
+# boosting plain noise handed Whisper loud hiss, which it answered with
+# invented sentences ("see you in the next video"), while a quiet mic that
+# still carries a clean voice (peaks near 0.02 over a 0.0005 noise floor) is
+# fine to boost.
+CLEAR_SPEECH_PEAK = 0.03
+# How much louder the loud frames must be than the quiet ones (about 10 dB).
+MIN_SPEECH_TO_NOISE = 3.0
+
+
+def looks_like_speech(audio: np.ndarray) -> bool:
+    """False for silence and for a weak recording that is only background noise."""
+    if len(audio) == 0:
+        return False
+    peak = float(np.max(np.abs(audio)))
+    if peak < SILENCE_PEAK_FLOOR:
+        return False
+    if peak >= CLEAR_SPEECH_PEAK:
+        return True
+    frame = 320  # 20 ms at 16 kHz
+    usable = (len(audio) // frame) * frame
+    if usable == 0:
+        return False
+    rms = np.sqrt(np.mean(audio[:usable].reshape(-1, frame) ** 2, axis=1))
+    noise = float(np.percentile(rms, 10))
+    loud = float(np.percentile(rms, 95))
+    return loud >= max(noise, 1e-6) * MIN_SPEECH_TO_NOISE
 
 # Approximate download size of each model, in MB, only used to show progress
 # while a first-run download is in flight.
@@ -247,12 +275,13 @@ class Transcriber:
         # this user's Bluetooth headset) without introducing artifacts.
         if len(audio) == 0:
             return ""
-        peak = np.max(np.abs(audio))
-        if peak < SILENCE_PEAK_FLOOR:
-            # Effectively silence (muted or disconnected mic, a tap on the
-            # hotkey). Boosting this to a healthy level would hand Whisper
-            # loud noise, and Whisper answers noise with invented sentences.
+        if not looks_like_speech(audio):
+            # Silence, or a weak recording that is only background noise
+            # (muted or turned-down mic, a tap on the hotkey). Boosting this to
+            # a healthy level would hand Whisper loud noise, and Whisper
+            # answers noise with invented sentences.
             return ""
+        peak = np.max(np.abs(audio))
         if peak < 0.5:
             audio = audio * (0.5 / peak)
 
