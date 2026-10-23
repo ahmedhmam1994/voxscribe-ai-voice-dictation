@@ -100,3 +100,33 @@ def test_rolling_buffer_drain_empties_it():
     buf.push(np.ones(20, dtype=np.float32))
     assert len(buf.drain()) == 1
     assert buf.drain() == []
+
+
+def _fake_devices(monkeypatch, default_index):
+    from core import audio_capture
+
+    devices = [
+        {"name": "Internal Microphone", "max_input_channels": 2, "hostapi": 0},
+        {"name": "Stereo Mix (Realtek)", "max_input_channels": 2, "hostapi": 0},
+    ]
+    hostapis = [{"name": "Windows WASAPI", "devices": [0, 1], "default_input_device": default_index}]
+    monkeypatch.setattr(audio_capture.sd, "query_hostapis", lambda: hostapis)
+    monkeypatch.setattr(audio_capture.sd, "query_devices", lambda i=None: devices if i is None else devices[i])
+    return audio_capture
+
+
+def test_default_skips_stereo_mix_when_windows_defaults_to_it(monkeypatch):
+    audio_capture = _fake_devices(monkeypatch, default_index=1)
+    assert audio_capture._default_input_device() == 0
+
+
+def test_default_keeps_real_microphone(monkeypatch):
+    audio_capture = _fake_devices(monkeypatch, default_index=0)
+    assert audio_capture._default_input_device() == 0
+
+
+def test_system_audio_devices_are_labelled(monkeypatch):
+    audio_capture = _fake_devices(monkeypatch, default_index=0)
+    labels = [name for _, name in audio_capture.list_input_devices()]
+    assert labels[0] == "Internal Microphone (Windows WASAPI)"
+    assert labels[1].endswith("(system audio)")

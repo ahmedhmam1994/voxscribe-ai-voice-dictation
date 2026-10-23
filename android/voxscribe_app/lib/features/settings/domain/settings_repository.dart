@@ -12,4 +12,8 @@ abstract interface class SettingsRepository {
   Future<void> setTheme(ThemeChoice value);
 
   Future<void> setUsagePing({required bool value});
+
+  Future<void> setRecordingMode(RecordingMode value);
+
+  Future<void> setBubbleSize(BubbleSize value);
 }

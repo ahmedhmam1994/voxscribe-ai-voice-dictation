@@ -153,3 +153,79 @@ class BubblePlacementTest {
         assertFalse(BubblePlacement.shouldSnooze(releaseY = 2200f, screenH = 0))
     }
 }
+
+class RecordingModeTest {
+
+    @Test
+    fun holdModeStopsOnReleaseEvenAfterAQuickTap() {
+        val g = HoldOrTap(tapMaxMs = 300).apply { mode = HoldOrTap.Mode.HOLD }
+        assertEquals(HoldOrTap.Action.START, g.down(0))
+        assertEquals(HoldOrTap.Action.STOP, g.up(120))
+        assertFalse(g.isLatched)
+    }
+
+    @Test
+    fun tapModeKeepsRecordingAfterALongPressUntilTheNextTap() {
+        val g = HoldOrTap(tapMaxMs = 300).apply { mode = HoldOrTap.Mode.TAP }
+        assertEquals(HoldOrTap.Action.START, g.down(0))
+        assertEquals(HoldOrTap.Action.NONE, g.up(2_000))
+        assertTrue(g.isLatched)
+        assertEquals(HoldOrTap.Action.STOP, g.down(6_000))
+        assertEquals(HoldOrTap.Action.NONE, g.up(6_900))
+        assertFalse(g.isLatched)
+    }
+
+    @Test
+    fun bothModeStillStopsAfterALongHoldAndLatchesAfterAQuickTap() {
+        val g = HoldOrTap(tapMaxMs = 300)
+        assertEquals(HoldOrTap.Mode.BOTH, g.mode)
+        g.down(0)
+        assertEquals(HoldOrTap.Action.STOP, g.up(900))
+        g.down(1_000)
+        assertEquals(HoldOrTap.Action.NONE, g.up(1_100))
+        assertTrue(g.isLatched)
+    }
+
+    @Test
+    fun aDragStillCancelsInEveryMode() {
+        for (mode in HoldOrTap.Mode.values()) {
+            val g = HoldOrTap(tapMaxMs = 300).apply { this.mode = mode }
+            g.down(0)
+            assertEquals(HoldOrTap.Action.CANCEL, g.dragged())
+            assertEquals(HoldOrTap.Action.NONE, g.up(500))
+            assertFalse(g.isLatched)
+        }
+    }
+
+    @Test
+    fun savedNamesMapBackAndUnknownOnesFallBackToTheDefault() {
+        assertEquals(HoldOrTap.Mode.HOLD, HoldOrTap.Mode.fromKey("hold"))
+        assertEquals(HoldOrTap.Mode.TAP, HoldOrTap.Mode.fromKey("tap"))
+        assertEquals(HoldOrTap.Mode.BOTH, HoldOrTap.Mode.fromKey("both"))
+        assertEquals(HoldOrTap.Mode.BOTH, HoldOrTap.Mode.fromKey(null))
+        assertEquals(HoldOrTap.Mode.BOTH, HoldOrTap.Mode.fromKey("nonsense"))
+    }
+}
+
+class BubbleSizeTest {
+
+    @Test
+    fun mediumIsTheOriginalSizeWithTheOriginalPadding() {
+        assertEquals(56, BubbleSize.MEDIUM.dp)
+        assertEquals(14, BubbleSize.MEDIUM.paddingDp)
+    }
+
+    @Test
+    fun smallIsSmallerAndLargeIsLarger() {
+        assertTrue(BubbleSize.SMALL.dp < BubbleSize.MEDIUM.dp)
+        assertTrue(BubbleSize.LARGE.dp > BubbleSize.MEDIUM.dp)
+    }
+
+    @Test
+    fun savedNamesMapBackAndUnknownOnesFallBackToMedium() {
+        assertEquals(BubbleSize.SMALL, BubbleSize.fromKey("small"))
+        assertEquals(BubbleSize.LARGE, BubbleSize.fromKey("large"))
+        assertEquals(BubbleSize.MEDIUM, BubbleSize.fromKey(null))
+        assertEquals(BubbleSize.MEDIUM, BubbleSize.fromKey("huge"))
+    }
+}

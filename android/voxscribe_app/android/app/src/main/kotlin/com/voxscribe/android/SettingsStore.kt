@@ -21,6 +21,11 @@ object SettingsStore {
     private const val KEY_USAGE_PING = "usage_ping"
     private const val KEY_LAST_PING_DAY = "last_ping_day"
     private const val KEY_ANONYMOUS_ID = "anonymous_id"
+    private const val KEY_RECORDING_MODE = "recording_mode"
+    private const val KEY_BUBBLE_SIZE = "bubble_size"
+    private const val KEY_TAP_HINT_SHOWN = "tap_hint_shown"
+    private const val KEY_FIRST_DICTATION_SENT = "first_dictation_sent"
+    private const val KEY_LAST_DICTATION_DAY = "last_dictation_day"
 
     /** BCP-47 tag -> display name shown in the language picker. Null tag means "device default". */
     val FALLBACK_LANGUAGES: List<Pair<String?, String>> = listOf(
@@ -101,11 +106,48 @@ object SettingsStore {
         prefs(context).edit().putString(KEY_LAST_PING_DAY, day).apply()
     }
 
+    /** The one-time "first_dictation" ping has gone out (see [Telemetry]). */
+    fun firstDictationSent(context: Context): Boolean = prefs(context).getBoolean(KEY_FIRST_DICTATION_SENT, false)
+
+    fun setFirstDictationSent(context: Context) {
+        prefs(context).edit().putBoolean(KEY_FIRST_DICTATION_SENT, true).apply()
+    }
+
+    /** The day the last "dictated_today" ping went out, as yyyy-MM-dd. */
+    fun lastDictationDay(context: Context): String? = prefs(context).getString(KEY_LAST_DICTATION_DAY, null)
+
+    fun setLastDictationDay(context: Context, day: String) {
+        prefs(context).edit().putString(KEY_LAST_DICTATION_DAY, day).apply()
+    }
+
     /** A random id made on this phone, so a repeat launch is not counted as a new person. */
     fun anonymousId(context: Context): String? = prefs(context).getString(KEY_ANONYMOUS_ID, null)
 
     fun setAnonymousId(context: Context, id: String) {
         prefs(context).edit().putString(KEY_ANONYMOUS_ID, id).apply()
+    }
+
+    /** How the floating button reacts to a touch: "both" (default), "hold" or "tap". See [HoldOrTap.Mode]. */
+    fun recordingMode(context: Context): HoldOrTap.Mode =
+        HoldOrTap.Mode.fromKey(prefs(context).getString(KEY_RECORDING_MODE, null))
+
+    fun setRecordingMode(context: Context, mode: HoldOrTap.Mode) {
+        prefs(context).edit().putString(KEY_RECORDING_MODE, mode.key).apply()
+    }
+
+    /** The size of the floating button: "small", "medium" (default) or "large". */
+    fun bubbleSize(context: Context): BubbleSize =
+        BubbleSize.fromKey(prefs(context).getString(KEY_BUBBLE_SIZE, null))
+
+    fun setBubbleSize(context: Context, size: BubbleSize) {
+        prefs(context).edit().putString(KEY_BUBBLE_SIZE, size.key).apply()
+    }
+
+    /** The one-time "tap once to start" tip has been shown. */
+    fun tapHintShown(context: Context): Boolean = prefs(context).getBoolean(KEY_TAP_HINT_SHOWN, false)
+
+    fun setTapHintShown(context: Context) {
+        prefs(context).edit().putBoolean(KEY_TAP_HINT_SHOWN, true).apply()
     }
 
     /** Append a trailing space after committing dictated text. */

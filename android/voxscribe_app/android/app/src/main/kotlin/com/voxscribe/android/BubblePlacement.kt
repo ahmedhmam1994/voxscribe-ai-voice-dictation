@@ -58,3 +58,19 @@ object BubblePositionStore {
             .edit().putInt(KEY_X, x).putInt(KEY_Y, y).apply()
     }
 }
+
+/** How big the floating button is. MEDIUM is what every earlier version used. */
+enum class BubbleSize(val key: String, val dp: Int) {
+    SMALL("small", 44),
+    MEDIUM("medium", 56),
+    LARGE("large", 68),
+    ;
+
+    /** The icon sits inside a quarter-size padding, as in the 56 dp original (14 dp). */
+    val paddingDp: Int get() = dp / 4
+
+    companion object {
+        /** The saved name back to a size; anything unknown is the default. */
+        fun fromKey(key: String?): BubbleSize = values().firstOrNull { it.key == key } ?: MEDIUM
+    }
+}

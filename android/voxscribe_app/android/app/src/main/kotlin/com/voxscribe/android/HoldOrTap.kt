@@ -1,14 +1,33 @@
 package com.voxscribe.android
 
 /**
- * What a touch on the floating button means. Holding it records for as long as
- * the finger stays down, as before. A quick tap starts a recording that keeps
- * going, and the next tap stops it, so a long dictation does not need a finger
- * held on the screen.
+ * What a touch on the floating button means, which depends on the chosen [Mode].
+ *
+ * BOTH (the default): holding records for as long as the finger stays down, and a
+ * quick tap starts a recording that keeps going until the next tap, so a long
+ * dictation does not need a finger held on the screen.
+ * HOLD: records only while the finger is down, never latches.
+ * TAP: a press starts a recording and the next press stops it, however long the
+ * first press lasted, so there is no timing to get wrong.
  */
 class HoldOrTap(private val tapMaxMs: Long = TAP_MAX_MS) {
 
     enum class Action { NONE, START, STOP, CANCEL }
+
+    enum class Mode(val key: String) {
+        BOTH("both"),
+        HOLD("hold"),
+        TAP("tap"),
+        ;
+
+        companion object {
+            /** The saved name back to a mode; anything unknown is the default. */
+            fun fromKey(key: String?): Mode = values().firstOrNull { it.key == key } ?: BOTH
+        }
+    }
+
+    /** Takes effect from the next touch. */
+    var mode: Mode = Mode.BOTH
 
     private var holding = false
     private var latched = false
@@ -44,7 +63,12 @@ class HoldOrTap(private val tapMaxMs: Long = TAP_MAX_MS) {
         }
         if (!holding) return Action.NONE
         holding = false
-        if (nowMs - downAt < tapMaxMs) {
+        val latch = when (mode) {
+            Mode.HOLD -> false
+            Mode.TAP -> true
+            Mode.BOTH -> nowMs - downAt < tapMaxMs
+        }
+        if (latch) {
             latched = true
             return Action.NONE
         }

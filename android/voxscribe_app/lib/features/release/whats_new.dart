@@ -1,6 +1,12 @@
 /// What each version added. A version with no entry here shows no "what's
 /// new" sheet on first launch, so a quiet bug fix stays quiet.
 const whatsNewByVersion = <String, List<String>>{
+  '1.1.2': [
+    'A new Floating button group in Settings: record by holding, by tapping once to start and once to stop, or both.',
+    'Choose a small, medium or large floating button.',
+    'After your first dictation, a one time tip tells you about tapping to start and stop.',
+    'Two more anonymous usage pings, the first time you dictate and once on each day you dictate: versions and a random id, never audio or text. Turn them off with the usage ping switch in Settings.',
+  ],
   '1.1.1': [
     'Transcribe audio and video files: tap the file icon on the Dictation screen, then save the text or .srt captions. A whole folder at once is Pro, with 2 free tries.',
     'Dictation modes: Chat, Email, Code and Notes tidy your words to fit what you write. With Pro, the mode switches by itself with the app.',

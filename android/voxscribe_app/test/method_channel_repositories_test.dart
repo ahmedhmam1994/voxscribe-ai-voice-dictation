@@ -86,6 +86,37 @@ void main() {
       expect(settings.theme, ThemeChoice.dark);
     });
 
+    test('reads the button mode and size, and ignores unknown ones', () async {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        return {'recordingMode': 'tap', 'bubbleSize': 'large'};
+      });
+      var settings = await repository.load();
+      expect(settings.recordingMode, RecordingMode.tap);
+      expect(settings.bubbleSize, BubbleSize.large);
+
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        return {'recordingMode': 'shout', 'bubbleSize': 'huge'};
+      });
+      settings = await repository.load();
+      expect(settings.recordingMode, RecordingMode.both);
+      expect(settings.bubbleSize, BubbleSize.medium);
+    });
+
+    test('sends the button mode and size under their own methods', () async {
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return null;
+      });
+
+      await repository.setRecordingMode(RecordingMode.hold);
+      await repository.setBubbleSize(BubbleSize.small);
+
+      expect(calls.map((c) => c.method), ['setRecordingMode', 'setBubbleSize']);
+      expect(calls.first.arguments, {'value': 'hold'});
+      expect(calls.last.arguments, {'value': 'small'});
+    });
+
     test('an unknown theme falls back to the system theme', () async {
       messenger.setMockMethodCallHandler(channel, (call) async {
         return {'cleanup': true, 'trailingSpace': true, 'theme': 'purple'};

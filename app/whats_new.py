@@ -9,6 +9,16 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.8.2": (
+        "- New: a Dictation language menu in the tray. Right-click the tray icon to "
+        "switch language without opening Settings, handy if you dictate in two "
+        "languages.\n"
+        "- New: two more anonymous usage pings, one the first time you dictate and one on "
+        "each day you dictate, so the number of people who really use VoxScribe is "
+        "counted and not only how many start it. They carry only the app version, "
+        "your Windows version and a random id: never audio, text or word counts. "
+        "Turn them off in Settings."
+    ),
     "1.8.1": (
         "- New: Try harder. A word came out wrong? Press F8 within 2 minutes and the "
         "same recording is run again through a bigger model, and only what changed "

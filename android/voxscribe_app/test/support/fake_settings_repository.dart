@@ -26,6 +26,16 @@ class FakeSettingsRepository implements SettingsRepository {
   }
 
   @override
+  Future<void> setRecordingMode(RecordingMode value) async {
+    saved = saved.copyWith(recordingMode: value);
+  }
+
+  @override
+  Future<void> setBubbleSize(BubbleSize value) async {
+    saved = saved.copyWith(bubbleSize: value);
+  }
+
+  @override
   Future<void> setTheme(ThemeChoice value) async {
     saved = saved.copyWith(theme: value);
   }

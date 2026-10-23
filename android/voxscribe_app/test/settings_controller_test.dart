@@ -50,6 +50,25 @@ void main() {
     expect(repository.saved.cleanup, isTrue);
   });
 
+  test('the button defaults are hold or tap, at the medium size', () {
+    final controller = SettingsController(repository: FakeSettingsRepository());
+
+    expect(controller.settings.recordingMode, RecordingMode.both);
+    expect(controller.settings.bubbleSize, BubbleSize.medium);
+  });
+
+  test('the recording mode and the button size are saved', () async {
+    final repository = FakeSettingsRepository();
+    final controller = SettingsController(repository: repository);
+
+    await controller.setRecordingMode(RecordingMode.tap);
+    await controller.setBubbleSize(BubbleSize.small);
+
+    expect(repository.saved.recordingMode, RecordingMode.tap);
+    expect(repository.saved.bubbleSize, BubbleSize.small);
+    expect(repository.saved.cleanup, isTrue);
+  });
+
   test('listeners hear about changes', () async {
     final controller = SettingsController(repository: FakeSettingsRepository());
     var notifications = 0;

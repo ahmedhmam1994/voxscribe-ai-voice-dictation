@@ -35,6 +35,18 @@ class SettingsController extends ChangeNotifier {
     return repository.setUsagePing(value: value);
   }
 
+  Future<void> setRecordingMode(RecordingMode value) {
+    _settings = _settings.copyWith(recordingMode: value);
+    notifyListeners();
+    return repository.setRecordingMode(value);
+  }
+
+  Future<void> setBubbleSize(BubbleSize value) {
+    _settings = _settings.copyWith(bubbleSize: value);
+    notifyListeners();
+    return repository.setBubbleSize(value);
+  }
+
   Future<void> setTheme(ThemeChoice value) {
     _settings = _settings.copyWith(theme: value);
     notifyListeners();

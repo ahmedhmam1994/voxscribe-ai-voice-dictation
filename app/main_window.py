@@ -61,6 +61,7 @@ from PySide6.QtWidgets import (
 
 from app.floating_indicator import FloatingIndicator
 from app.insights_page import InsightsPage
+from app.language_menu import LanguageMenu
 from app.motion import animate_progress, fade_in
 from app.speed_test import SpeedTestDialog
 from app.version import __version__
@@ -77,6 +78,7 @@ from core import (
     replacements,
     smart_format,
     snippets,
+    telemetry,
     templates,
     transcript_export,
     vocab_learner,
@@ -1791,6 +1793,20 @@ class MainWindow(QMainWindow):
             (n for c, n in hotkey_settings.AVAILABLE_LANGUAGES if c == code), "Auto-detect"
         )
         self.language_badge.setText(name)
+        language_menu = getattr(self, "_language_menu", None)
+        if language_menu is not None:
+            language_menu.sync()
+
+    def _on_tray_language_changed(self, _code: str | None, name: str) -> None:
+        """A language was picked from the tray menu: refresh the badge and confirm it."""
+        self._refresh_language_badge()
+        if self.tray_icon is not None:
+            self._tray_notify(
+                "VoxScribe",
+                f"Dictation language: {name}",
+                QSystemTrayIcon.MessageIcon.Information,
+                2500,
+            )
 
     def _update_hotkey_hint(self) -> None:
         if self._hotkey_registration_error:
@@ -2857,13 +2873,14 @@ class MainWindow(QMainWindow):
         layout.addWidget(typing_delay_hint)
 
         layout = privacy
-        telemetry_checkbox = QCheckBox("Send an anonymous launch ping (app version and OS only)")
+        telemetry_checkbox = QCheckBox("Send anonymous usage pings (app version and OS only)")
         telemetry_checkbox.setChecked(hotkey_settings.get_telemetry_enabled())
         layout.addWidget(telemetry_checkbox)
 
         telemetry_hint = QLabel(
-            "One tiny ping each time VoxScribe starts, so I can see how many people use it. "
-            "No audio, text, or personal data. Takes effect on the next launch."
+            "A tiny ping each time VoxScribe starts, the first time you dictate, and once on each "
+            "day you dictate, so I can see how many people use it. "
+            "No audio, text, word counts or personal data. Takes effect on the next launch."
         )
         telemetry_hint.setObjectName("settingsHint")
         telemetry_hint.setWordWrap(True)
@@ -3161,7 +3178,7 @@ class MainWindow(QMainWindow):
             if new_telemetry_enabled != hotkey_settings.get_telemetry_enabled():
                 hotkey_settings.set_telemetry_enabled(new_telemetry_enabled)
                 changes.append(
-                    "Launch ping enabled." if new_telemetry_enabled else "Launch ping disabled."
+                    "Usage pings enabled." if new_telemetry_enabled else "Usage pings disabled."
                 )
 
             new_excluded_apps = [a.strip() for a in excluded_edit.text().split(",") if a.strip()]
@@ -3283,6 +3300,16 @@ class MainWindow(QMainWindow):
         settings_action = QAction("Settings...", self)
         settings_action.triggered.connect(self._open_settings_dialog)
         menu.addAction(settings_action)
+
+        self._language_menu = LanguageMenu(
+            self,
+            menu,
+            hotkey_settings.AVAILABLE_LANGUAGES,
+            hotkey_settings.get_language,
+            hotkey_settings.set_language,
+            on_changed=self._on_tray_language_changed,
+        )
+        self._language_menu.submenu.setStyleSheet(TRAY_MENU_STYLESHEET)
 
         redo_action = QAction("Try harder on the last dictation", self)
         redo_action.triggered.connect(self._try_harder)
@@ -4242,6 +4269,7 @@ class MainWindow(QMainWindow):
             # (or held): _type_into_focused_window shows the check or the error.
             hotkey_settings.record_dictation(len(text.split()))
             history.add_entry(text, self._last_recording_duration)
+            telemetry.send_dictation_used()
             self._refresh_history_feed()
             # Simulate typing directly into whatever window currently has
             # focus (not necessarily this app -- that's the point of the

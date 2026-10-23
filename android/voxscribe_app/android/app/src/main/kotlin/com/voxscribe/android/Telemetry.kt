@@ -8,16 +8,19 @@ import java.time.LocalDate
 import java.util.UUID
 
 /**
- * Anonymous usage ping, the Android twin of the Windows app's core/telemetry.py:
- * one "app_launched" event to PostHog, so there are real numbers on how many
- * people use the app and not just how many downloaded it.
+ * Anonymous usage pings, the Android twin of the Windows app's core/telemetry.py,
+ * so there are real numbers on how many people use the app and not just how many
+ * downloaded it. Three events to PostHog:
+ * - "app_launched", at most once a day, when the app or the floating button
+ *   starts (the button runs on its own and people rarely open the app itself).
+ * - "first_dictation", once per install, the first time a dictation is saved.
+ * - "dictated_today", at most once a day, when a dictation is saved that day.
  *
- * At most once a day, when the app or the floating button starts, because the
- * button runs on its own and people rarely open the app itself. It sends the
- * app version, the Android version and a random id made on the phone. Never
- * audio, never text, nothing about other apps, nothing that names the person.
- * Off with one switch in Settings. Any failure is ignored: telemetry must never
- * slow down or break dictation.
+ * Each sends the app version, the Android version and a random id made on the
+ * phone. Never audio, never text, no word counts, nothing about other apps,
+ * nothing that names the person. All three are off with the one switch in
+ * Settings. Any failure is ignored: telemetry must never slow down or break
+ * dictation.
  */
 object Telemetry {
     // Project key: it can only send events, not read anything (same key as Windows).
@@ -29,9 +32,18 @@ object Telemetry {
     fun shouldSend(enabled: Boolean, lastSentDay: String?, today: String): Boolean =
         enabled && lastSentDay != today
 
+    /** Which events a saved dictation should send: the first ever, and the first of each day. */
+    fun eventsForDictation(enabled: Boolean, firstSent: Boolean, lastDay: String?, today: String): List<String> {
+        if (!enabled) return emptyList()
+        val events = mutableListOf<String>()
+        if (!firstSent) events += "first_dictation"
+        if (lastDay != today) events += "dictated_today"
+        return events
+    }
+
     /** The event, as PostHog's capture API takes it. */
-    fun payload(distinctId: String, appVersion: String, osVersion: String): String =
-        """{"api_key":"${escape(API_KEY)}","event":"app_launched","distinct_id":"${escape(distinctId)}",""" +
+    fun payload(distinctId: String, appVersion: String, osVersion: String, event: String = "app_launched"): String =
+        """{"api_key":"${escape(API_KEY)}","event":"${escape(event)}","distinct_id":"${escape(distinctId)}",""" +
             """"properties":{"app_version":"${escape(appVersion)}","os":"Android",""" +
             """"os_version":"${escape(osVersion)}","platform":"android"}}"""
 
@@ -44,7 +56,33 @@ object Telemetry {
         if (!shouldSend(SettingsStore.usagePingEnabled(app), SettingsStore.lastPingDay(app), today)) return
         // Marked before sending, so the app and the button starting together send one ping.
         SettingsStore.setLastPingDay(app, today)
-        val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty())
+        post(app, "app_launched")
+    }
+
+    /**
+     * Call after a dictation was saved. Sends "first_dictation" once ever and
+     * "dictated_today" once a day. Nothing is marked as sent while the user has
+     * the ping switched off, so turning it on later starts counting from the
+     * next dictation.
+     */
+    fun sendDictationUsed(context: Context) {
+        val app = context.applicationContext
+        val today = LocalDate.now().toString()
+        val events = eventsForDictation(
+            enabled = SettingsStore.usagePingEnabled(app),
+            firstSent = SettingsStore.firstDictationSent(app),
+            lastDay = SettingsStore.lastDictationDay(app),
+            today = today,
+        )
+        if (events.isEmpty()) return
+        // Marked before sending, so two dictations in a row send each event once.
+        SettingsStore.setFirstDictationSent(app)
+        SettingsStore.setLastDictationDay(app, today)
+        events.forEach { post(app, it) }
+    }
+
+    private fun post(app: Context, event: String) {
+        val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty(), event)
         Thread {
             try {
                 val connection = URL(ENDPOINT).openConnection() as HttpURLConnection

@@ -27,6 +27,41 @@ class TelemetryTest {
     }
 
     @Test
+    fun theFirstDictationSendsBothEventsAndLaterOnesOnlyTheDailyOne() {
+        assertEquals(
+            listOf("first_dictation", "dictated_today"),
+            Telemetry.eventsForDictation(enabled = true, firstSent = false, lastDay = null, today = "2026-10-22"),
+        )
+        assertEquals(
+            listOf("dictated_today"),
+            Telemetry.eventsForDictation(enabled = true, firstSent = true, lastDay = "2026-10-21", today = "2026-10-22"),
+        )
+        assertEquals(
+            emptyList<String>(),
+            Telemetry.eventsForDictation(enabled = true, firstSent = true, lastDay = "2026-10-22", today = "2026-10-22"),
+        )
+    }
+
+    @Test
+    fun noDictationEventGoesOutWhileThePingIsOff() {
+        assertEquals(
+            emptyList<String>(),
+            Telemetry.eventsForDictation(enabled = false, firstSent = false, lastDay = null, today = "2026-10-22"),
+        )
+    }
+
+    @Test
+    fun aDictationEventCarriesItsNameAndNothingMore() {
+        val body = Telemetry.payload("1b2c", "1.1.2", "14", "first_dictation")
+        assertTrue(body.contains("\"event\":\"first_dictation\""))
+        assertTrue(
+            body.contains(
+                "\"properties\":{\"app_version\":\"1.1.2\",\"os\":\"Android\",\"os_version\":\"14\",\"platform\":\"android\"}",
+            ),
+        )
+    }
+
+    @Test
     fun oddCharactersCannotBreakTheJson() {
         val body = Telemetry.payload("a\"b", "1.1.0\\x", "14\n")
         assertTrue(body.contains("\"distinct_id\":\"a\\\"b\""))

@@ -47,6 +47,7 @@ void main() {
   });
 
   testWidgets('a switch changes the setting and saves it', (tester) async {
+    useTallScreen(tester);
     final settings = FakeSettingsRepository();
     await tester.pumpWidget(buildTestApp(settings: settings));
     await openTab(tester, 'Settings');
@@ -91,6 +92,29 @@ void main() {
     expect(_themeMode(tester), ThemeMode.light);
   });
 
+  testWidgets('the floating button settings are listed and saved', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final settings = FakeSettingsRepository();
+    await tester.pumpWidget(buildTestApp(settings: settings));
+    await openTab(tester, 'Settings');
+
+    expect(find.text('How you record'), findsOneWidget);
+    expect(find.text('Button size'), findsOneWidget);
+    expect(find.textContaining('tap once to start'), findsOneWidget);
+
+    await tester.tap(find.text('Tap').first);
+    await tester.pumpAndSettle();
+    expect(settings.saved.recordingMode, RecordingMode.tap);
+    expect(find.textContaining('No holding'), findsOneWidget);
+
+    await tester.tap(find.text('Small'));
+    await tester.pumpAndSettle();
+    expect(settings.saved.bubbleSize, BubbleSize.small);
+    expect(settings.saved.recordingMode, RecordingMode.tap);
+  });
+
   testWidgets('the saved theme is used when the app starts', (tester) async {
     final settings = FakeSettingsRepository(
       AppSettings.defaults.copyWith(theme: ThemeChoice.light),
@@ -131,6 +155,7 @@ void main() {
   testWidgets('the language row opens the picker and switches language', (
     tester,
   ) async {
+    useTallScreen(tester);
     final engine = ScriptedEngine();
     await tester.pumpWidget(buildTestApp(engine: engine));
     await openTab(tester, 'Settings');

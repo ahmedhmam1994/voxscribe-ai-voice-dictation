@@ -425,8 +425,9 @@ def set_typing_delay_ms(delay_ms: int) -> None:
 
 
 def get_telemetry_enabled() -> bool:
-    """Whether the anonymous launch ping (app version and OS only, see
-    core/telemetry.py) is sent. Default True; users can switch it off."""
+    """Whether the anonymous usage pings (launch, first dictation, once a day
+    when dictating; app version and OS only, see core/telemetry.py) are sent.
+    Default True; users can switch them off."""
     value = _settings().value("telemetry_enabled", True)
     if isinstance(value, str):
         return value.lower() != "false"

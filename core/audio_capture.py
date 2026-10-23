@@ -66,8 +66,28 @@ def _default_input_device() -> int | None:
         )
     except StopIteration:
         return None
-    wasapi_default = sd.query_hostapis()[wasapi_idx]["default_input_device"]
-    return wasapi_default if wasapi_default != -1 else None
+    wasapi = sd.query_hostapis()[wasapi_idx]
+    wasapi_default = wasapi["default_input_device"]
+    if wasapi_default == -1:
+        return None
+    # Enabling Stereo Mix makes Windows route its default recording device to
+    # it, which records the PC's playback (silence) instead of the microphone.
+    # Dictation is never meant to listen to system audio by default, so skip it.
+    if is_system_audio_device(sd.query_devices(wasapi_default)["name"]):
+        for idx in wasapi["devices"]:
+            info = sd.query_devices(idx)
+            if info["max_input_channels"] > 0 and not is_system_audio_device(info["name"]):
+                return idx
+    return wasapi_default
+
+
+_SYSTEM_AUDIO_NAMES = ("stereo mix", "what u hear", "wave out mix", "loopback")
+
+
+def is_system_audio_device(name: str) -> bool:
+    """True for inputs that capture the PC's playback, not a microphone."""
+    lowered = name.lower()
+    return any(marker in lowered for marker in _SYSTEM_AUDIO_NAMES)
 
 
 def list_input_devices() -> list[tuple[int, str]]:
@@ -87,7 +107,10 @@ def list_input_devices() -> list[tuple[int, str]]:
         if info["max_input_channels"] <= 0:
             continue
         hostapi_name = hostapis[info["hostapi"]]["name"]
-        devices.append((idx, f"{info['name']} ({hostapi_name})"))
+        label = f"{info['name']} ({hostapi_name})"
+        if is_system_audio_device(info["name"]):
+            label += " (system audio)"
+        devices.append((idx, label))
     return devices
 
 

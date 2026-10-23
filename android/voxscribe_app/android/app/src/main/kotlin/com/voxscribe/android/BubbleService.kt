@@ -148,6 +148,7 @@ class BubbleService : Service() {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT,
         )
+        applySize(view, params)
         params.gravity = Gravity.TOP or Gravity.START
         val saved = BubblePositionStore.load(this)
         params.x = saved?.x ?: 0
@@ -160,6 +161,34 @@ class BubbleService : Service() {
         view.post { keepOnScreen() }
         // Hidden until a text box is being edited; ask the typing service now.
         VoxScribeAccessibilityService.instance?.refreshBubbleVisibility()
+    }
+
+    /** Sizes the button from the saved setting: an exact square, with the icon padding scaled to match. */
+    private fun applySize(view: BubbleView, params: WindowManager.LayoutParams) {
+        val size = SettingsStore.bubbleSize(this)
+        val density = resources.displayMetrics.density
+        val side = (size.dp * density).toInt()
+        params.width = side
+        params.height = side
+        val pad = (size.paddingDp * density).toInt()
+        view.setPadding(pad, pad, pad, pad)
+    }
+
+    /** Called when the size setting changes while the button is showing. */
+    fun refreshSize() {
+        val view = bubbleView ?: return
+        val params = layoutParams ?: return
+        applySize(view, params)
+        runCatching { windowManager?.updateViewLayout(view, params) }
+        view.post { keepOnScreen() }
+    }
+
+    /** After the first dictation typed, tell the user about tap to start and tap to stop (unless they chose Tap already). */
+    private fun showTapHintOnce() {
+        if (SettingsStore.tapHintShown(this)) return
+        SettingsStore.setTapHintShown(this)
+        if (SettingsStore.recordingMode(this) == HoldOrTap.Mode.TAP) return
+        Toast.makeText(this, R.string.bubble_tap_hint, Toast.LENGTH_LONG).show()
     }
 
     // -- touch: hold to talk, tap to toggle, drag to move ---------------------
@@ -194,6 +223,7 @@ class BubbleService : Service() {
                     downParamX = params.x
                     downParamY = params.y
                     dragging = false
+                    gesture.mode = SettingsStore.recordingMode(this@BubbleService)
                     perform(gesture.down(SystemClock.elapsedRealtime()))
                 }
 
@@ -654,6 +684,7 @@ class BubbleService : Service() {
         val inserted = VoxScribeAccessibilityService.instance?.insertText(toInsert) ?: false
         lastInsertWorked = inserted
         flash(inserted)
+        if (inserted) showTapHintOnce()
         if (!inserted) {
             val clipboard = getSystemService(ClipboardManager::class.java)
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))

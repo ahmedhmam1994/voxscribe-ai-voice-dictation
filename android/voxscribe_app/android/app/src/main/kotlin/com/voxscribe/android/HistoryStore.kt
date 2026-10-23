@@ -28,6 +28,9 @@ object HistoryStore {
             entries.forEach { json.put(toJson(it)) }
             prefs(context).edit().putString(KEY_ENTRIES, json.toString()).apply()
         }
+        // Both the floating button and the in-app button save here, so this is
+        // the one place a finished dictation is counted (see [Telemetry]).
+        Telemetry.sendDictationUsed(context)
     }
 
     fun all(context: Context): List<HistoryEntry> = synchronized(lock) { readAll(context) }

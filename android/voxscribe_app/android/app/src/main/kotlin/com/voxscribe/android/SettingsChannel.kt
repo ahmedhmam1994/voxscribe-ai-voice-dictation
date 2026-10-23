@@ -20,6 +20,8 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
                     "trailingSpace" to SettingsStore.trailingSpaceEnabled(context),
                     "theme" to SettingsStore.themeMode(context),
                     "usagePing" to SettingsStore.usagePingEnabled(context),
+                    "recordingMode" to SettingsStore.recordingMode(context).key,
+                    "bubbleSize" to SettingsStore.bubbleSize(context).key,
                 ),
             )
             "setCleanup" -> {
@@ -32,6 +34,15 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
             }
             "setUsagePing" -> {
                 SettingsStore.setUsagePingEnabled(context, call.argument<Boolean>("value") == true)
+                result.success(null)
+            }
+            "setRecordingMode" -> {
+                SettingsStore.setRecordingMode(context, HoldOrTap.Mode.fromKey(call.argument<String>("value")))
+                result.success(null)
+            }
+            "setBubbleSize" -> {
+                SettingsStore.setBubbleSize(context, BubbleSize.fromKey(call.argument<String>("value")))
+                BubbleService.instance?.refreshSize()
                 result.success(null)
             }
             "setTheme" -> {

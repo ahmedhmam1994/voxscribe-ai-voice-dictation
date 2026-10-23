@@ -83,6 +83,33 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
+                    label: 'Floating button',
+                    children: [
+                      _PickerRow<RecordingMode>(
+                        title: 'How you record',
+                        subtitle: _recordingModeHelp(values.recordingMode),
+                        selected: values.recordingMode,
+                        labels: const {
+                          RecordingMode.both: 'Hold or tap',
+                          RecordingMode.hold: 'Hold',
+                          RecordingMode.tap: 'Tap',
+                        },
+                        onChanged: settings.setRecordingMode,
+                      ),
+                      _PickerRow<BubbleSize>(
+                        title: 'Button size',
+                        subtitle: 'A smaller button stays out of the way.',
+                        selected: values.bubbleSize,
+                        labels: const {
+                          BubbleSize.small: 'Small',
+                          BubbleSize.medium: 'Medium',
+                          BubbleSize.large: 'Large',
+                        },
+                        onChanged: settings.setBubbleSize,
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
                     label: 'Dictation',
                     children: [
                       SettingsRow(
@@ -239,8 +266,13 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(12),
-                        child: _ThemePicker(
+                        child: _SegmentedPicker<ThemeChoice>(
                           selected: values.theme,
+                          labels: const {
+                            ThemeChoice.system: 'System',
+                            ThemeChoice.light: 'Light',
+                            ThemeChoice.dark: 'Dark',
+                          },
                           onChanged: settings.setTheme,
                         ),
                       ),
@@ -252,9 +284,11 @@ class SettingsScreen extends StatelessWidget {
                       SettingsSwitchRow(
                         title: 'Send an anonymous usage ping',
                         subtitle:
-                            'Once a day: the app version, the Android version '
-                            'and a random id, so we can see how many people '
-                            'use VoxScribe. Never audio or text.',
+                            'When the app starts (once a day), the first time '
+                            'you dictate, and once on each day you dictate: '
+                            'the app version, the Android version and a random '
+                            'id, so we can see how many people use VoxScribe. '
+                            'Never audio or text.',
                         value: values.usagePing,
                         onChanged: (value) =>
                             settings.setUsagePing(value: value),
@@ -285,6 +319,15 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _recordingModeHelp(RecordingMode mode) {
+    return switch (mode) {
+      RecordingMode.both =>
+        'Hold to talk, or tap once to start and again to stop.',
+      RecordingMode.hold => 'Records only while you hold the button.',
+      RecordingMode.tap => 'Tap once to start and again to stop. No holding.',
+    };
   }
 
   String _setupSummary(SetupStatus status) {
@@ -373,28 +416,74 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _ThemePicker extends StatelessWidget {
-  const _ThemePicker({required this.selected, required this.onChanged});
+/// A title, a line of help and a segmented choice, as one row of a group.
+class _PickerRow<T> extends StatelessWidget {
+  const _PickerRow({
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.labels,
+    required this.onChanged,
+  });
 
-  final ThemeChoice selected;
-  final ValueChanged<ThemeChoice> onChanged;
+  final String title;
+  final String subtitle;
+  final T selected;
+  final Map<T, String> labels;
+  final ValueChanged<T> onChanged;
 
-  static const _labels = {
-    ThemeChoice.system: 'System',
-    ThemeChoice.light: 'Light',
-    ThemeChoice.dark: 'Dark',
-  };
+  @override
+  Widget build(BuildContext context) {
+    final c = context.vox;
+    final theme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.bodyLarge?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: c.text,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(subtitle, style: theme.bodySmall),
+          const SizedBox(height: 10),
+          _SegmentedPicker<T>(
+            selected: selected,
+            labels: labels,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentedPicker<T> extends StatelessWidget {
+  const _SegmentedPicker({
+    required this.selected,
+    required this.labels,
+    required this.onChanged,
+  });
+
+  final T selected;
+  final Map<T, String> labels;
+  final ValueChanged<T> onChanged;
 
   @override
   Widget build(BuildContext context) {
     final c = context.vox;
     return SizedBox(
       width: double.infinity,
-      child: SegmentedButton<ThemeChoice>(
+      child: SegmentedButton<T>(
         showSelectedIcon: false,
         segments: [
-          for (final choice in ThemeChoice.values)
-            ButtonSegment(value: choice, label: Text(_labels[choice]!)),
+          for (final entry in labels.entries)
+            ButtonSegment(value: entry.key, label: Text(entry.value)),
         ],
         selected: {selected},
         onSelectionChanged: (choices) => onChanged(choices.first),
