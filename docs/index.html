@@ -565,6 +565,35 @@
     .pro-banner { flex-direction: column; align-items: stretch; }
   }
 
+  /* UPDATES: the optional email box. Quiet on purpose, one row, no popup. */
+  #updates { padding: 64px 0; }
+  .updates-card {
+    max-width: 640px; margin: 0 auto; text-align: center;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px;
+  }
+  .updates-card h2 { font-size: 22px; margin: 0 0 8px; font-weight: 900; }
+  .updates-card p { color: var(--text-muted); font-size: 15px; line-height: 1.6; margin: 0 0 20px; }
+  .updates-form { display: flex; gap: 10px; }
+  .updates-form input[type="email"] {
+    flex: 1; min-width: 0; padding: 12px 14px; font: inherit; font-size: 15px;
+    background: var(--bg-window); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 10px;
+  }
+  .updates-form input[type="email"]::placeholder { color: var(--text-faint); }
+  .updates-form input[type="email"]:focus-visible { outline: 2px solid var(--accent-hover); outline-offset: 2px; }
+  .updates-form .btn { flex: none; cursor: pointer; }
+  .updates-form .btn[disabled] { opacity: 0.6; cursor: default; }
+  .updates-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+  .updates-status { min-height: 20px; margin: 12px 0 0; font-size: 14px; color: var(--text-muted); }
+  .updates-status[data-state="ok"] { color: var(--green); }
+  .updates-status[data-state="error"] { color: var(--red); }
+  .updates-fine { margin-top: 8px; }
+  @media (max-width: 560px) {
+    .updates-card { padding: 24px 20px; }
+    .updates-form { flex-direction: column; }
+    .updates-form .btn { width: 100%; justify-content: center; }
+  }
+
   /* INSTALL STEPS */
   .install-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; }
   .install-card ol { margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 15px; line-height: 2; }
@@ -966,6 +995,22 @@
   </div>
 </section>
 
+<section id="updates">
+  <div class="wrap">
+    <div class="updates-card">
+      <h2>Get one email when a big update ships</h2>
+      <p>Optional. Add your email if you would like a short note about major releases, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
+      <form class="updates-form" id="updates-form" novalidate>
+        <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <input type="email" name="email" id="updates-email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" required>
+        <button class="btn btn-primary" type="submit" id="updates-button">Notify me</button>
+      </form>
+      <p class="updates-status" id="updates-status" role="status" aria-live="polite"></p>
+      <p class="fine-print updates-fine">Used only for these emails, never shared or sold. You can be removed at any time: type your address and press <a href="#" id="updates-remove">remove me</a>. See the <a href="privacy.html">privacy policy</a>.</p>
+    </div>
+  </div>
+</section>
+
 <section id="install">
   <div class="wrap">
     <div class="section-head">
@@ -1232,6 +1277,59 @@
   }
 </script>
 <script src="assets/try.js?v=3" defer></script>
+<script>
+(function () {
+  var form = document.getElementById('updates-form');
+  if (!form) return;
+  var email = document.getElementById('updates-email');
+  var button = document.getElementById('updates-button');
+  var status = document.getElementById('updates-status');
+  var removeLink = document.getElementById('updates-remove');
+
+  function say(text, state) {
+    status.textContent = text;
+    status.setAttribute('data-state', state || '');
+  }
+
+  function send(remove) {
+    var address = email.value.trim();
+    if (!address || address.indexOf('@') < 1) {
+      say('Please type your email address first.', 'error');
+      email.focus();
+      return;
+    }
+    button.disabled = true;
+    say('One moment...', '');
+    fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: address, remove: remove, website: form.website.value })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (data) {
+        if (response.ok && data.ok) {
+          say(remove ? 'Removed. You will not get any email from me.' : 'Thanks, you are on the list. I will only write for major updates.', 'ok');
+          if (!remove) email.value = '';
+        } else {
+          say(data.error || 'Something went wrong. Please try again later.', 'error');
+        }
+      });
+    }).catch(function () {
+      say('Could not reach the server. Please try again later.', 'error');
+    }).then(function () {
+      button.disabled = false;
+    });
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    send(false);
+  });
+  removeLink.addEventListener('click', function (event) {
+    event.preventDefault();
+    send(true);
+  });
+})();
+</script>
 
 </body>
 </html>
