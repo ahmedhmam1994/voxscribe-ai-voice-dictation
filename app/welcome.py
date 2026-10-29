@@ -17,15 +17,16 @@ from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QLinearGradient, QPainter, QPen
 from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from app import theme
 from app.motion import animations_enabled
 
-ACCENT = QColor("#3ecf8e")
-AMBER = QColor("#f0a54a")
-TEXT = QColor("#eceef4")
-MUTED = QColor("#8b8d9c")
-FAINT = QColor("#5c5e6c")
-CARD = QColor("#1b1d27")
-BORDER = QColor("#2b2e3b")
+ACCENT = theme.qc("#3ecf8e")
+AMBER = theme.qc("#f0a54a")
+TEXT = theme.qc("#eceef4")
+MUTED = theme.qc("#8b8d9c")
+FAINT = theme.qc("#5c5e6c")
+CARD = theme.qc("#1b1d27")
+BORDER = theme.qc("#2b2e3b")
 
 DEMO_TEXT = "Running ten minutes late, start without me."
 
@@ -90,8 +91,8 @@ class DemoScene(QWidget):
         p.drawText(QRectF(rect.left(), rect.top() + 8, rect.width(), 16), Qt.AlignCenter, "Chat")
 
         box = QRectF(rect.left() + 16, rect.bottom() - 52, rect.width() - 32, 38)
-        p.setPen(QPen(QColor("#3a3d4c"), 1))
-        p.setBrush(QColor("#14151c"))
+        p.setPen(QPen(theme.qc("#3a3d4c"), 1))
+        p.setBrush(theme.qc("#14151c"))
         p.drawRoundedRect(box, 9, 9)
 
         if t < _TYPED:
@@ -132,18 +133,18 @@ class DemoScene(QWidget):
         base = QRectF(center.x() - width / 2, center.y() - 20, width, 40)
         # Key side (the part you see under the cap).
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor("#0d0e13"))
+        p.setBrush(theme.qc("#0d0e13"))
         p.drawRoundedRect(base.translated(0, 4), 9, 9)
         cap = base.translated(0, press)
         grad = QLinearGradient(cap.topLeft(), cap.bottomLeft())
         if down:
-            grad.setColorAt(0, QColor("#2a4d3d"))
-            grad.setColorAt(1, QColor("#21392f"))
+            grad.setColorAt(0, theme.qc("#2a4d3d"))
+            grad.setColorAt(1, theme.qc("#21392f"))
         else:
-            grad.setColorAt(0, QColor("#2b2e3b"))
-            grad.setColorAt(1, QColor("#22242f"))
+            grad.setColorAt(0, theme.qc("#2b2e3b"))
+            grad.setColorAt(1, theme.qc("#22242f"))
         p.setBrush(grad)
-        p.setPen(QPen(ACCENT if down else QColor("#3a3d4c"), 1.2))
+        p.setPen(QPen(ACCENT if down else theme.qc("#3a3d4c"), 1.2))
         p.drawRoundedRect(cap, 9, 9)
         p.setPen(ACCENT if down else TEXT)
         p.drawText(cap, Qt.AlignCenter, self.key_label)
@@ -180,7 +181,7 @@ class DemoScene(QWidget):
         p.setBrush(color)
         if state == "typed":
             p.drawEllipse(dot, 7, 7)
-            pen = QPen(QColor("#14151c"), 1.8)
+            pen = QPen(theme.qc("#14151c"), 1.8)
             pen.setCapStyle(Qt.RoundCap)
             pen.setJoinStyle(Qt.RoundJoin)
             p.setPen(pen)

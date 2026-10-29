@@ -1,0 +1,342 @@
+# Medical terms. One per line. Lines starting with # are notes.
+# The first terms matter most: they are the ones passed to the speech model as hints.
+# Terms between "# fuzzy: on" and "# fuzzy: off" (rare words such as drug names) may also be
+# repaired when the speech model spells them wrong; other terms only get their casing fixed.
+# fuzzy: on
+metformin
+lisinopril
+atorvastatin
+amlodipine
+omeprazole
+levothyroxine
+metoprolol
+losartan
+gabapentin
+sertraline
+warfarin
+apixaban
+rivaroxaban
+clopidogrel
+hydrochlorothiazide
+furosemide
+prednisone
+prednisolone
+dexamethasone
+amoxicillin
+azithromycin
+ciprofloxacin
+doxycycline
+cephalexin
+ibuprofen
+naproxen
+paracetamol
+acetaminophen
+tramadol
+morphine
+fentanyl
+oxycodone
+diazepam
+lorazepam
+alprazolam
+escitalopram
+fluoxetine
+citalopram
+venlafaxine
+quetiapine
+olanzapine
+risperidone
+aripiprazole
+lithium
+carbamazepine
+lamotrigine
+levetiracetam
+valproate
+insulin glargine
+empagliflozin
+dapagliflozin
+semaglutide
+liraglutide
+salbutamol
+albuterol
+montelukast
+budesonide
+tiotropium
+pantoprazole
+esomeprazole
+ondansetron
+metoclopramide
+tamsulosin
+finasteride
+sildenafil
+tadalafil
+allopurinol
+colchicine
+methotrexate
+hydroxychloroquine
+adalimumab
+rituximab
+trastuzumab
+pembrolizumab
+tamoxifen
+anastrozole
+heparin
+enoxaparin
+digoxin
+amiodarone
+bisoprolol
+carvedilol
+ramipril
+enalapril
+valsartan
+spironolactone
+rosuvastatin
+simvastatin
+ezetimibe
+# fuzzy: off
+hypertension
+hypotension
+diabetes mellitus
+myocardial infarction
+atrial fibrillation
+tachycardia
+bradycardia
+arrhythmia
+angina pectoris
+congestive heart failure
+pulmonary embolism
+deep vein thrombosis
+pneumonia
+asthma
+emphysema
+pneumothorax
+sepsis
+colitis
+Crohn's disease
+ulcerative colitis
+gastroesophageal reflux disease
+peptic ulcer
+anemia
+leukemia
+lymphoma
+melanoma
+carcinoma
+metastasis
+neoplasm
+rheumatoid arthritis
+fibromyalgia
+lupus erythematosus
+multiple sclerosis
+Parkinson's disease
+Alzheimer's disease
+epilepsy
+migraine
+stroke
+transient ischemic attack
+schizophrenia
+bipolar disorder
+depression
+anxiety disorder
+dementia
+preeclampsia
+gestational diabetes
+polycystic ovary syndrome
+cesarean section
+urinary tract infection
+benign prostatic hyperplasia
+dyspnea
+dysphagia
+dysuria
+syncope
+edema
+ascites
+jaundice
+cyanosis
+pruritus
+erythema
+urticaria
+tinnitus
+vertigo
+hematuria
+hemoptysis
+hematemesis
+melena
+epistaxis
+auscultation
+palpation
+percussion
+biopsy
+paracentesis
+lumbar puncture
+intubation
+extubation
+catheterization
+dialysis
+chemotherapy
+radiotherapy
+immunotherapy
+MRI
+CT scan
+PET scan
+ultrasound
+X-ray
+EEG
+ECG
+EKG
+EMG
+CBC
+ESR
+CRP
+HbA1c
+INR
+GFR
+TSH
+PSA
+BMI
+ICU
+NPO
+PRN
+subcutaneous
+intramuscular
+intravenous
+sublingual
+topical
+contraindication
+indication
+prognosis
+etiology
+pathophysiology
+differential diagnosis
+comorbidity
+prophylaxis
+anaphylaxis
+hypersensitivity
+idiopathic
+iatrogenic
+benign
+malignant
+chronic
+acute
+bilateral
+unilateral
+anterior
+posterior
+lateral
+medial
+proximal
+distal
+superior
+inferior
+cardiology
+neurology
+oncology
+nephrology
+gastroenterology
+endocrinology
+rheumatology
+dermatology
+ophthalmology
+otolaryngology
+orthopedics
+pediatrics
+obstetrics
+gynecology
+urology
+hematology
+pulmonology
+anesthesiology
+radiology
+pathology
+psychiatry
+femur
+tibia
+fibula
+humerus
+radius
+ulna
+clavicle
+scapula
+sternum
+vertebra
+cervical
+thoracic
+lumbar
+sacrum
+coccyx
+aorta
+ventricle
+atrium
+mitral valve
+aortic valve
+pericardium
+myocardium
+trachea
+bronchus
+alveoli
+pleura
+diaphragm
+esophagus
+duodenum
+jejunum
+ileum
+cecum
+rectum
+pancreas
+gallbladder
+spleen
+kidney
+ureter
+bladder
+urethra
+thyroid
+adrenal
+pituitary
+hypothalamus
+cerebellum
+cerebrum
+hippocampus
+meninges
+# Rare words that may also be repaired when misspelled.
+# fuzzy: on
+hyperlipidemia
+hyperglycemia
+hypoglycemia
+hypothyroidism
+hyperthyroidism
+cardiomyopathy
+bronchitis
+tuberculosis
+meningitis
+encephalitis
+cellulitis
+appendicitis
+cholecystitis
+pancreatitis
+cirrhosis
+hepatitis
+gastroenteritis
+diverticulitis
+osteoporosis
+osteoarthritis
+neuropathy
+endometriosis
+hysterectomy
+glomerulonephritis
+nephrolithiasis
+pyelonephritis
+echocardiogram
+electrocardiogram
+angiography
+angioplasty
+endoscopy
+colonoscopy
+bronchoscopy
+laparoscopy
+arthroscopy
+thoracentesis
+appendectomy
+cholecystectomy
+mastectomy
+thyroidectomy
+laminectomy
+tracheostomy
+# fuzzy: off

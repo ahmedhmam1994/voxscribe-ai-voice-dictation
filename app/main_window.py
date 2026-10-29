@@ -49,6 +49,7 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QProgressBar,
+    QProgressDialog,
     QPushButton,
     QScrollArea,
     QSpinBox,
@@ -59,28 +60,42 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app import theme
 from app.floating_indicator import FloatingIndicator
 from app.insights_page import InsightsPage
 from app.language_menu import LanguageMenu
+from app.meeting_controller import IDLE as MEETING_IDLE
+from app.meeting_controller import PROCESSING as MEETING_PROCESSING
+from app.meeting_controller import RECORDING as MEETING_RECORDING
+from app.meeting_controller import MeetingController, elapsed_text
 from app.motion import animate_progress, fade_in
 from app.speed_test import SpeedTestDialog
+from app.teach_dialog import TeachDialog
 from app.version import __version__
 from app.welcome import WelcomeDialog
 from app.whats_new import whats_new_text
 from core import (
     app_profiles,
+    arabic_terms,
     batch,
     code_dictation,
     diarize,
+    engines,
+    gpu,
     history,
+    inbox,
     modes,
     network_guard,
+    read_aloud,
     replacements,
     smart_format,
     snippets,
+    spoken_formats,
     telemetry,
     templates,
+    term_packs,
     transcript_export,
+    unsure,
     vocab_learner,
     word_lists,
 )
@@ -141,18 +156,18 @@ UPDATE_CHECK_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000  # weekly
 # default battleship-gray Qt widgets. Chosen to feel like a focused, modern
 # utility (in the spirit of Wispr Flow) without fighting Windows' own dark
 # taskbar/tray rendering -- deep neutrals here read naturally next to it.
-BG_WINDOW = "#121319"
-BG_CARD = "#1b1d27"
-BG_CARD_HOVER = "#22242f"
-BORDER = "#2b2e3b"
-BORDER_SOFT = "#242631"
-TEXT_PRIMARY = "#eceef4"
-TEXT_MUTED = "#8b8d9c"
-TEXT_FAINT = "#5c5e6c"
-ACCENT = "#3ecf8e"
-ACCENT_HOVER = "#4ee0a0"
-ACCENT_PRESSED = "#269e69"
-ACCENT_DISABLED = "#3a3b4c"
+BG_WINDOW = theme.hx("#121319")
+BG_CARD = theme.hx("#1b1d27")
+BG_CARD_HOVER = theme.hx("#22242f")
+BORDER = theme.hx("#2b2e3b")
+BORDER_SOFT = theme.hx("#242631")
+TEXT_PRIMARY = theme.hx("#eceef4")
+TEXT_MUTED = theme.hx("#8b8d9c")
+TEXT_FAINT = theme.hx("#5c5e6c")
+ACCENT = theme.hx("#3ecf8e")
+ACCENT_HOVER = theme.hx("#4ee0a0")
+ACCENT_PRESSED = theme.hx("#269e69")
+ACCENT_DISABLED = theme.hx("#3a3b4c")
 
 
 # -- real icons (Lucide, ISC-licensed SVGs bundled in app/icons/) ----------
@@ -287,6 +302,9 @@ class HotkeyBridge(QObject):
     # The Pro second-language key.
     alt_press_requested = Signal()
     alt_release_requested = Signal()
+    # The notes inbox key (core/inbox.py).
+    inbox_press_requested = Signal()
+    inbox_release_requested = Signal()
     # The Try harder key (core/redo.py).
     redo_requested = Signal()
     redo_too_late = Signal()
@@ -294,9 +312,9 @@ class HotkeyBridge(QObject):
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
     "ready": TEXT_MUTED,
-    "recording": "#3ecf8e",  # green
-    "transcribing": "#f0a54a",  # amber
-    "error": "#f0546b",  # red
+    "recording": theme.hx("#3ecf8e"),  # green
+    "transcribing": theme.hx("#f0a54a"),  # amber
+    "error": theme.hx("#f0546b"),  # red
 }
 
 MAIN_STYLESHEET = f"""
@@ -405,6 +423,29 @@ QPushButton#secondaryButton:pressed {{
     background: {BORDER};
 }}
 QPushButton#secondaryButton:disabled {{
+    color: {TEXT_FAINT};
+    background: {BG_WINDOW};
+    border: 1px solid {BORDER_SOFT};
+}}
+QPushButton#meetingButton {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid {BORDER};
+    border-radius: 12px;
+    padding: 8px 14px;
+}}
+QPushButton#meetingButton:hover {{
+    background: {BG_CARD_HOVER};
+    border: 1px solid {ACCENT};
+}}
+QPushButton#meetingButton[meetingRecording="true"] {{
+    background: #f0546b;
+    color: #ffffff;
+    border: none;
+}}
+QPushButton#meetingButton:disabled {{
     color: {TEXT_FAINT};
     background: {BG_WINDOW};
     border: 1px solid {BORDER_SOFT};
@@ -608,6 +649,35 @@ QLabel#statCardLabel {{
     color: {TEXT_MUTED};
     font-size: 12px;
     font-weight: 600;
+}}
+"""
+
+# Question boxes made by VoxScribe itself. Without this the app's light text colour
+# lands on Windows' white dialog background and the words cannot be read.
+MESSAGE_BOX_STYLESHEET = f"""
+QMessageBox {{
+    background: {BG_WINDOW};
+}}
+QMessageBox QLabel {{
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+}}
+QMessageBox QPushButton {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER_SOFT};
+    border-radius: 9px;
+    padding: 7px 18px;
+    min-width: 130px;
+    font-weight: 600;
+}}
+QMessageBox QPushButton:hover {{
+    background: {theme.hx("#22242f")};
+}}
+QMessageBox QPushButton:default {{
+    background: {ACCENT};
+    color: {theme.hx("#0b2418")};
+    border: none;
 }}
 """
 
@@ -873,13 +943,43 @@ class ModelLoaderThread(QThread):
             threading.Thread(
                 target=self._watch_download, args=(model_size, stop), daemon=True
             ).start()
-            transcriber = load_transcriber(model_size)
+            transcriber = load_transcriber(
+                model_size, use_gpu=hotkey_settings.get_gpu_acceleration_enabled()
+            )
+            engine = hotkey_settings.get_speech_engine()
+            if engine != engines.SPEECH_ENGINE_WHISPER:
+                # Extra models run beside Whisper, which stays the fallback.
+                router = engines.SpeechRouter(transcriber, engine)
+                self.progress.emit("Loading speech model...")
+                router.warm(hotkey_settings.get_language())
+                transcriber = router
         except Exception as exc:  # noqa: BLE001
             stop.set()
             self.failed.emit(str(exc))
             return
         stop.set()
         self.done.emit(transcriber)
+
+
+class DownloadThread(QThread):
+    """Runs one Settings download (the GPU libraries, a speech model) off the UI
+    thread. `work` takes a callback that receives a progress message."""
+
+    status = Signal(str)
+    done = Signal()
+    failed = Signal(str)
+
+    def __init__(self, work, parent=None) -> None:  # noqa: ANN001
+        super().__init__(parent)
+        self._work = work
+
+    def run(self) -> None:
+        try:
+            self._work(self.status.emit)
+        except Exception as exc:  # noqa: BLE001
+            self.failed.emit(str(exc))
+            return
+        self.done.emit()
 
 
 class MicTestThread(QThread):
@@ -1177,6 +1277,20 @@ class MainWindow(QMainWindow):
         self._template_last_turn = 0.0
         # (language,) while the Pro second-language key is dictating; None otherwise.
         self._language_override: tuple[str | None] | None = None
+        # The notes inbox key (core/inbox.py): _inbox_pending is set by the key press
+        # and taken by the recording it starts; _inbox_session is that recording.
+        self._inbox_pending = False
+        self._inbox_session = False
+        # Words Whisper was unsure about in the dictation being delivered.
+        self._unsure_words: list[str] = []
+        self._startup_box: QMessageBox | None = None
+        # Meeting notes (core/meeting.py): records the microphone and what the PC plays.
+        self._meeting = MeetingController(self, lambda: self.transcriber, self._meeting_polish)
+        self._meeting.state_changed.connect(self._on_meeting_state)
+        self._meeting.tick.connect(self._on_meeting_tick)
+        self._meeting.progress.connect(self._on_meeting_progress)
+        self._meeting.saved.connect(self._on_meeting_saved)
+        self._meeting.failed.connect(self._on_meeting_failed)
         # The focused program's Pro profile, read when a recording starts.
         self._recording_profile: dict[str, object] = {}
         self._hold_gate: HoldGate | None = None
@@ -1429,6 +1543,18 @@ class MainWindow(QMainWindow):
         self.import_folder_button.clicked.connect(self.import_folder)
         button_row.addWidget(self.import_folder_button)
 
+        self.meeting_button = QPushButton("Start meeting")
+        self.meeting_button.setObjectName("meetingButton")
+        self.meeting_button.setProperty("meetingRecording", False)
+        self.meeting_button.setMinimumHeight(44)
+        self.meeting_button.setCursor(Qt.PointingHandCursor)
+        self.meeting_button.setToolTip(
+            "Record a meeting or call and get notes with action items and decisions. "
+            "Everything stays on this PC."
+        )
+        self.meeting_button.clicked.connect(self._toggle_meeting)
+        layout.addWidget(self.meeting_button)
+
         options_row = QHBoxLayout()
         options_row.setSpacing(24)
         self.export_srt_checkbox = QCheckBox("Save .srt captions")
@@ -1579,6 +1705,8 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.alt_press_requested.connect(self._handle_alt_press)
         self._hotkey_bridge.alt_release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_bridge.inbox_press_requested.connect(self._handle_inbox_press)
+        self._hotkey_bridge.inbox_release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.redo_requested.connect(self._try_harder)
         self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
         self._last_typed_at = 0.0
@@ -1600,6 +1728,8 @@ class MainWindow(QMainWindow):
         self._redo_expiry_timer.setSingleShot(True)
         self._redo_expiry_timer.timeout.connect(self._clear_redo)
         self._alt_press_hook = None
+        self._inbox_press_hook = None
+        self._inbox_release_hook = None
         self._alt_release_hook = None
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
@@ -1714,6 +1844,8 @@ class MainWindow(QMainWindow):
             self._hold_other_hook,
             self._alt_press_hook,
             self._alt_release_hook,
+            self._inbox_press_hook,
+            self._inbox_release_hook,
             self._redo_hook,
         ):
             if hook is not None:
@@ -1726,6 +1858,8 @@ class MainWindow(QMainWindow):
         self._hold_other_hook = None
         self._alt_press_hook = None
         self._alt_release_hook = None
+        self._inbox_press_hook = None
+        self._inbox_release_hook = None
         self._redo_hook = None
         self._hold_gate = None
         self._hotkey_registration_error = None
@@ -1770,8 +1904,16 @@ class MainWindow(QMainWindow):
                 self._alt_release_hook = keyboard.on_release_key(
                     second, lambda e: self._hotkey_bridge.alt_release_requested.emit()
                 )
+            inbox_key = hotkey_settings.get_inbox_hotkey()
+            if inbox_key and inbox_key not in (self._hotkey, second):
+                self._inbox_press_hook = keyboard.on_press_key(
+                    inbox_key, lambda e: self._hotkey_bridge.inbox_press_requested.emit()
+                )
+                self._inbox_release_hook = keyboard.on_release_key(
+                    inbox_key, lambda e: self._hotkey_bridge.inbox_release_requested.emit()
+                )
             redo_key = hotkey_settings.get_redo_hotkey()
-            if redo_key and redo_key not in (self._hotkey, second):
+            if redo_key and redo_key not in (self._hotkey, second, inbox_key):
                 self._redo_hook = keyboard.hook_key(redo_key, self._on_redo_key, suppress=True)
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
@@ -1952,8 +2094,9 @@ class MainWindow(QMainWindow):
             else:
                 page_layout.insertLayout(page_layout.count() - 1, item)
 
-        general_layout = _new_section("General", "Hotkey, language, model and startup.")
-        audio_layout = _new_section("Audio", "Microphone and how text is typed.")
+        general_layout = _new_section("General", "Hotkeys and startup.")
+        speech_layout = _new_section("Speech", "Language, speech models and speed.")
+        audio_layout = _new_section("Audio", "Microphone, sounds and how text is typed.")
         text_layout = _new_section("Text", "How the transcript is cleaned and corrected.")
         pro_layout = _new_section("Pro", "License and the Pro dictation tools.")
         files_layout = _new_section("Files", "Importing audio and video files.")
@@ -1976,6 +2119,7 @@ class MainWindow(QMainWindow):
                 _add(self._target, other)
 
         general = _SectionProxy(general_layout)
+        speech = _SectionProxy(speech_layout)
         audio = _SectionProxy(audio_layout)
         text = _SectionProxy(text_layout)
         pro = _SectionProxy(pro_layout)
@@ -2267,7 +2411,7 @@ class MainWindow(QMainWindow):
 
         mic_test_button.clicked.connect(_toggle_mic_test)
 
-        layout = general
+        layout = speech
         language_label = QLabel("DICTATION LANGUAGE")
         language_label.setObjectName("settingsSectionLabel")
         layout.addWidget(language_label)
@@ -2282,7 +2426,7 @@ class MainWindow(QMainWindow):
                 break
         layout.addWidget(language_combo)
 
-        layout = text
+        layout = speech
         translate_checkbox = QCheckBox("Translate to English")
         translate_checkbox.setChecked(hotkey_settings.get_translate_to_english_enabled())
         layout.addWidget(translate_checkbox)
@@ -2296,8 +2440,140 @@ class MainWindow(QMainWindow):
         translate_hint.setWordWrap(True)
         layout.addWidget(translate_hint)
 
-        layout = general
-        model_label = QLabel("SPEECH MODEL")
+        def _run_download(title: str, question: str, work, on_done, on_cancel=None) -> None:  # noqa: ANN001
+            """Asks first, then runs `work(progress_callback)` on a thread behind a
+            progress dialog. Used by the GPU libraries and the speech models."""
+
+            def _cancel() -> None:
+                if on_cancel is not None:
+                    on_cancel()
+
+            if hotkey_settings.get_offline_mode_enabled():
+                QMessageBox.information(
+                    self,
+                    "Offline mode is on",
+                    "Offline mode blocks downloads. Turn it off in Settings, download, "
+                    "then turn it back on.",
+                )
+                _cancel()
+                return
+            if QMessageBox.question(self, title, question) != QMessageBox.Yes:
+                _cancel()
+                return
+            progress = QProgressDialog("Starting download...", None, 0, 0, self)
+            progress.setWindowTitle(title.rstrip("?"))
+            progress.setWindowModality(Qt.WindowModal)
+            progress.setMinimumDuration(0)
+            progress.show()
+            thread = DownloadThread(work, self)
+            thread.status.connect(progress.setLabelText)
+
+            def _finished(error: str | None) -> None:
+                progress.close()
+                if error:
+                    _cancel()
+                    QMessageBox.warning(self, title.rstrip("?"), f"Download failed: {error}")
+                else:
+                    on_done()
+
+            thread.done.connect(lambda: _finished(None))
+            thread.failed.connect(_finished)
+            thread.finished.connect(thread.deleteLater)
+            self._download_thread = thread  # keep a reference while it runs
+            thread.start()
+
+        layout = speech
+        engine_label = QLabel("SPEECH ENGINE")
+        engine_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(engine_label)
+
+        engine_combo = self._new_settings_combo()
+        engine_combo.addItem("Whisper: all languages (default)", engines.SPEECH_ENGINE_WHISPER)
+        engine_combo.addItem(
+            "Automatic: the best downloaded model for your language", engines.SPEECH_ENGINE_AUTO
+        )
+        for model_id, model in engines.MODELS.items():
+            engine_combo.addItem(model.label, model_id)
+        engine_combo.setCurrentIndex(
+            max(0, engine_combo.findData(hotkey_settings.get_speech_engine()))
+        )
+        layout.addWidget(engine_combo)
+
+        engine_hint = QLabel(
+            "Extra models, each downloaded only when you ask. They run on your processor, "
+            "offline, and are used when a specific dictation language is set above (with "
+            "Auto-detect, Whisper is used). Whisper still handles other languages, "
+            "translation and imported files, and takes over if an extra model fails. "
+            "Takes effect after restarting VoxScribe."
+        )
+        engine_hint.setObjectName("settingsHint")
+        engine_hint.setWordWrap(True)
+        layout.addWidget(engine_hint)
+
+        model_rows: dict[str, tuple[QLabel, QPushButton]] = {}
+
+        def _refresh_engine_rows() -> None:
+            item_model = engine_combo.model()
+            for i in range(engine_combo.count()):
+                model_id = engine_combo.itemData(i)
+                if model_id in engines.MODELS:
+                    item_model.item(i).setEnabled(engines.is_ready(engines.MODELS[model_id]))
+            for model_id, (status_label, button) in model_rows.items():
+                ready = engines.is_ready(engines.MODELS[model_id])
+                status_label.setText("Downloaded" if ready else "Not downloaded")
+                button.setText("Remove" if ready else "Download")
+            chosen = engine_combo.currentData()
+            if chosen in engines.MODELS and not engines.is_ready(engines.MODELS[chosen]):
+                engine_combo.setCurrentIndex(0)
+
+        def _on_model_button(model_id: str) -> None:
+            model = engines.MODELS[model_id]
+            if engines.is_ready(model):
+                answer = QMessageBox.question(
+                    self,
+                    "Remove model?",
+                    f"Delete {model.label} from this PC? You can download it again.",
+                )
+                if answer == QMessageBox.Yes:
+                    engines.remove(model)
+                    _refresh_engine_rows()
+                return
+            _run_download(
+                f"Download {model.label}?",
+                f"This downloads {model.label} (about {model.download_mb} MB) from the "
+                "sherpa-onnx project on GitHub. Nothing about your voice is sent. Continue?",
+                lambda progress, m=model: engines.download(m, progress),
+                _refresh_engine_rows,
+            )
+
+        for model_id, model in engines.MODELS.items():
+            row_label = QLabel(f"{model.label} ({model.download_mb} MB)")
+            row_label.setWordWrap(True)
+            row_hint = QLabel(model.description)
+            row_hint.setObjectName("settingsHint")
+            row_hint.setWordWrap(True)
+            status_label = QLabel()
+            status_label.setObjectName("settingsHint")
+            button = QPushButton()
+            button.setObjectName("secondaryButton")
+            button.setCursor(Qt.PointingHandCursor)
+            button.setMinimumHeight(30)
+            button.clicked.connect(lambda _checked=False, mid=model_id: _on_model_button(mid))
+            model_rows[model_id] = (status_label, button)
+            row = QHBoxLayout()
+            text_column = QVBoxLayout()
+            text_column.setSpacing(2)
+            text_column.addWidget(row_label)
+            text_column.addWidget(row_hint)
+            row.addLayout(text_column, stretch=1)
+            row.addWidget(status_label)
+            row.addWidget(button)
+            layout.addLayout(row)
+
+        _refresh_engine_rows()
+
+        layout = speech
+        model_label = QLabel("WHISPER MODEL SIZE")
         model_label.setObjectName("settingsSectionLabel")
         layout.addWidget(model_label)
 
@@ -2358,6 +2634,159 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_model_lock_state)
         license_remove_button.clicked.connect(_update_model_lock_state)
 
+        layout = speech
+        gpu_label = QLabel("GPU ACCELERATION")
+        gpu_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(gpu_label)
+
+        gpu_info = gpu.status()
+        gpu_checkbox = QCheckBox("Use my NVIDIA graphics card")
+        gpu_checkbox.setChecked(
+            hotkey_settings.get_gpu_acceleration_enabled() and gpu_info.gpu_count > 0
+        )
+        gpu_checkbox.setEnabled(gpu_info.gpu_count > 0)
+        layout.addWidget(gpu_checkbox)
+
+        gpu_hint = QLabel()
+        gpu_hint.setObjectName("settingsHint")
+        gpu_hint.setWordWrap(True)
+        layout.addWidget(gpu_hint)
+
+        def _update_gpu_hint() -> None:
+            if gpu_info.gpu_count == 0:
+                gpu_hint.setText(
+                    "No NVIDIA graphics card found. Only NVIDIA cards are supported "
+                    "for now. VoxScribe uses your processor, which works everywhere."
+                )
+            elif gpu_info.libs_ready and gpu_info.compute_type is None:
+                gpu_hint.setText(
+                    f"{gpu_info.name or 'Your graphics card'} is too old to be faster "
+                    "than your processor, so VoxScribe keeps using the processor."
+                )
+            else:
+                gpu_hint.setText(
+                    f"{gpu_info.name or 'NVIDIA card'} found. Runs the speech model on the "
+                    "graphics card, which can be much faster on a recent card. Needs a "
+                    f"one-time download of about {gpu.APPROX_DOWNLOAD_MB / 1000:.1f} GB "
+                    "(NVIDIA's own libraries). "
+                    "Takes effect after restarting VoxScribe. If anything goes wrong, "
+                    "VoxScribe switches back to your processor by itself."
+                )
+
+        _update_gpu_hint()
+
+        def _on_gpu_toggled(checked: bool) -> None:
+            if not checked or gpu.libs_ready():
+                return
+
+            def _undo() -> None:
+                gpu_checkbox.blockSignals(True)
+                gpu_checkbox.setChecked(False)
+                gpu_checkbox.blockSignals(False)
+
+            def _downloaded() -> None:
+                nonlocal gpu_info
+                gpu_info = gpu.status()
+                if gpu_info.compute_type is None:
+                    _update_gpu_hint()
+                else:
+                    gpu_hint.setText(
+                        "Downloaded. Save, then restart VoxScribe to use the graphics card."
+                    )
+
+            _run_download(
+                "Download GPU libraries?",
+                f"This downloads NVIDIA's CUDA libraries once (about {gpu.APPROX_DOWNLOAD_MB} MB) "
+                "from PyPI, where NVIDIA publishes them. Nothing about your voice is sent. "
+                "Continue?",
+                gpu.download_libs,
+                _downloaded,
+                _undo,
+            )
+
+        gpu_checkbox.toggled.connect(_on_gpu_toggled)
+
+        layout = text
+        cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
+        cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
+        layout.addWidget(cleanup_checkbox)
+
+        voice_commands_checkbox = QCheckBox("Voice commands (punctuation by voice)")
+        voice_commands_checkbox.setChecked(hotkey_settings.get_voice_commands_enabled())
+        layout.addWidget(voice_commands_checkbox)
+
+        voice_commands_hint = QLabel(
+            'Say these words while dictating and they\'ll be typed as punctuation '
+            "instead of literal text -- e.g. \"period\", \"comma\", \"question mark\", "
+            '"new line", "new paragraph", "open quote"/"close quote". Say '
+            '"scratch that" alone to undo the last thing VoxScribe typed, '
+            '"delete last word" to remove just the last word, or "delete '
+            'last sentence" to remove just the last sentence. "Capitalize '
+            'that", "all caps" and "lowercase that" change it, and "replace '
+            'X with Y" swaps a word in it.'
+        )
+        voice_commands_hint.setObjectName("settingsHint")
+        voice_commands_hint.setWordWrap(True)
+        layout.addWidget(voice_commands_hint)
+
+        send_it_checkbox = QCheckBox('Say "send it" to press Enter')
+        send_it_checkbox.setChecked(hotkey_settings.get_send_it_enabled())
+        layout.addWidget(send_it_checkbox)
+
+        send_it_hint = QLabel(
+            'Say "send it" on its own, or at the end of your message after a '
+            'short pause ("see you at noon, send it"), to press Enter in the '
+            'app you dictated into, for example to send a chat message. Off by '
+            'default, because it can send a message you meant to read through '
+            'first.'
+        )
+        send_it_hint.setObjectName("settingsHint")
+        send_it_hint.setWordWrap(True)
+        layout.addWidget(send_it_hint)
+
+        spoken_formats_checkbox = QCheckBox("Spoken formats for the packs")
+        spoken_formats_checkbox.setChecked(hotkey_settings.get_spoken_formats_enabled())
+        layout.addWidget(spoken_formats_checkbox)
+
+        spoken_formats_hint = QLabel(
+            "Follows the term packs you switched on below. Medical: one twenty over "
+            "eighty becomes 120/80, five milligrams twice daily becomes 5 mg BID. Law: "
+            "section twelve subsection b becomes section 12(b). Business: fifty thousand "
+            "dollars becomes $50,000, q three becomes Q3. A number is only rewritten "
+            "next to the unit or word that shows what it is. Off by default."
+        )
+        spoken_formats_hint.setObjectName("settingsHint")
+        spoken_formats_hint.setWordWrap(True)
+        layout.addWidget(spoken_formats_hint)
+
+        unsure_checkbox = QCheckBox("Underline unsure words in the transcript")
+        unsure_checkbox.setChecked(hotkey_settings.get_mark_unsure_words())
+        layout.addWidget(unsure_checkbox)
+
+        unsure_hint = QLabel(
+            "After a dictation, the transcript on the Dictation page underlines the words "
+            "Whisper was least sure about, so you check those first. The text typed into "
+            "other apps is not changed. Works with Whisper and Parakeet (not Cohere or "
+            "Moonshine); with Whisper it makes each dictation a little slower. Off by default."
+        )
+        unsure_hint.setObjectName("settingsHint")
+        unsure_hint.setWordWrap(True)
+        layout.addWidget(unsure_hint)
+
+        arabic_terms_checkbox = QCheckBox("Write English work words in English letters (Arabic)")
+        arabic_terms_checkbox.setChecked(hotkey_settings.get_arabic_terms_enabled())
+        layout.addWidget(arabic_terms_checkbox)
+
+        arabic_terms_hint = QLabel(
+            "When you mix English words into Arabic, speech models write them in "
+            "Arabic letters (ميتنج, ريبورت). This swaps a short list of common work "
+            "words back (meeting, report, client, launch, update, pricing, email...). "
+            "Only those words change. Off by default."
+        )
+        arabic_terms_hint.setObjectName("settingsHint")
+        arabic_terms_hint.setWordWrap(True)
+        layout.addWidget(arabic_terms_hint)
+
         layout = text
         vocab_label = QLabel("CUSTOM VOCABULARY")
         vocab_label.setObjectName("settingsSectionLabel")
@@ -2377,6 +2806,98 @@ class MainWindow(QMainWindow):
         vocab_hint.setWordWrap(True)
         layout.addWidget(vocab_hint)
 
+        packs_label = QLabel("TERM PACKS")
+        packs_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(packs_label)
+
+        packs_box = QVBoxLayout()
+        packs_box.setSpacing(4)
+        layout.addLayout(packs_box)
+        pack_checks: dict[str, QCheckBox] = {}
+        enabled_packs = set(hotkey_settings.get_enabled_packs())
+
+        def _fill_packs() -> None:
+            while packs_box.count():
+                item = packs_box.takeAt(0)
+                if item.widget() is not None:
+                    item.widget().deleteLater()
+                elif item.layout() is not None:
+                    while item.layout().count():
+                        inner = item.layout().takeAt(0)
+                        if inner.widget() is not None:
+                            inner.widget().deleteLater()
+            pack_checks.clear()
+            for pack_id, label, count in term_packs.available_packs():
+                row = QHBoxLayout()
+                check = QCheckBox(f"{label} ({count} terms)")
+                check.setChecked(pack_id in enabled_packs)
+                pack_checks[pack_id] = check
+                row.addWidget(check)
+                if pack_id.startswith(term_packs.USER_PREFIX):
+                    remove_pack = QPushButton("Remove")
+                    remove_pack.setObjectName("secondaryButton")
+                    remove_pack.setCursor(Qt.PointingHandCursor)
+                    remove_pack.clicked.connect(lambda _=False, p=pack_id: _remove_pack(p))
+                    row.addWidget(remove_pack)
+                row.addStretch(1)
+                packs_box.addLayout(row)
+
+        def _remove_pack(pack_id: str) -> None:
+            _remember_pack_checks()
+            enabled_packs.discard(pack_id)
+            term_packs.remove_user_pack(pack_id)
+            _fill_packs()
+
+        def _remember_pack_checks() -> None:
+            for pack_id, check in pack_checks.items():
+                if check.isChecked():
+                    enabled_packs.add(pack_id)
+                else:
+                    enabled_packs.discard(pack_id)
+
+        _fill_packs()
+
+        import_pack_button = QPushButton("Import a term file...")
+        import_pack_button.setObjectName("secondaryButton")
+        import_pack_button.setCursor(Qt.PointingHandCursor)
+        import_pack_row = QHBoxLayout()
+        import_pack_row.addWidget(import_pack_button)
+        import_pack_row.addStretch(1)
+        layout.addLayout(import_pack_row)
+
+        packs_hint = QLabel(
+            "Ready-made word lists for a field. VoxScribe fixes how these words are "
+            "written in your text (MRI, metformin, habeas corpus, EBITDA), whichever "
+            "speech model you use, and hints Whisper toward them. Your own file is a "
+            "plain text list, one term per line, kept on this PC. Nothing is downloaded."
+        )
+        packs_hint.setObjectName("settingsHint")
+        packs_hint.setWordWrap(True)
+        layout.addWidget(packs_hint)
+
+        def _import_pack() -> None:
+            path, _ = QFileDialog.getOpenFileName(
+                dialog,
+                "Import a term file",
+                str(Path.home() / "Documents"),
+                "Term lists (*.txt);;All files (*)",
+            )
+            if not path:
+                return
+            try:
+                pack_id, label, count = term_packs.import_pack(Path(path))
+            except (OSError, ValueError) as exc:
+                packs_hint.setText(str(exc))
+                return
+            _remember_pack_checks()
+            enabled_packs.add(pack_id)
+            _fill_packs()
+            packs_hint.setText(
+                f"Added {label} with {count} terms and switched it on. Press Save to keep it."
+            )
+
+        import_pack_button.clicked.connect(_import_pack)
+
         replacements_label = QLabel("WORD REPLACEMENTS")
         replacements_label.setObjectName("settingsSectionLabel")
         layout.addWidget(replacements_label)
@@ -2392,7 +2913,8 @@ class MainWindow(QMainWindow):
         replacements_hint = QLabel(
             "One per line: heard => replacement. Fixes words Whisper keeps getting "
             "wrong the same way. Whole words only, not case sensitive. Leave the "
-            "right side empty to delete a word."
+            "right side empty to delete a word. You can also right-click words in the "
+            "transcript on the Dictation page and choose Always correct."
         )
         replacements_hint.setObjectName("settingsHint")
         replacements_hint.setWordWrap(True)
@@ -2479,6 +3001,45 @@ class MainWindow(QMainWindow):
 
         export_lists_button.clicked.connect(_export_word_lists)
         import_lists_button.clicked.connect(_import_word_lists)
+
+        teach_button = QPushButton("Teach VoxScribe your voice...")
+        teach_button.setObjectName("secondaryButton")
+        teach_button.setCursor(Qt.PointingHandCursor)
+        teach_row = QHBoxLayout()
+        teach_row.addWidget(teach_button)
+        teach_row.addStretch(1)
+        layout.addLayout(teach_row)
+
+        teach_hint = QLabel(
+            "Read a short script (about three minutes). VoxScribe finds the words it "
+            "mishears in your voice or accent and offers to fix them from then on. "
+            "Recordings stay on this PC."
+        )
+        teach_hint.setObjectName("settingsHint")
+        teach_hint.setWordWrap(True)
+        layout.addWidget(teach_hint)
+
+        def _teach_voice() -> None:
+            if self.stream is not None:
+                teach_hint.setText("Stop the current recording first, then try again.")
+                return
+            _remember_pack_checks()
+            teach = TeachDialog(SETTINGS_DIALOG_STYLESHEET, self.transcriber, dialog)
+            teach.exec()
+            if not teach.accepted_pairs:
+                return
+            pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            added = 0
+            for heard, fix in teach.accepted_pairs:
+                pairs, status = replacements.add_rule(pairs, heard, fix)
+                added += status in ("added", "updated")
+            replacements_edit.setPlainText("\n".join(f"{a} => {b}" for a, b in pairs))
+            teach_hint.setText(
+                f"Added {added} fix{'es' if added != 1 else ''} to Word replacements above. "
+                "Review them, then press Save."
+            )
+
+        teach_button.clicked.connect(_teach_voice)
 
         layout = pro
         snippets_label = QLabel("SNIPPETS (PRO)")
@@ -2575,7 +3136,7 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_mode_lock_state)
         license_remove_button.clicked.connect(_update_mode_lock_state)
 
-        layout = general
+        layout = speech
         second_label = QLabel("SECOND LANGUAGE KEY (PRO)")
         second_label.setObjectName("settingsSectionLabel")
         layout.addWidget(second_label)
@@ -2607,6 +3168,7 @@ class MainWindow(QMainWindow):
         second_hint.setWordWrap(True)
         layout.addWidget(second_hint)
 
+        layout = general
         redo_label = QLabel("TRY HARDER KEY")
         redo_label.setObjectName("settingsSectionLabel")
         layout.addWidget(redo_label)
@@ -2631,6 +3193,98 @@ class MainWindow(QMainWindow):
         redo_hint.setWordWrap(True)
         layout.addWidget(redo_hint)
 
+        inbox_label = QLabel("NOTES INBOX KEY")
+        inbox_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(inbox_label)
+        inbox_row = QHBoxLayout()
+        inbox_key_combo = QComboBox()
+        inbox_key_combo.addItem("Off", "")
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            if key not in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                inbox_key_combo.addItem(key.upper(), key)
+        inbox_key_combo.setCurrentIndex(
+            max(0, inbox_key_combo.findData(hotkey_settings.get_inbox_hotkey()))
+        )
+        inbox_path_edit = QLineEdit()
+        inbox_path_edit.setText(hotkey_settings.get_inbox_path())
+        inbox_path_edit.setMinimumHeight(36)
+        inbox_browse = QPushButton("Browse...")
+        inbox_browse.setObjectName("secondaryButton")
+        inbox_browse.setCursor(Qt.PointingHandCursor)
+        inbox_row.addWidget(inbox_key_combo)
+        inbox_row.addWidget(inbox_path_edit, stretch=1)
+        inbox_row.addWidget(inbox_browse)
+        layout.addLayout(inbox_row)
+        inbox_hint = QLabel(
+            "Hold this key and speak: the words are saved as a line in this markdown "
+            "file, with the date and time, instead of being typed. Point it at a folder "
+            "in your Obsidian vault or any notes app. The file stays on this PC. Free."
+        )
+        inbox_hint.setObjectName("settingsHint")
+        inbox_hint.setWordWrap(True)
+        layout.addWidget(inbox_hint)
+
+        def _browse_inbox() -> None:
+            path, _ = QFileDialog.getSaveFileName(
+                dialog,
+                "Choose the inbox file",
+                inbox_path_edit.text() or str(Path.home() / "Documents"),
+                "Markdown (*.md);;Text (*.txt)",
+                options=QFileDialog.Option.DontConfirmOverwrite,
+            )
+            if path:
+                inbox_path_edit.setText(path)
+
+        inbox_browse.clicked.connect(_browse_inbox)
+
+        read_back_checkbox = QCheckBox("Read each dictation aloud")
+        read_back_checkbox.setChecked(hotkey_settings.get_read_back_enabled())
+        layout.addWidget(read_back_checkbox)
+        read_back_hint = QLabel(
+            "Windows' own voice reads what you dictated, so you can catch a wrong word "
+            "without looking. Offline, nothing to download. It stops when you start the "
+            "next dictation. You can also right-click the transcript and choose Read aloud."
+        )
+        read_back_hint.setObjectName("settingsHint")
+        read_back_hint.setWordWrap(True)
+        layout.addWidget(read_back_hint)
+
+        meetings_label = QLabel("MEETING NOTES FOLDER")
+        meetings_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(meetings_label)
+        meetings_row = QHBoxLayout()
+        meeting_folder_edit = QLineEdit()
+        meeting_folder_edit.setText(hotkey_settings.get_meeting_folder())
+        meeting_folder_edit.setMinimumHeight(36)
+        meeting_browse = QPushButton("Browse...")
+        meeting_browse.setObjectName("secondaryButton")
+        meeting_browse.setCursor(Qt.PointingHandCursor)
+        meetings_row.addWidget(meeting_folder_edit, stretch=1)
+        meetings_row.addWidget(meeting_browse)
+        layout.addLayout(meetings_row)
+        meeting_loopback_checkbox = QCheckBox("Also record what this PC plays (calls)")
+        meeting_loopback_checkbox.setChecked(hotkey_settings.get_meeting_loopback())
+        layout.addWidget(meeting_loopback_checkbox)
+        meetings_hint = QLabel(
+            "Start meeting records your microphone (You) and what the PC plays, such as the "
+            "other people on a call (Others). When you stop, VoxScribe writes a markdown "
+            "note here with action items, decisions, questions and the transcript. Point "
+            "the folder at your Obsidian vault if you like. Headphones avoid echo. "
+            "Everything stays on this PC. Free."
+        )
+        meetings_hint.setObjectName("settingsHint")
+        meetings_hint.setWordWrap(True)
+        layout.addWidget(meetings_hint)
+
+        def _browse_meeting_folder() -> None:
+            folder = QFileDialog.getExistingDirectory(
+                dialog, "Choose the meeting notes folder", meeting_folder_edit.text()
+            )
+            if folder:
+                meeting_folder_edit.setText(folder)
+
+        meeting_browse.clicked.connect(_browse_meeting_folder)
+
         layout = pro
         profiles_label = QLabel("PER-APP PROFILES (PRO)")
         profiles_label.setObjectName("settingsSectionLabel")
@@ -2645,9 +3299,10 @@ class MainWindow(QMainWindow):
         profiles_hint = QLabel(
             "One per line: program.exe => option=value, ... Options: mode (chat, "
             "email, code, notes or default), language (a code like en or ar, or auto), "
-            "cleanup, voice_commands, code, smart, period (on or off). Applies while "
-            "that program has focus; anything not set uses the mode, then your normal "
-            "settings."
+            "cleanup, voice_commands, code, smart, period (on or off), and packs "
+            "(medical, legal, business joined with +, or off), for example "
+            "winword.exe => packs=legal. Applies while that program has focus; "
+            "anything not set uses the mode, then your normal settings."
         )
         profiles_hint.setObjectName("settingsHint")
         profiles_hint.setWordWrap(True)
@@ -2806,45 +3461,8 @@ class MainWindow(QMainWindow):
         license_unlock_button.clicked.connect(_update_pro_tools_lock_state)
         license_remove_button.clicked.connect(_update_pro_tools_lock_state)
 
-        layout = text
-        cleanup_checkbox = QCheckBox("Clean up filler words (\"um\", \"uh\", \"like\")")
-        cleanup_checkbox.setChecked(hotkey_settings.get_cleanup_enabled())
-        layout.addWidget(cleanup_checkbox)
 
-        voice_commands_checkbox = QCheckBox("Voice commands (punctuation by voice)")
-        voice_commands_checkbox.setChecked(hotkey_settings.get_voice_commands_enabled())
-        layout.addWidget(voice_commands_checkbox)
-
-        voice_commands_hint = QLabel(
-            'Say these words while dictating and they\'ll be typed as punctuation '
-            "instead of literal text -- e.g. \"period\", \"comma\", \"question mark\", "
-            '"new line", "new paragraph", "open quote"/"close quote". Say '
-            '"scratch that" alone to undo the last thing VoxScribe typed, '
-            '"delete last word" to remove just the last word, or "delete '
-            'last sentence" to remove just the last sentence. "Capitalize '
-            'that", "all caps" and "lowercase that" change it, and "replace '
-            'X with Y" swaps a word in it.'
-        )
-        voice_commands_hint.setObjectName("settingsHint")
-        voice_commands_hint.setWordWrap(True)
-        layout.addWidget(voice_commands_hint)
-
-        send_it_checkbox = QCheckBox('Say "send it" to press Enter')
-        send_it_checkbox.setChecked(hotkey_settings.get_send_it_enabled())
-        layout.addWidget(send_it_checkbox)
-
-        send_it_hint = QLabel(
-            'Say "send it" on its own, or at the end of your message after a '
-            'short pause ("see you at noon, send it"), to press Enter in the '
-            'app you dictated into, for example to send a chat message. Off by '
-            'default, because it can send a message you meant to read through '
-            'first.'
-        )
-        send_it_hint.setObjectName("settingsHint")
-        send_it_hint.setWordWrap(True)
-        layout.addWidget(send_it_hint)
-
-        layout = general
+        layout = audio
         sound_checkbox = QCheckBox("Play a sound when recording starts/stops")
         sound_checkbox.setChecked(hotkey_settings.get_sound_enabled())
         layout.addWidget(sound_checkbox)
@@ -2925,6 +3543,23 @@ class MainWindow(QMainWindow):
         auto_start_checkbox.setChecked(hotkey_settings.get_auto_start())
         layout.addWidget(auto_start_checkbox)
 
+        appearance_label = QLabel("APPEARANCE")
+        appearance_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(appearance_label)
+
+        appearance_combo = self._new_settings_combo()
+        appearance_combo.addItem("Dark (default)", "dark")
+        appearance_combo.addItem("Light", "light")
+        appearance_combo.addItem("Same as Windows", "system")
+        appearance_combo.setCurrentIndex(
+            max(0, appearance_combo.findData(hotkey_settings.get_appearance()))
+        )
+        layout.addWidget(appearance_combo)
+
+        appearance_hint = QLabel("Takes effect after restarting VoxScribe.")
+        appearance_hint.setObjectName("settingsHint")
+        layout.addWidget(appearance_hint)
+
         layout = about
         version_label = QLabel("VERSION")
         version_label.setObjectName("settingsSectionLabel")
@@ -2998,6 +3633,94 @@ class MainWindow(QMainWindow):
                     "(takes effect after restart)."
                 )
 
+            new_appearance = appearance_combo.currentData()
+            if new_appearance != hotkey_settings.get_appearance():
+                hotkey_settings.set_appearance(new_appearance)
+                changes.append(
+                    f"Appearance set to {appearance_combo.currentText()} "
+                    "(takes effect after restart)."
+                )
+
+            new_engine = engine_combo.currentData()
+            if new_engine in engines.MODELS and not engines.is_ready(engines.MODELS[new_engine]):
+                new_engine = hotkey_settings.get_speech_engine()
+            if new_engine != hotkey_settings.get_speech_engine():
+                hotkey_settings.set_speech_engine(new_engine)
+                changes.append(
+                    f"Speech engine set to {engine_combo.currentText()} "
+                    "(takes effect after restart)."
+                )
+
+            new_arabic_terms = arabic_terms_checkbox.isChecked()
+            if new_arabic_terms != hotkey_settings.get_arabic_terms_enabled():
+                hotkey_settings.set_arabic_terms_enabled(new_arabic_terms)
+                changes.append(
+                    "English words in Arabic dictation will be written in English letters."
+                    if new_arabic_terms
+                    else "English words in Arabic dictation left as the model wrote them."
+                )
+
+            new_spoken = spoken_formats_checkbox.isChecked()
+            if new_spoken != hotkey_settings.get_spoken_formats_enabled():
+                hotkey_settings.set_spoken_formats_enabled(new_spoken)
+                changes.append("Spoken formats on." if new_spoken else "Spoken formats off.")
+
+            new_unsure = unsure_checkbox.isChecked()
+            if new_unsure != hotkey_settings.get_mark_unsure_words():
+                hotkey_settings.set_mark_unsure_words(new_unsure)
+                changes.append(
+                    "Unsure words will be underlined." if new_unsure else "Unsure-word marks off."
+                )
+
+            new_read_back = read_back_checkbox.isChecked()
+            if new_read_back != hotkey_settings.get_read_back_enabled():
+                hotkey_settings.set_read_back_enabled(new_read_back)
+                if not new_read_back:
+                    read_aloud.stop()
+                changes.append(
+                    "Dictations will be read aloud." if new_read_back else "Read aloud off."
+                )
+
+            new_meeting_folder = meeting_folder_edit.text().strip()
+            if new_meeting_folder and new_meeting_folder != hotkey_settings.get_meeting_folder():
+                hotkey_settings.set_meeting_folder(new_meeting_folder)
+                changes.append("Meeting notes folder updated.")
+            new_meeting_loopback = meeting_loopback_checkbox.isChecked()
+            if new_meeting_loopback != hotkey_settings.get_meeting_loopback():
+                hotkey_settings.set_meeting_loopback(new_meeting_loopback)
+                changes.append(
+                    "Meetings will also record what the PC plays."
+                    if new_meeting_loopback
+                    else "Meetings will record the microphone only."
+                )
+
+            new_inbox_key = inbox_key_combo.currentData()
+            new_inbox_path = inbox_path_edit.text().strip() or str(inbox.default_path())
+            reserved_keys = {self._hotkey, hotkey_settings.get_second_hotkey()}
+            if new_inbox_key and new_inbox_key in reserved_keys:
+                changes.append(f"Inbox key not changed: {new_inbox_key.upper()} is already in use.")
+            elif (
+                new_inbox_key != hotkey_settings.get_inbox_hotkey()
+                or new_inbox_path != hotkey_settings.get_inbox_path()
+            ):
+                hotkey_settings.set_inbox_hotkey(new_inbox_key)
+                hotkey_settings.set_inbox_path(new_inbox_path)
+                self._register_global_hotkey()
+                changes.append(
+                    f"Notes inbox key set to {new_inbox_key.upper()}."
+                    if new_inbox_key
+                    else "Notes inbox key off."
+                )
+
+            new_gpu = gpu_checkbox.isChecked() and gpu.libs_ready()
+            if new_gpu != hotkey_settings.get_gpu_acceleration_enabled():
+                hotkey_settings.set_gpu_acceleration_enabled(new_gpu)
+                changes.append(
+                    "GPU acceleration on (takes effect after restart)."
+                    if new_gpu
+                    else "GPU acceleration off (takes effect after restart)."
+                )
+
             new_vocabulary = [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
             if new_vocabulary != hotkey_settings.get_custom_vocabulary():
                 hotkey_settings.set_custom_vocabulary(new_vocabulary)
@@ -3006,6 +3729,14 @@ class MainWindow(QMainWindow):
                     f"{'s' if len(new_vocabulary) != 1 else ''})."
                     if new_vocabulary
                     else "Custom vocabulary cleared."
+                )
+
+            _remember_pack_checks()
+            new_packs = [p for p, _label, _n in term_packs.available_packs() if p in enabled_packs]
+            if new_packs != hotkey_settings.get_enabled_packs():
+                hotkey_settings.set_enabled_packs(new_packs)
+                changes.append(
+                    f"Term packs on: {len(new_packs)}." if new_packs else "Term packs off."
                 )
 
             new_replacements = replacements.parse_replacements_text(replacements_edit.toPlainText())
@@ -3311,6 +4042,10 @@ class MainWindow(QMainWindow):
         )
         self._language_menu.submenu.setStyleSheet(TRAY_MENU_STYLESHEET)
 
+        self._meeting_action = QAction("Start meeting", self)
+        self._meeting_action.triggered.connect(self._toggle_meeting)
+        menu.addAction(self._meeting_action)
+
         redo_action = QAction("Try harder on the last dictation", self)
         redo_action.triggered.connect(self._try_harder)
         menu.addAction(redo_action)
@@ -3561,6 +4296,15 @@ class MainWindow(QMainWindow):
         os.startfile(str(CRASH_LOG_DIR))  # noqa: S606 -- Windows-only app
 
     def _quit_app(self) -> None:
+        if self._meeting.state == MEETING_RECORDING:
+            answer = QMessageBox.question(
+                self,
+                "A meeting is being recorded",
+                "Quit now? The recording is kept for a week but no notes are written.",
+            )
+            if answer != QMessageBox.Yes:
+                return
+        self._meeting.shutdown()
         try:
             keyboard.unhook_all()
         except Exception:  # noqa: BLE001
@@ -3714,6 +4458,16 @@ class MainWindow(QMainWindow):
             self._language_override = None
         self._handle_hotkey_press()
 
+    def _handle_inbox_press(self) -> None:
+        """The notes inbox key: dictate, then save the words to the inbox file."""
+        if not self._hotkey_key_down:
+            self._language_override = None
+            self._inbox_pending = True
+        self._handle_hotkey_press()
+        # A press that did not start a recording (model still loading) must not
+        # turn the next, ordinary recording into an inbox note.
+        self._inbox_pending = False
+
     def _handle_alt_press(self) -> None:
         """Pro: the second key dictates in its own language."""
         if not self._hotkey_key_down:
@@ -3789,6 +4543,11 @@ class MainWindow(QMainWindow):
     def _start_recording(self) -> None:
         if self._import_active():
             return
+        if self._meeting.busy:
+            self._hotkey_active_session = False
+            self._set_status("A meeting is being recorded. Dictation is paused.", "error")
+            self._indicator.flash_error("Meeting in progress", 1800)
+            return
         excluded_process = foreground_process_name()
         if excluded_process and excluded_process in hotkey_settings.get_excluded_apps():
             self._hotkey_active_session = False
@@ -3796,6 +4555,9 @@ class MainWindow(QMainWindow):
             self._indicator.flash_error("Dictation is off in this app")
             return
 
+        self._dictation_started_at = time.time()
+        self._inbox_session, self._inbox_pending = self._inbox_pending, False
+        read_aloud.stop()
         # A new dictation starts: the previous one can no longer be redone.
         self._clear_redo()
         # The dictation mode for this app (core/modes.py), with any per-app
@@ -3898,13 +4660,15 @@ class MainWindow(QMainWindow):
 
         params = (
             self._effective_language(),
-            hotkey_settings.custom_vocabulary_prompt(),
+            hotkey_settings.custom_vocabulary_prompt(self._recording_profile.get("packs")),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
         # Kept in memory only, for Try harder; dropped once the text is typed
         # and the redo window passes (core/redo.py).
         self._last_audio = audio
         self._last_audio_params = params
+        if hasattr(self.transcriber, "collect_confidence"):
+            self.transcriber.collect_confidence = hotkey_settings.get_mark_unsure_words()
         self._worker = TranscribeThread(self.transcriber, audio, *params)
         self._language_override = None
         self._worker.done.connect(self._on_transcribed)
@@ -3935,6 +4699,16 @@ class MainWindow(QMainWindow):
             menu.addSeparator()
             action = menu.addAction(f'Always correct "{shown}"...')
             action.triggered.connect(lambda: self._add_correction(heard))
+        menu.addSeparator()
+        selected = self.transcript_area.textCursor().selectedText().strip()
+        if read_aloud.is_speaking():
+            menu.addAction("Stop reading").triggered.connect(read_aloud.stop)
+        else:
+            lines = self.transcript_area.toPlainText().strip().splitlines()
+            to_read = selected or (lines[-1] if lines else "")
+            read_action = menu.addAction("Read aloud" if selected else "Read the last line aloud")
+            read_action.setEnabled(bool(to_read.strip()))
+            read_action.triggered.connect(lambda: read_aloud.speak(to_read))
         menu.exec(self.transcript_area.mapToGlobal(pos))
         menu.deleteLater()
 
@@ -3960,6 +4734,14 @@ class MainWindow(QMainWindow):
 
     def _on_transcribed(self, text: str) -> None:
         self._send_after_typing = False
+        self._unsure_words = (
+            unsure.unsure_words(
+                getattr(self.transcriber, "last_words", []) or [],
+                getattr(self.transcriber, "unsure_below", unsure.UNSURE_BELOW),
+            )
+            if hotkey_settings.get_mark_unsure_words()
+            else []
+        )
         voice_commands_on = self._option(
             "voice_commands", hotkey_settings.get_voice_commands_enabled()
         )
@@ -4045,6 +4827,20 @@ class MainWindow(QMainWindow):
                 text = modes.drop_final_period(text)
         if text:
             text = replacements.apply_replacements(text)
+        if text:
+            packs = getattr(self, "_recording_profile", {}).get("packs")
+            text = term_packs.correct_text(
+                text,
+                hotkey_settings.correction_terms(packs),
+                hotkey_settings.correction_fuzzy_terms(packs),
+            )
+        if text and hotkey_settings.get_spoken_formats_enabled():
+            packs = getattr(self, "_recording_profile", {}).get("packs")
+            text = spoken_formats.apply_spoken_formats(
+                text, hotkey_settings.get_enabled_packs() if packs is None else packs
+            )
+        if text and hotkey_settings.get_arabic_terms_enabled():
+            text = arabic_terms.apply_arabic_terms(text)
         if text and pro:
             text = snippets.expand_snippet(text)
         if text and trailing_mode:
@@ -4262,7 +5058,18 @@ class MainWindow(QMainWindow):
             self._indicator.flash_error("Not typing into a password field", 2500)
             return
 
-        self.transcript_area.append(text if text else "[no speech recognized]")
+        inbox_note = self._inbox_session
+        self._inbox_session = False
+        marked = (
+            unsure.mark_html(text, self._unsure_words, theme.hx("#f0a54a"))
+            if text and self._unsure_words
+            else None
+        )
+        self._unsure_words = []
+        if marked is not None:
+            self.transcript_area.append(marked)
+        else:
+            self.transcript_area.append(text if text else "[no speech recognized]")
 
         if text:
             # The pill stays on "Transcribing" until the text is really typed
@@ -4271,17 +5078,202 @@ class MainWindow(QMainWindow):
             history.add_entry(text, self._last_recording_duration)
             telemetry.send_dictation_used()
             self._refresh_history_feed()
+            if inbox_note:
+                self._save_to_inbox(text)
+                self._after_first_dictation()
+                return
             # Simulate typing directly into whatever window currently has
             # focus (not necessarily this app -- that's the point of the
             # global hotkey). This deliberately does NOT touch the
             # clipboard, so it won't clobber anything the user has copied.
             QTimer.singleShot(150, lambda: self._type_into_focused_window(text))
-            self._set_status("Typed into active window", "ready")
+            note = f"Typed into active window. {self._connection_note()}"
+            if marked is not None:
+                note += f" {marked.count('<span')} unsure word(s) underlined in the transcript."
+            self._set_status(note, "ready")
+            if hotkey_settings.get_read_back_enabled():
+                QTimer.singleShot(700, lambda: read_aloud.speak(text))
+            self._after_first_dictation()
         else:
             self._set_status("No speech heard. Check the microphone volume.", "error")
             # Usually a mic that is too quiet or muted: say so instead of
             # silently vanishing.
             self._indicator.flash_error("No speech heard")
+
+    # -- meetings (core/meeting.py) -------------------------------------
+
+    def _meeting_polish(self, text: str) -> str:
+        """The same word fixes dictation gets, applied to each meeting line. Runs in
+        the notes thread."""
+        if hotkey_settings.get_cleanup_enabled():
+            text = clean_transcript(text)
+        text = replacements.apply_replacements(text)
+        text = term_packs.correct_text(
+            text, hotkey_settings.correction_terms(), hotkey_settings.correction_fuzzy_terms()
+        )
+        if hotkey_settings.get_spoken_formats_enabled():
+            text = spoken_formats.apply_spoken_formats(text, hotkey_settings.get_enabled_packs())
+        return text
+
+    def _confirm_meeting_recording(self) -> bool:
+        box = QMessageBox(self)
+        box.setWindowTitle("Record a meeting")
+        box.setIcon(QMessageBox.Icon.Information)
+        box.setText("Tell the people in the meeting that you are recording.")
+        box.setInformativeText(
+            "VoxScribe records your microphone and, if you chose it, what this PC plays. "
+            "Nothing leaves this PC, and the recording is deleted once the notes are saved. "
+            "In some places recording other people without their agreement is not allowed."
+        )
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        start = box.addButton("Start recording", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(start)
+        box.exec()
+        return box.clickedButton() is start
+
+    def _toggle_meeting(self) -> None:
+        if self._meeting.state == MEETING_RECORDING:
+            self._meeting.stop()
+            return
+        if self._meeting.busy:
+            self._set_status("Still writing the notes of the last meeting", "error")
+            return
+        worker_busy = self._worker is not None and self._worker.isRunning()
+        if self.stream is not None or worker_busy or self._import_active():
+            self._set_status("Finish the current dictation or import first", "error")
+            return
+        if not self._confirm_meeting_recording():
+            return
+        use_loopback = hotkey_settings.get_meeting_loopback()
+        error = self._meeting.start(use_loopback)
+        if error:
+            self._set_status(error, "error")
+            return
+        if use_loopback and not self._meeting.has_loopback:
+            self._tray_notify(
+                "VoxScribe",
+                "Recording your microphone only: the sound this PC plays could not be captured.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                6000,
+            )
+
+    def _on_meeting_state(self, state: str) -> None:
+        recording = state == MEETING_RECORDING
+        self.meeting_button.setProperty("meetingRecording", recording)
+        self.meeting_button.style().unpolish(self.meeting_button)
+        self.meeting_button.style().polish(self.meeting_button)
+        self.meeting_button.setEnabled(state != MEETING_PROCESSING)
+        label = {
+            MEETING_IDLE: "Start meeting",
+            MEETING_RECORDING: "Stop meeting",
+            MEETING_PROCESSING: "Writing notes...",
+        }[state]
+        self.meeting_button.setText(label)
+        action = getattr(self, "_meeting_action", None)
+        if action is not None:
+            action.setText(label if state != MEETING_PROCESSING else "Writing meeting notes...")
+            action.setEnabled(state != MEETING_PROCESSING)
+        if self.tray_icon is not None:
+            tip = "VoxScribe: recording a meeting" if recording else "VoxScribe"
+            self.tray_icon.setToolTip(tip)
+        if recording:
+            self._set_status("Recording the meeting...", "recording")
+        elif state == MEETING_PROCESSING:
+            self._set_status("Writing the meeting notes...", "transcribing")
+
+    def _on_meeting_tick(self, seconds: float, you_level: float, others_level: float) -> None:
+        heard = " (hearing the others)" if others_level > 0.05 else ""
+        self.meeting_button.setText(f"Stop meeting  {elapsed_text(seconds)}")
+        self._set_status(f"Recording the meeting {elapsed_text(seconds)}{heard}", "recording")
+
+    def _on_meeting_progress(self, fraction: float) -> None:
+        self._set_status(f"Writing the meeting notes... {int(fraction * 100)}%", "transcribing")
+
+    def _on_meeting_saved(self, path: object) -> None:
+        self._set_status(f"Meeting notes saved: {Path(path).name}", "ready")
+        if self.tray_icon is not None:
+            self._show_balloon(
+                "VoxScribe",
+                f"Meeting notes saved: {Path(path).name}. Click to open.",
+                QSystemTrayIcon.MessageIcon.Information,
+                8000,
+                lambda: os.startfile(str(path)),  # noqa: S606 -- Windows-only app
+            )
+
+    def _on_meeting_failed(self, message: str) -> None:
+        self._set_status(message, "error")
+        if self.tray_icon is not None:
+            self._tray_notify("VoxScribe", message, QSystemTrayIcon.MessageIcon.Warning, 8000)
+
+    def _save_to_inbox(self, text: str) -> None:
+        """Writes the dictation to the notes inbox file instead of typing it."""
+        path = Path(hotkey_settings.get_inbox_path())
+        try:
+            saved = inbox.append_note(path, text)
+        except OSError as exc:
+            self._set_status(f"Could not save to the inbox: {exc}", "error")
+            self._indicator.flash_error("Could not save to the inbox", 2500)
+            return
+        if saved:
+            self._set_status(f"Saved to {path.name}. {self._connection_note()}", "ready")
+            self._indicator.flash_success("Saved to inbox")
+
+    def _after_first_dictation(self) -> None:
+        """Asks once, after a dictation worked, whether to start with Windows."""
+        if hotkey_settings.get_startup_prompt_done():
+            return
+        if hotkey_settings.get_auto_start():
+            hotkey_settings.set_startup_prompt_done()
+            return
+        QTimer.singleShot(2500, self._ask_start_with_windows)
+
+    def _ask_start_with_windows(self) -> None:
+        if hotkey_settings.get_startup_prompt_done() or self._startup_box is not None:
+            return
+        if self.stream is not None:  # dictating again: ask next time
+            return
+        box = QMessageBox(self)
+        box.setWindowTitle("VoxScribe")
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setText("Start VoxScribe when Windows starts?")
+        box.setInformativeText(
+            "It runs quietly in the tray, so your hotkey works as soon as you sign in. "
+            "You can change this any time in Settings, General."
+        )
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        yes = box.addButton("Yes, start it", QMessageBox.ButtonRole.AcceptRole)
+        box.addButton("Not now", QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(yes)
+        box.setWindowFlag(Qt.WindowStaysOnTopHint, True)
+        self._startup_box = box
+
+        def _answered() -> None:
+            hotkey_settings.set_startup_prompt_done()
+            self._startup_box = None
+            if box.clickedButton() is yes:
+                try:
+                    hotkey_settings.set_auto_start(True)
+                    self._set_status("VoxScribe will now start with Windows.", "ready")
+                except OSError as exc:
+                    self._set_status(f"Couldn't update the startup setting: {exc}", "error")
+            box.deleteLater()
+
+        box.finished.connect(lambda _result: _answered())
+        box.open()
+
+    def _connection_note(self) -> str:
+        """The "0 connections" line: proof, after each dictation, that the speech
+        stayed on this PC. Counts every outside connection VoxScribe tried since
+        the key was pressed (the network log, core/network_guard.py)."""
+        started = getattr(self, "_dictation_started_at", None)
+        if started is None:
+            return ""
+        count = network_guard.count_since(started)
+        if count == 0:
+            return "0 connections made."
+        plural = "s" if count != 1 else ""
+        return f"{count} connection{plural} tried (see Connection log in Settings)."
 
     def _open_connection_log(self, parent: QWidget) -> None:
         """Shows every outside connection VoxScribe has tried, newest first."""
@@ -4657,6 +5649,9 @@ class MainWindow(QMainWindow):
         """Starts an import from picked files, a picked folder or a drop. One
         file is free; several files or a folder is a batch: Pro, with a couple
         of free runs so it can be tried first."""
+        if self._meeting.busy:
+            self._set_status("Finish the meeting before importing files", "error")
+            return
         if not self.import_button.isEnabled() or self._import_active():
             self._set_status("Wait for the current job to finish", "error")
             return
@@ -4738,9 +5733,11 @@ class MainWindow(QMainWindow):
         box.setInformativeText(
             "You can still import one file at a time for free, or get Pro once for $14."
         )
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
         pro_button = box.addButton("Get Pro", QMessageBox.AcceptRole)
         first_button = box.addButton("Import first file only", QMessageBox.ActionRole)
         box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(pro_button)
         box.exec()
         if box.clickedButton() is pro_button:
             webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
@@ -4891,6 +5888,12 @@ class MainWindow(QMainWindow):
             text = clean_transcript(text)
         if text:
             text = replacements.apply_replacements(text)
+        if text:
+            text = term_packs.correct_text(
+                text, hotkey_settings.correction_terms(), hotkey_settings.correction_fuzzy_terms()
+            )
+        if text and hotkey_settings.get_arabic_terms_enabled():
+            text = arabic_terms.apply_arabic_terms(text)
         label = f"[{Path(path).name}]"
         self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
         if self._batch is not None:

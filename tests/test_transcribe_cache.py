@@ -199,3 +199,63 @@ def test_missing_model_bin_purges_immediately(monkeypatch, tmp_path):
     transcribe.load_transcriber("small")
     assert sleeps == []
     assert not cache.exists()
+
+
+class _FailingModel:
+    def transcribe(self, *args, **kwargs):
+        def boom():
+            raise RuntimeError("CUDA out of memory")
+            yield  # pragma: no cover
+
+        return boom(), None
+
+
+class _Seg:
+    text = " hello "
+
+
+class _WorkingModel:
+    def transcribe(self, *args, **kwargs):
+        return iter([_Seg()]), None
+
+
+def _gpu_transcriber(monkeypatch, loads):
+    def fake_model(size, device, compute_type, local_files_only):
+        loads.append(device)
+        return _FailingModel() if device == "cuda" else _WorkingModel()
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    return transcribe.Transcriber("small", device="cuda", compute_type="float16")
+
+
+def test_gpu_failure_mid_transcription_falls_back_to_cpu(monkeypatch):
+    import numpy as np
+
+    loads = []
+    t = _gpu_transcriber(monkeypatch, loads)
+    audio = (np.sin(np.linspace(0, 400, 16000)) * 0.5).astype("float32")
+    monkeypatch.setattr(transcribe, "looks_like_speech", lambda _a: True)
+    assert t.transcribe(audio) == "hello"
+    assert loads == ["cuda", "cpu"]
+    assert t.device == "cpu"
+
+
+def test_gpu_that_cannot_load_falls_back_to_cpu(monkeypatch):
+    def fake_model(size, device, compute_type, local_files_only):
+        if device == "cuda":
+            raise RuntimeError("cudaErrorInvalidDevice")
+        return _WorkingModel()
+
+    monkeypatch.setattr(transcribe, "WhisperModel", fake_model)
+    t = transcribe.Transcriber("small", device="cuda", compute_type="float16")
+    assert (t.device, t.compute_type) == ("cpu", "int8")
+
+
+def test_cpu_errors_are_not_swallowed(monkeypatch):
+    monkeypatch.setattr(transcribe, "WhisperModel", lambda *a, **k: _FailingModel())
+    t = transcribe.Transcriber("small")
+    monkeypatch.setattr(transcribe, "looks_like_speech", lambda _a: True)
+    import numpy as np
+
+    with pytest.raises(RuntimeError):
+        t.transcribe((np.ones(16000) * 0.5).astype("float32"))

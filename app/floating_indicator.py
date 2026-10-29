@@ -219,6 +219,7 @@ class FloatingIndicator(QWidget):
         layout.addWidget(self._icon)
 
         self._label = QLabel(_LABELS["recording"])
+        self._label.setProperty("keepDark", True)  # the pill stays dark in light mode
         self._label.setStyleSheet(
             "color: #f1f2f8; font-size: 12px; font-weight: 600; "
             'font-family: "Segoe UI";'

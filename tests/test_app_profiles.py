@@ -43,3 +43,23 @@ def test_profiles_are_stored_and_looked_up_by_name(monkeypatch, tmp_path):
     assert app_profiles.profile_for("CODE.EXE") == {"code": True}
     assert app_profiles.profile_for("other.exe") == {}
     assert app_profiles.profile_for(None) == {}
+
+
+def test_packs_option_picks_packs_or_none():
+    profiles = app_profiles.parse_lines(
+        "winword.exe => packs=legal\nepic.exe => packs=medical+business\nslack.exe => packs=off"
+    )
+    assert profiles["winword.exe"] == {"packs": ["legal"]}
+    assert profiles["epic.exe"] == {"packs": ["medical", "business"]}
+    assert profiles["slack.exe"] == {"packs": []}
+
+
+def test_unknown_pack_name_drops_the_option():
+    assert app_profiles.parse_lines("a.exe => packs=medical+nope, cleanup=off") == {
+        "a.exe": {"cleanup": False}
+    }
+
+
+def test_packs_round_trip():
+    text = "epic.exe => packs=medical+legal\nslack.exe => packs=off"
+    assert app_profiles.format_lines(app_profiles.parse_lines(text)) == text

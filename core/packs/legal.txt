@@ -1,0 +1,217 @@
+# Legal terms. One per line. Lines starting with # are notes.
+# The first terms matter most: they are the ones passed to the speech model as hints.
+habeas corpus
+deposition
+plaintiff
+defendant
+litigation
+arbitration
+mediation
+injunction
+indemnity
+liability
+negligence
+tort
+statute of limitations
+jurisdiction
+venue
+due diligence
+force majeure
+confidentiality agreement
+non-disclosure agreement
+NDA
+non-compete
+memorandum of understanding
+MOU
+power of attorney
+fiduciary duty
+escrow
+lien
+easement
+covenant
+leasehold
+freehold
+tenancy
+landlord
+probate
+intestate
+testator
+executor
+beneficiary
+trustee
+codicil
+res judicata
+stare decisis
+prima facie
+pro bono
+pro rata
+pro se
+ex parte
+in camera
+in loco parentis
+inter alia
+mens rea
+actus reus
+bona fide
+caveat emptor
+de facto
+de jure
+ipso facto
+sua sponte
+amicus curiae
+voir dire
+mandamus
+quantum meruit
+quid pro quo
+ultra vires
+nolo contendere
+pari passu
+per curiam
+per se
+status quo
+sub judice
+terra nullius
+vis-a-vis
+ab initio
+ad hoc
+alibi
+acquittal
+conviction
+sentencing
+parole
+probation
+bail
+misdemeanor
+felony
+larceny
+embezzlement
+perjury
+fraud
+defamation
+libel
+slander
+trespass
+nuisance
+battery
+assault
+manslaughter
+homicide
+culpable
+hearsay
+admissible
+inadmissible
+precedent
+appellant
+appellee
+respondent
+petitioner
+claimant
+counterclaim
+cross-examination
+discovery
+summary judgment
+default judgment
+motion to dismiss
+motion in limine
+class action
+punitive damages
+compensatory damages
+liquidated damages
+specific performance
+rescission
+restitution
+remedy
+breach of contract
+consideration
+offer and acceptance
+repudiation
+novation
+assignment
+guarantor
+surety
+indemnitor
+warranty
+representation
+recital
+governing law
+choice of law
+entire agreement
+waiver
+termination
+notwithstanding
+hereunder
+herein
+thereof
+whereas
+intellectual property
+copyright
+trademark
+patent
+trade secret
+licensor
+licensee
+royalty
+infringement
+counterfeit
+merger
+acquisition
+shareholder
+stakeholder
+articles of incorporation
+bylaws
+quorum
+proxy
+bankruptcy
+liquidation
+writ
+summons
+complaint
+answer
+pleading
+brief
+docket
+tribunal
+magistrate
+arbitrator
+barrister
+solicitor
+paralegal
+counsel
+attorney-client privilege
+work product
+GDPR
+compliance
+regulatory
+statutory
+constitutional
+legislation
+ordinance
+decree
+treaty
+# Rare words that may also be repaired when misspelled.
+# fuzzy: on
+subpoena
+affidavit
+indemnification
+fiduciary
+conveyance
+lessor
+lessee
+mortgagor
+mortgagee
+bequest
+estoppel
+certiorari
+arraignment
+indictment
+exculpatory
+inculpatory
+interrogatories
+subrogation
+severability
+hereinafter
+aforementioned
+insolvency
+receivership
+garnishment
+# fuzzy: off

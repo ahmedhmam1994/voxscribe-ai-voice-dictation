@@ -14,7 +14,8 @@ replacements and snippets:
     slack.exe => mode=notes, smart=off
 
 `mode` picks one of the dictation modes (core/modes.py); the other options
-then override single settings of that mode.
+then override single settings of that mode. `packs` picks the term packs for
+that app (core/term_packs.py): `packs=medical+legal`, or `packs=off` for none.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ import json
 from PySide6.QtCore import QSettings
 
 from core.modes import MODES
+from core.term_packs import BUILTIN_PACKS
 
 # option name -> kind. "language" takes a language code or "auto", "mode" a mode
 # name from core/modes.py; the rest are on/off.
@@ -35,6 +37,7 @@ OPTIONS = {
     "code": "flag",
     "smart": "flag",
     "period": "flag",
+    "packs": "packs",
 }
 _ON = {"on", "true", "yes", "1"}
 _OFF = {"off", "false", "no", "0"}
@@ -66,9 +69,25 @@ def parse_lines(text: str) -> dict[str, dict[str, object]]:
                 chosen[name] = value
             elif kind == "flag" and value in _ON | _OFF:
                 chosen[name] = value in _ON
+            elif kind == "packs":
+                packs = _parse_packs(value)
+                if packs is not None:
+                    chosen[name] = packs
         if chosen:
             profiles[app] = chosen
     return profiles
+
+
+def _parse_packs(value: str) -> list[str] | None:
+    """"medical+legal" -> ["medical", "legal"]; "off" -> []; anything with an
+    unknown pack name -> None (the option is dropped)."""
+    if value in _OFF or value == "none":
+        return []
+    known = {pack_id for pack_id, _label in BUILTIN_PACKS}
+    names = [part.strip() for part in value.replace(",", "+").split("+") if part.strip()]
+    if not names or any(name not in known for name in names):
+        return None
+    return list(dict.fromkeys(names))
 
 
 def format_lines(profiles: dict[str, dict[str, object]]) -> str:
@@ -80,6 +99,8 @@ def format_lines(profiles: dict[str, dict[str, object]]) -> str:
                 parts.append(f"{name}={value or 'auto'}")
             elif OPTIONS.get(name) == "mode":
                 parts.append(f"{name}={value}")
+            elif OPTIONS.get(name) == "packs":
+                parts.append(f"{name}={'+'.join(value) if value else 'off'}")
             else:
                 parts.append(f"{name}={'on' if value else 'off'}")
         lines.append(f"{app} => {', '.join(parts)}")

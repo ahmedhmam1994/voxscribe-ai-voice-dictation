@@ -81,3 +81,15 @@ def test_a_huge_log_is_trimmed(monkeypatch):
 
     assert len(guard.recent(1000)) <= guard._KEEP_LINES
     assert guard.recent(1)[0].host == "host59.example"
+
+
+def test_count_since_counts_only_recent_attempts():
+    import time
+
+    guard._record("old.example", False)
+    time.sleep(0.02)
+    mark = time.time()
+    assert guard.count_since(mark) == 0
+    guard._record("a.example", False)
+    guard._record("b.example", True)
+    assert guard.count_since(mark) == 2

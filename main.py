@@ -5,6 +5,7 @@ import sys
 from PySide6.QtCore import QSharedMemory
 from PySide6.QtWidgets import QApplication, QMessageBox
 
+from app import theme
 from app.main_window import MainWindow
 from core import crash_reporter, network_guard, telemetry
 from core import license as hotkey_license
@@ -22,6 +23,7 @@ _SINGLE_INSTANCE_KEY = "VoxScribe-SingleInstanceGuard-8f3c1a"
 def main() -> int:
     crash_reporter.install()
     app = QApplication(sys.argv)
+    theme.install()
 
     guard = QSharedMemory(_SINGLE_INSTANCE_KEY)
     if not guard.create(1):

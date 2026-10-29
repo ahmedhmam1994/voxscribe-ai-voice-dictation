@@ -26,15 +26,16 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app import theme
 from app.motion import animations_enabled, count_up
 from core import history
 
-ACCENT = QColor("#3ecf8e")
-TEXT = QColor("#eceef4")
-MUTED = QColor("#8b8d9c")
-FAINT = QColor("#5c5e6c")
-EMPTY_CELL = QColor("#2a2d3a")
-IDLE_BAR = QColor("#2e3140")
+ACCENT = theme.qc("#3ecf8e")
+TEXT = theme.qc("#eceef4")
+MUTED = theme.qc("#8b8d9c")
+FAINT = theme.qc("#5c5e6c")
+EMPTY_CELL = theme.qc("#2a2d3a")
+IDLE_BAR = theme.qc("#2e3140")
 
 _DAY_INITIALS = ["M", "T", "W", "T", "F", "S", "S"]
 _MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -103,9 +104,9 @@ class _HeroGlow(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         rect = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
         base = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        base.setColorAt(0.0, QColor("#1c2a25"))
-        base.setColorAt(0.55, QColor("#1b1e28"))
-        base.setColorAt(1.0, QColor("#1a1c26"))
+        base.setColorAt(0.0, theme.qc("#1c2a25"))
+        base.setColorAt(0.55, theme.qc("#1b1e28"))
+        base.setColorAt(1.0, theme.qc("#1a1c26"))
         painter.setPen(QPen(QColor(62, 207, 142, 60), 1))
         painter.setBrush(base)
         painter.drawRoundedRect(rect, 16, 16)
@@ -141,7 +142,7 @@ class _SpeedBars(QWidget):
             painter.setPen(MUTED)
             painter.drawText(QRectF(0, y, label_w, 14), Qt.AlignVCenter | Qt.AlignLeft, name)
             painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor("#23252f"))
+            painter.setBrush(theme.qc("#23252f"))
             painter.drawRoundedRect(QRectF(label_w, y + 4, track, 6), 3, 3)
             width = track * value / top * (self.progress if row == 0 else 1.0)
             painter.setBrush(color)
@@ -169,7 +170,7 @@ class _WeekDots(QWidget):
                 painter.setPen(Qt.NoPen)
                 painter.setBrush(ACCENT)
             else:
-                painter.setPen(QPen(QColor("#3a3d4c"), 1.4))
+                painter.setPen(QPen(theme.qc("#3a3d4c"), 1.4))
                 painter.setBrush(Qt.NoBrush)
             painter.drawEllipse(QPointF(cx, 8), 6, 6)
             painter.setPen(TEXT if i == 6 else FAINT)
@@ -208,11 +209,11 @@ class _WeekChart(QWidget):
             painter.setPen(Qt.NoPen)
             if is_today:
                 grad = QLinearGradient(QPointF(0, bottom - bar_h), QPointF(0, bottom))
-                grad.setColorAt(0.0, QColor("#5ce3a6"))
-                grad.setColorAt(1.0, QColor("#2fae76"))
+                grad.setColorAt(0.0, theme.qc("#5ce3a6"))
+                grad.setColorAt(1.0, theme.qc("#2fae76"))
                 painter.setBrush(grad)
             else:
-                painter.setBrush(IDLE_BAR if value else QColor("#262833"))
+                painter.setBrush(IDLE_BAR if value else theme.qc("#262833"))
             painter.drawRoundedRect(QRectF(x, bottom - bar_h, bar_w, bar_h), 6, 6)
             if value and (is_today or value == peak) and local >= 1.0:
                 painter.setPen(TEXT if is_today else MUTED)

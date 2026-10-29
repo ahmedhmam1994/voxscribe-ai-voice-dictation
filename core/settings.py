@@ -254,16 +254,49 @@ def set_custom_vocabulary(terms: list[str]) -> None:
     _settings().setValue("custom_vocabulary", ", ".join(t.strip() for t in terms if t.strip()))
 
 
-def custom_vocabulary_prompt() -> str | None:
+def custom_vocabulary_prompt(packs: list[str] | None = None) -> str | None:
     """The actual string to pass as faster-whisper's initial_prompt, or None
     if there's no custom vocabulary set. faster-whisper/Whisper treats this
     as prior context text -- listing the terms in a plain sentence-like
     form biases the decoder toward recognizing them without instructing the
     model to literally transcribe this text itself."""
-    terms = get_custom_vocabulary()
-    if not terms:
-        return None
-    return "Vocabulary that may come up: " + ", ".join(terms) + "."
+    from core import term_packs
+
+    return term_packs.hint_prompt(
+        get_enabled_packs() if packs is None else packs, get_custom_vocabulary()
+    )
+
+
+def get_enabled_packs() -> list[str]:
+    """Ids of the term packs switched on (core/term_packs.py), none by default.
+    Stored comma-separated for the same reason as the custom vocabulary."""
+    value = _settings().value("enabled_term_packs", "")
+    if not value:
+        return []
+    return [pack.strip() for pack in str(value).split(",") if pack.strip()]
+
+
+def set_enabled_packs(pack_ids: list[str]) -> None:
+    _settings().setValue("enabled_term_packs", ",".join(p.strip() for p in pack_ids if p.strip()))
+
+
+def correction_terms(packs: list[str] | None = None) -> list[str]:
+    """Custom vocabulary plus the enabled packs, for the correction pass over
+    finished text (works with every speech model, not only Whisper). `packs`
+    replaces the enabled packs for one app's profile."""
+    from core import term_packs
+
+    return term_packs.combined_terms(
+        get_enabled_packs() if packs is None else packs, get_custom_vocabulary()
+    )
+
+
+def correction_fuzzy_terms(packs: list[str] | None = None) -> list[str]:
+    """The rare pack terms (drug names) that may also be repaired when the
+    speech model misspells them; see core/term_packs.py."""
+    from core import term_packs
+
+    return term_packs.combined_fuzzy_terms(get_enabled_packs() if packs is None else packs)
 
 
 DEFAULT_TALK_MODE = "hold"
@@ -465,6 +498,52 @@ def set_offline_mode_enabled(enabled: bool) -> None:
     _settings().setValue("offline_mode_enabled", "true" if enabled else "false")
 
 
+def get_appearance() -> str:
+    """"dark" (default: the look VoxScribe has always had), "light", or "system"
+    to follow Windows' app theme. Read once at start-up. See app/theme.py."""
+    value = _settings().value("appearance", "dark")
+    return value if value in ("dark", "light", "system") else "dark"
+
+
+def set_appearance(appearance: str) -> None:
+    _settings().setValue("appearance", appearance)
+
+
+def get_speech_engine() -> str:
+    """"whisper" (default: exactly how VoxScribe has always worked), "auto" (the
+    best downloaded extra model for the dictation language) or the id of one
+    extra model. See core/engines.py."""
+    from core import engines
+
+    value = _settings().value("speech_engine", engines.SPEECH_ENGINE_WHISPER)
+    valid = {engines.SPEECH_ENGINE_WHISPER, engines.SPEECH_ENGINE_AUTO, *engines.MODELS}
+    return value if value in valid else engines.SPEECH_ENGINE_WHISPER
+
+
+def set_speech_engine(engine: str) -> None:
+    _settings().setValue("speech_engine", engine)
+
+
+def get_arabic_terms_enabled() -> bool:
+    """Default off: writes common English work words spoken inside Arabic
+    sentences in Latin letters. See core/arabic_terms.py."""
+    return _get_flag("arabic_terms_enabled")
+
+
+def set_arabic_terms_enabled(enabled: bool) -> None:
+    _settings().setValue("arabic_terms_enabled", "true" if enabled else "false")
+
+
+def get_gpu_acceleration_enabled() -> bool:
+    """Default off: the Whisper model runs on the NVIDIA GPU when the CUDA
+    libraries have been downloaded and the card is usable. See core/gpu.py."""
+    return _get_flag("gpu_acceleration_enabled")
+
+
+def set_gpu_acceleration_enabled(enabled: bool) -> None:
+    _settings().setValue("gpu_acceleration_enabled", "true" if enabled else "false")
+
+
 def get_stats() -> tuple[int, int]:
     """(sessions, words) -- both 0 if VoxScribe has never transcribed
     anything since this setting was introduced. Purely local counters, never
@@ -555,6 +634,92 @@ def get_speaker_names() -> list[str]:
 
 def set_speaker_names(names: list[str]) -> None:
     _settings().setValue("speaker_names", ", ".join(n.strip() for n in names))
+
+
+def get_spoken_formats_enabled() -> bool:
+    """Default off: "one twenty over eighty" becomes 120/80, "section twelve" becomes
+    section 12, "fifty thousand dollars" becomes $50,000, following the term packs
+    that are switched on. See core/spoken_formats.py."""
+    return _get_flag("spoken_formats_enabled")
+
+
+def set_spoken_formats_enabled(enabled: bool) -> None:
+    _settings().setValue("spoken_formats_enabled", "true" if enabled else "false")
+
+
+def get_inbox_hotkey() -> str:
+    """A hold-to-talk key that saves the dictation to the notes inbox file
+    (core/inbox.py) instead of typing it. Empty means off. Never a key that needs
+    the hold delay, since that gate belongs to the main hotkey."""
+    value = _settings().value("inbox_hotkey", "")
+    return value if value in AVAILABLE_HOTKEYS and value not in HOLD_DELAY_HOTKEYS else ""
+
+
+def set_inbox_hotkey(key: str) -> None:
+    _settings().setValue("inbox_hotkey", key)
+
+
+def get_inbox_path() -> str:
+    from core import inbox
+
+    value = _settings().value("inbox_path", "")
+    return str(value) if value else str(inbox.default_path())
+
+
+def set_inbox_path(path: str) -> None:
+    _settings().setValue("inbox_path", path.strip())
+
+
+def get_read_back_enabled() -> bool:
+    """Default off: Windows' own voice reads each dictation aloud (core/read_aloud.py)."""
+    return _get_flag("read_back_enabled")
+
+
+def set_read_back_enabled(enabled: bool) -> None:
+    _settings().setValue("read_back_enabled", "true" if enabled else "false")
+
+
+def get_mark_unsure_words() -> bool:
+    """Default off: the transcript underlines the words Whisper was least sure about
+    (core/unsure.py). Asking for word confidence makes a dictation a little slower."""
+    return _get_flag("mark_unsure_words")
+
+
+def set_mark_unsure_words(enabled: bool) -> None:
+    _settings().setValue("mark_unsure_words", "true" if enabled else "false")
+
+
+def get_meeting_folder() -> str:
+    """Where meeting notes are saved. Point it at a folder in an Obsidian vault to
+    keep them in your notes. See core/meeting_notes.py."""
+    value = _settings().value("meeting_folder", "")
+    return str(value) if value else str(Path.home() / "Documents" / "VoxScribe Meetings")
+
+
+def set_meeting_folder(path: str) -> None:
+    _settings().setValue("meeting_folder", path.strip())
+
+
+def get_meeting_loopback() -> bool:
+    """Default on: a meeting also records what the PC plays, so the other people on
+    a call are in the notes. Off records the microphone only."""
+    value = _settings().value("meeting_loopback", True)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_meeting_loopback(enabled: bool) -> None:
+    _settings().setValue("meeting_loopback", "true" if enabled else "false")
+
+
+def get_startup_prompt_done() -> bool:
+    """True once the "Start with Windows?" question was answered, so it is asked once."""
+    return _get_flag("startup_prompt_done")
+
+
+def set_startup_prompt_done(done: bool = True) -> None:
+    _settings().setValue("startup_prompt_done", "true" if done else "false")
 
 
 def get_redo_hotkey() -> str:

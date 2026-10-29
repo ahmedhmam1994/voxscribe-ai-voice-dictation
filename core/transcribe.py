@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 from faster_whisper import WhisperModel
 
+from core import gpu
 from core.vad import SAMPLE_RATE, SileroVAD
 
 # "small" trades some CPU speed for meaningfully better accuracy than
@@ -166,8 +167,11 @@ def _model_bin_present(model_size: str) -> bool:
     return False
 
 
-def load_transcriber(model_size: str) -> "Transcriber":
+def load_transcriber(model_size: str, use_gpu: bool = False) -> "Transcriber":
     """Load a Transcriber, repairing a broken cached model once.
+
+    `use_gpu`: run on the NVIDIA GPU when it is set up and usable (core/gpu.py),
+    otherwise on the CPU. Any GPU failure falls back to the CPU.
 
     If the first load fails because the cached model file can't be opened:
     when the file is there, wait and retry a few times first (a just-finished
@@ -176,8 +180,9 @@ def load_transcriber(model_size: str) -> "Transcriber":
     missing or empty, delete the cached copy and download it again once. A
     second failure is raised to the caller (no network, disk full, ...).
     """
+    device, compute_type = gpu.pick_device(use_gpu)
     try:
-        return Transcriber(model_size=model_size)
+        return Transcriber(model_size=model_size, device=device, compute_type=compute_type)
     except Exception as exc:  # noqa: BLE001
         if not looks_like_broken_cache(exc):
             raise
@@ -187,14 +192,14 @@ def load_transcriber(model_size: str) -> "Transcriber":
         for delay in _LOCKED_FILE_RETRY_DELAYS_SEC:
             time.sleep(delay)
             try:
-                return Transcriber(model_size=model_size)
+                return Transcriber(model_size=model_size, device=device, compute_type=compute_type)
             except Exception as retry_exc:  # noqa: BLE001
                 if not looks_like_broken_cache(retry_exc):
                     raise
 
     if not purge_model_cache(model_size):
         raise first_error
-    return Transcriber(model_size=model_size)
+    return Transcriber(model_size=model_size, device=device, compute_type=compute_type)
 
 
 def looks_like_broken_cache(exc: Exception) -> bool:
@@ -221,12 +226,47 @@ class Transcriber:
         # local_files_only: load from the cache without even asking Hugging
         # Face whether there is a newer copy (used by the Settings speed test,
         # which must never download or go online).
-        self.model = WhisperModel(
-            model_size,
+        self._model_size = model_size
+        self._local_files_only = local_files_only
+        # Unsure-word marks (core/unsure.py): when switched on, each dictation also
+        # records the (word, probability) pairs Whisper was least sure about.
+        self.collect_confidence = False
+        self.last_words: list[tuple[str, float]] = []
+        self.device = device
+        self.compute_type = compute_type
+        try:
+            self.model = self._load(device, compute_type)
+        except Exception:  # noqa: BLE001
+            if device == "cpu":
+                raise
+            self._use_cpu()
+
+    def _load(self, device: str, compute_type: str) -> WhisperModel:
+        return WhisperModel(
+            self._model_size,
             device=device,
             compute_type=compute_type,
-            local_files_only=local_files_only,
+            local_files_only=self._local_files_only,
         )
+
+    def _use_cpu(self) -> None:
+        """Drops the GPU for good (this run) after it failed to load or run."""
+        self.device, self.compute_type = "cpu", "int8"
+        self.model = self._load("cpu", "int8")
+
+    def _run(self, work: Callable[[WhisperModel], object]) -> object:
+        """Runs `work(model)`, which must consume the model's lazy segment
+        generator, and repeats it once on the CPU if the GPU fails part-way
+        (a driver crash or out-of-memory shows up here, not at load)."""
+        try:
+            return work(self.model)
+        except InterruptedError:
+            raise
+        except Exception:  # noqa: BLE001
+            if self.device == "cpu":
+                raise
+            self._use_cpu()
+            return work(self.model)
 
     def transcribe(
         self,
@@ -285,19 +325,31 @@ class Transcriber:
         if peak < 0.5:
             audio = audio * (0.5 / peak)
 
-        segments, _info = self.model.transcribe(
-            audio,
-            language=language,
-            initial_prompt=initial_prompt,
-            task=task,
-            beam_size=beam_size,
-            # Let faster-whisper's own bundled VAD trim leading/trailing
-            # silence within the clip -- useful now that recording is
-            # manually started/stopped (push-to-talk) rather than gated by
-            # our own real-time VAD.
-            vad_filter=True,
-        )
-        return " ".join(seg.text.strip() for seg in segments).strip()
+        def work(model: WhisperModel) -> str:
+            segments, _info = model.transcribe(
+                audio,
+                language=language,
+                initial_prompt=initial_prompt,
+                task=task,
+                beam_size=beam_size,
+                # Let faster-whisper's own bundled VAD trim leading/trailing
+                # silence within the clip -- useful now that recording is
+                # manually started/stopped (push-to-talk) rather than gated by
+                # our own real-time VAD.
+                vad_filter=True,
+                word_timestamps=self.collect_confidence,
+            )
+            texts: list[str] = []
+            words: list[tuple[str, float]] = []
+            for seg in segments:
+                texts.append(seg.text.strip())
+                if self.collect_confidence:
+                    words.extend((w.word, float(w.probability)) for w in seg.words or [])
+            self.last_words = words
+            return " ".join(texts).strip()
+
+        self.last_words = []
+        return self._run(work)  # type: ignore[return-value]
 
     def transcribe_file(
         self,
@@ -358,7 +410,24 @@ class Transcriber:
     ) -> list[tuple[float, float, str, list[tuple[float, float, str]]]]:
         """Segments with the start and end of every word (empty lists when
         `word_timestamps` is off), so captions can be timed to the voice."""
-        segments, info = self.model.transcribe(
+        return self._run(  # type: ignore[return-value]
+            lambda model: self._file_segments(
+                model, path, language, initial_prompt, task, on_progress, control, word_timestamps
+            )
+        )
+
+    def _file_segments(
+        self,
+        model: WhisperModel,
+        path: str,
+        language: str | None,
+        initial_prompt: str | None,
+        task: str,
+        on_progress: Callable[[float], None] | None,
+        control: Callable[[], bool] | None,
+        word_timestamps: bool,
+    ) -> list[tuple[float, float, str, list[tuple[float, float, str]]]]:
+        segments, info = model.transcribe(
             path,
             language=language,
             initial_prompt=initial_prompt,

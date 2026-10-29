@@ -148,6 +148,17 @@ def recent(limit: int = 100) -> list[Connection]:
     return entries
 
 
+def count_since(start: float) -> int:
+    """How many outside connections were attempted since `start` (time.time()).
+    Behind the "0 connections" line shown after a dictation."""
+    count = 0
+    for entry in recent(_KEEP_LINES):
+        if entry.when < start:
+            break
+        count += 1
+    return count
+
+
 def clear_log() -> None:
     try:
         with _lock:

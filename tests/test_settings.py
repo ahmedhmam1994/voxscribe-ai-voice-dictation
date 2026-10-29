@@ -90,3 +90,57 @@ def test_caption_line_chars_default_range_and_off(monkeypatch, tmp_path):
     assert settings.get_caption_line_chars() == 0
     settings.set_caption_line_chars(500)
     assert settings.get_caption_line_chars() == settings.MAX_CAPTION_LINE_CHARS
+
+
+def test_a_profiles_packs_replace_the_enabled_ones(monkeypatch):
+    monkeypatch.setattr(settings, "get_enabled_packs", lambda: ["business"])
+    monkeypatch.setattr(settings, "get_custom_vocabulary", lambda: [])
+    default = settings.correction_terms()
+    assert "EBITDA" in default and "metformin" not in default
+    medical_only = settings.correction_terms(["medical"])
+    assert "metformin" in medical_only and "EBITDA" not in medical_only
+    assert settings.correction_terms([]) == []
+    assert settings.correction_fuzzy_terms([]) == []
+    assert "metformin" in settings.correction_fuzzy_terms(["medical"])
+    assert settings.custom_vocabulary_prompt([]) is None
+    assert "metformin" in settings.custom_vocabulary_prompt(["medical"])
+
+
+def test_new_option_defaults_and_inbox_hotkey_rules(monkeypatch, tmp_path):
+    from PySide6.QtCore import QSettings
+
+    ini = str(tmp_path / "s.ini")
+    monkeypatch.setattr(settings, "_settings", lambda: QSettings(ini, QSettings.Format.IniFormat))
+    assert not settings.get_spoken_formats_enabled()
+    assert not settings.get_read_back_enabled()
+    assert not settings.get_mark_unsure_words()
+    assert not settings.get_startup_prompt_done()
+    assert settings.get_inbox_hotkey() == ""
+    assert settings.get_inbox_path().endswith("VoxScribe Inbox.md")
+    settings.set_spoken_formats_enabled(True)
+    settings.set_read_back_enabled(True)
+    settings.set_mark_unsure_words(True)
+    settings.set_startup_prompt_done()
+    assert settings.get_spoken_formats_enabled()
+    assert settings.get_read_back_enabled()
+    assert settings.get_mark_unsure_words()
+    assert settings.get_startup_prompt_done()
+    settings.set_inbox_hotkey("left shift")  # needs the hold delay: refused
+    assert settings.get_inbox_hotkey() == ""
+    settings.set_inbox_hotkey("f8")
+    assert settings.get_inbox_hotkey() == "f8"
+    settings.set_inbox_path("  D:/vault/Inbox.md ")
+    assert settings.get_inbox_path() == "D:/vault/Inbox.md"
+
+
+def test_meeting_settings_defaults_and_changes(monkeypatch, tmp_path):
+    from PySide6.QtCore import QSettings
+
+    ini = str(tmp_path / "m.ini")
+    monkeypatch.setattr(settings, "_settings", lambda: QSettings(ini, QSettings.Format.IniFormat))
+    assert settings.get_meeting_folder().endswith("VoxScribe Meetings")
+    assert settings.get_meeting_loopback() is True
+    settings.set_meeting_folder("  D:/vault/Meetings ")
+    settings.set_meeting_loopback(False)
+    assert settings.get_meeting_folder() == "D:/vault/Meetings"
+    assert settings.get_meeting_loopback() is False
