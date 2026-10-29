@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-J19HV65Q6T');
+</script>
+<title>VoxScribe Tutorial: How to Use Every Feature, Step by Step</title>
+<meta name="description" content="Step-by-step guide to every VoxScribe feature for Windows: hotkey dictation, speech models, meeting notes, term packs, spoken formats, captions, snippets, privacy and more.">
+<link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/tutorial.html">
+
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="VoxScribe tutorial">
+<meta property="og:description" content="Step-by-step guide to every VoxScribe feature for Windows: hotkey dictation, speech models, meeting notes, term packs, spoken formats, captions, snippets, privacy and more.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="VoxScribe tutorial">
+<meta name="twitter:description" content="Step-by-step guide to every VoxScribe feature for Windows: hotkey dictation, speech models, meeting notes, term packs, spoken formats, captions, snippets, privacy and more.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+
+<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<style>
+@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
+@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
+
+  :root {
+    --bg-window: #06060f;
+    --bg-card: #12121f;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text-primary: #f3f3fb;
+    --text-muted: #9797ac;
+    --text-faint: #5c5c72;
+    --accent-hover: #34d399;
+    --cyan: #5eead4;
+    --green: #34d399;
+    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-window); color: var(--text-primary);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; overflow-wrap: anywhere; }
+  .wrap img { max-width: 100%; height: auto; }
+  a { color: var(--accent-hover); }
+  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
+  .back:hover { color: var(--text-primary); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
+    color: var(--accent-hover); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
+  }
+  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
+  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
+  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
+  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
+  ol, ul { padding-left: 20px; }
+  ol li, ul li { margin-bottom: 8px; }
+  strong { color: var(--text-primary); }
+  .keycap {
+    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
+    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
+    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
+    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
+  }
+
+  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
+    text-decoration: none; border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--gradient-brand); color: #060612; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px 24px; margin: 20px 0;
+  }
+  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
+  .faq-item p { margin: 0; }
+
+  code { font-family: Consolas, "Cascadia Mono", monospace; font-size: 0.9em; color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 5px; padding: 1px 6px; }
+  pre { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; overflow-x: auto; }
+  pre code { background: none; border: 0; padding: 0; font-size: 13.5px; line-height: 1.6; }
+  .tablewrap { overflow-x: auto; margin: 18px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-soft); color: var(--text-muted); vertical-align: top; }
+  th { color: var(--text-primary); font-weight: 700; }
+  .toc { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; margin: 8px 0 24px; }
+  .toc ol { margin: 10px 0 0; columns: 2; column-gap: 32px; }
+  .toc li { margin-bottom: 4px; font-size: 14px; break-inside: avoid; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  h2 { scroll-margin-top: 20px; }
+  @media (max-width: 600px) { .toc ol { columns: 1; } }
+</style>
+<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to VoxScribe</a>
+
+  <span class="eyebrow">Tutorial</span>
+  <h1>VoxScribe tutorial</h1>
+  <p class="subhead">A step-by-step guide to every feature in VoxScribe for Windows. Most things are free. Pro features are marked <strong>(Pro)</strong>. Settings is the left-hand button in the main window; open the window from the tray icon (right-click it, then Show).</p>
+
+  <nav class="toc" aria-label="Contents"><strong>Contents</strong><ol><li><a href="#1-first-start">First start</a></li><li><a href="#2-dictate-into-any-app">Dictate into any app</a></li><li><a href="#3-change-the-hotkey-and-the-microphone">Change the hotkey and the microphone</a></li><li><a href="#4-language-and-translation">Language and translation</a></li><li><a href="#5-speech-models-speed-and-gpu">Speech models, speed and GPU</a></li><li><a href="#6-clean-up-voice-commands-and-send-it">Clean-up, voice commands and "send it"</a></li><li><a href="#7-custom-vocabulary-and-word-replacements">Custom vocabulary and word replacements</a></li><li><a href="#8-term-packs-medicine-law-business">Term packs: medicine, law, business</a></li><li><a href="#9-teach-voxscribe-your-voice">Teach VoxScribe your voice</a></li><li><a href="#10-spoken-formats">Spoken formats</a></li><li><a href="#11-dictation-modes">Dictation modes</a></li><li><a href="#12-try-harder">Try harder</a></li><li><a href="#13-notes-inbox-key">Notes inbox key</a></li><li><a href="#14-read-it-back-and-unsure-words">Read it back and unsure words</a></li><li><a href="#15-start-meeting">Start meeting</a></li><li><a href="#16-audio-and-video-to-text-or-captions">Audio and video to text or captions</a></li><li><a href="#17-snippets-pro">Snippets (Pro)</a></li><li><a href="#18-per-app-profiles-and-the-second-language-key-pro">Per-app profiles and the second language key (Pro)</a></li><li><a href="#19-code-dictation-and-smart-formatting-pro">Code dictation and smart formatting (Pro)</a></li><li><a href="#20-command-line">Command line</a></li><li><a href="#21-privacy-offline-mode-and-disabled-apps">Privacy, offline mode and disabled apps</a></li><li><a href="#22-startup-look-history-insights-and-updates">Startup, look, history, Insights and updates</a></li><li><a href="#23-pro-license">Pro license</a></li><li><a href="#24-troubleshooting">Troubleshooting</a></li></ol></nav>
+  <h2 id="1-first-start">1. First start</h2>
+  <ol><li>Run the installer. It needs no admin rights.</li><li>Start VoxScribe. It sits in the system tray (bottom right, maybe behind the <code>^</code> arrow) and shows no window on purpose.</li><li>The first launch downloads the Whisper speech model (a few hundred MB). This is the only download you cannot skip; after it, dictation works offline.</li><li>Windows may show "Windows protected your PC" because the app is new and unsigned. Click <strong>More info</strong>, then <strong>Run anyway</strong>.</li><li>The tray menu has: Show, Settings, Start meeting, Try harder, Welcome, Check for updates, logs, Quit. Closing the window only hides it; <strong>Quit</strong> in the tray menu really exits.</li></ol>
+  <p>After your first dictation VoxScribe asks once whether to start with Windows. You can change that later (see section 22).</p>
+  <h2 id="2-dictate-into-any-app">2. Dictate into any app</h2>
+  <ol><li>Click into any text box: a document, a browser, a chat, an editor.</li><li><strong>Hold F9</strong>, talk, <strong>release</strong>.</li><li>A small pill at the bottom of the screen shows Recording, then Transcribing. The text is typed into the window that has focus.</li></ol>
+  <p>Notes</p>
+  <ul><li>The text is typed key by key, not pasted, so your clipboard is never touched.</li><li>VoxScribe never types into password boxes, and what was said there is kept out of the history.</li><li>The main window also has a <strong>Start Recording</strong> button. It works as a plain toggle: click to start, click to stop.</li><li>The transcript appears in the main window. <strong>Copy</strong>, <strong>Save Transcript</strong> and <strong>Clear</strong> sit under it. Right-click a word to correct it for good (section 7).</li></ul>
+  <h2 id="3-change-the-hotkey-and-the-microphone">3. Change the hotkey and the microphone</h2>
+  <p><strong>Hotkey.</strong> Settings, General, HOLD-TO-TALK HOTKEY. Pick another key from the list (F-keys and a few rarely typed keys). The list is limited on purpose: the hook is global, and a normal typing key would stop working everywhere while VoxScribe runs.</p>
+  <p><strong>Microphone.</strong> Settings, Audio, MICROPHONE.</p>
+  <ol><li>Choose your microphone, or leave Auto-detect. Auto-detect skips Stereo Mix and similar inputs that record the PC's playback.</li><li>Click <strong>Test microphone</strong> and talk. The level bar should move.</li><li><strong>Keep microphone ready</strong> avoids clipping the first word, at the cost of the microphone staying open between dictations.</li><li><strong>Play a sound when recording starts/stops</strong> is under Audio too.</li></ol>
+  <h2 id="4-language-and-translation">4. Language and translation</h2>
+  <ul><li>Settings, Speech, DICTATION LANGUAGE: pick one of about 28 languages or Auto-detect.</li><li>The language badge in the main window is clickable, and the tray menu has a Dictation language item, so you can switch without opening Settings.</li><li><strong>Translate to English</strong> speaks in your language and types English.</li><li>Smaller models make more mistakes outside English. If a language comes out poorly, try Small or larger.</li></ul>
+  <h2 id="5-speech-models-speed-and-gpu">5. Speech models, speed and GPU</h2>
+  <p>All in Settings, Speech.</p>
+  <p><strong>Speech engine.</strong> Whisper is the default and the fallback for everything. Three more engines are optional, and each is downloaded only when you choose it:</p>
+  <ul><li><strong>Cohere Transcribe:</strong> far better Arabic, and it keeps your dialect.</li><li><strong>Parakeet:</strong> the most accurate and fastest on English, plus 24 more European languages.</li><li><strong>Moonshine Arabic:</strong> small and fast.</li></ul>
+  <p>Pick one and VoxScribe downloads it with a progress bar. Or choose <strong>Automatic</strong> and it uses the best downloaded model for your dictation language. If a model fails, Whisper takes over.</p>
+  <p><strong>Whisper model size.</strong> Fast, Balanced (default), and with Pro three more accurate ones including Large turbo. Click <strong>Test speed on this PC</strong> to time each one with your own voice before you pick.</p>
+  <p><strong>GPU acceleration.</strong> Tick <strong>Use my NVIDIA graphics card</strong> for a much faster Whisper. It needs a one-time download of about 1.1 GB and falls back to your processor by itself if anything goes wrong.</p>
+  <h2 id="6-clean-up-voice-commands-and-send-it">6. Clean-up, voice commands and "send it"</h2>
+  <p>Settings, Text.</p>
+  <ul><li><strong>Clean up filler words</strong> removes "um", "uh", "you know" and filler "like", collapses repeated words and fixes spacing and capital letters. It is rule-based, with no AI service.</li><li><strong>Voice commands:</strong> say <strong>period</strong>, <strong>comma</strong>, <strong>colon</strong>, <strong>question mark</strong>, <strong>exclamation mark</strong>, <strong>new line</strong>, <strong>new paragraph</strong>, <strong>open quote</strong>, <strong>open paren</strong> and the text gets the symbol.</li><li>Take back what you just typed: <strong>scratch that</strong>, <strong>delete last word</strong>.</li><li>Change it: <strong>capitalize that</strong>, <strong>all caps</strong>, <strong>replace X with Y</strong>.</li><li><strong>Say "send it" to press Enter</strong> (off by default). Useful at the end of a chat message.</li></ul>
+  <h2 id="7-custom-vocabulary-and-word-replacements">7. Custom vocabulary and word replacements</h2>
+  <p>Settings, Text.</p>
+  <p><strong>Custom vocabulary</strong> is for names and jargon: type them separated by commas (for example <code>Kubernetes, PostgreSQL, Ahmed</code>). They help Whisper hear the word, and the finished text is also corrected to your spelling, so they help the other speech models too.</p>
+  <p><strong>Word replacements</strong> fix a word the model gets wrong the same way every time. One per line:</p>
+  <pre><code>cube cuddle =&gt; kubectl
+my email =&gt; me@example.com</code></pre>
+  <p><strong>Faster way:</strong> right-click a word in the transcript and choose <strong>Always correct "..."</strong>, then type the right spelling.</p>
+  <p><strong>Move your lists:</strong> <strong>Export word lists...</strong> and <strong>Import word lists...</strong> save and load both as one file. The Android app reads the same file.</p>
+  <p><strong>Learn vocabulary from a folder</strong> reads your own documents and adds the unusual words it finds.</p>
+  <h2 id="8-term-packs-medicine-law-business">8. Term packs: medicine, law, business</h2>
+  <p>Settings, Text, TERM PACKS.</p>
+  <ol><li>Tick <strong>Medical</strong>, <strong>Legal</strong> or <strong>Business</strong>. Each shows how many terms it holds. Nothing is downloaded.</li><li>Dictate normally. Words such as MRI, metformin, habeas corpus and EBITDA are written correctly, with any speech model.</li><li><strong>Import a term file...</strong> adds your own list as a plain text file, one term per line (an imported pack has a <strong>Remove</strong> button).</li><li><strong>(Pro)</strong> Pick packs per program in Per-app profiles (section 18), for example <code>winword.exe =&gt; packs=legal</code>.</li></ol>
+  <p>The packs are starting lists. A doctor or lawyer will want to add their own terms.</p>
+  <h2 id="9-teach-voxscribe-your-voice">9. Teach VoxScribe your voice</h2>
+  <p>Settings, Text, <strong>Teach VoxScribe your voice...</strong></p>
+  <ol><li>Click the button and read the short script (about three minutes) at your normal speed, in your normal voice or accent.</li><li>VoxScribe compares what it heard with what you read and lists the words it mishears.</li><li>Tick the fixes you want. They become word replacements from then on.</li></ol>
+  <p>Recordings stay on this PC.</p>
+  <h2 id="10-spoken-formats">10. Spoken formats</h2>
+  <p>Settings, Text, <strong>Spoken formats for the packs</strong> (off by default).</p>
+  <div class="tablewrap"><table><thead><tr><th>You say</th><th>You get</th></tr></thead><tbody><tr><td>one twenty over eighty</td><td>120/80</td></tr><tr><td>five milligrams twice daily</td><td>5 mg BID</td></tr><tr><td>section twelve subsection b</td><td>section 12(b)</td></tr><tr><td>fifty thousand dollars</td><td>$50,000</td></tr><tr><td>twenty five percent</td><td>25%</td></tr></tbody></table></div>
+  <p>It follows the term packs you switched on and only rewrites a number that sits next to the unit or word that shows what it is, so ordinary sentences are left alone.</p>
+  <h2 id="11-dictation-modes">11. Dictation modes</h2>
+  <p>Settings, Text, DICTATION MODE. Pick how your words are tidied to fit what you write:</p>
+  <ul><li><strong>Chat:</strong> short, casual.</li><li><strong>Email:</strong> greetings and full sentences.</li><li><strong>Code:</strong> for programming text.</li><li><strong>Notes:</strong> plain notes.</li></ul>
+  <p><strong>(Pro)</strong> <strong>Switch modes by app automatically</strong>: chat apps (Slack, Discord, WhatsApp, Teams) use Chat, Outlook and Thunderbird use Email, code editors and terminals use Code, Word, Notion, Obsidian and Notepad use Notes. It is decided from the program's name only, never from the screen.</p>
+  <h2 id="12-try-harder">12. Try harder</h2>
+  <p>A word came out wrong?</p>
+  <ol><li>Within 2 minutes, press <strong>F8</strong> (or tray menu, Try harder).</li><li>The same recording runs again through a bigger model if you have one (Small free; Medium, Large turbo or Large with Pro), or through the same model in careful mode.</li><li>Only what changed is retyped.</li></ol>
+  <p>Change the key in Settings, General, TRY HARDER KEY.</p>
+  <h2 id="13-notes-inbox-key">13. Notes inbox key</h2>
+  <p>For quick thoughts that should not be typed anywhere.</p>
+  <ol><li>Settings, General, NOTES INBOX KEY: choose a key and a <strong>Browse...</strong> folder. A folder inside your Obsidian vault works well.</li><li>Hold the key and speak, then release.</li><li>The words are saved as a line with the time in a markdown file in that folder, and nothing is typed.</li></ol>
+  <h2 id="14-read-it-back-and-unsure-words">14. Read it back and unsure words</h2>
+  <p>Both are off until you turn them on.</p>
+  <ul><li><strong>Read each dictation aloud</strong> (Settings, General): after each dictation Windows' own voice reads it back, so you can check it without looking. In the transcript, right-click for <strong>Read aloud</strong> or <strong>Read the last line aloud</strong>, and <strong>Stop reading</strong>.</li><li><strong>Underline unsure words in the transcript</strong> (Settings, Text): words the speech model was not sure about are underlined (Whisper and Parakeet). Check those first.</li></ul>
+  <h2 id="15-start-meeting">15. Start meeting</h2>
+  <p>Records a meeting or call and writes notes. Everything stays on the PC.</p>
+  <ol><li>Settings, General, <strong>MEETING NOTES FOLDER</strong>: choose where notes go (default <code>Documents\VoxScribe Meetings</code>). Point it at your Obsidian vault if you like.</li><li>Leave <strong>Also record what this PC plays (calls)</strong> ticked to capture the other people. Untick it for a microphone-only recording.</li><li>Click <strong>Start meeting</strong> in the main window, or use the tray menu. VoxScribe asks you to confirm, because recording other people needs their consent where you live.</li><li>Talk or join your call. The button turns into a stop button. Normal dictation is paused during a meeting.</li><li>Click it again to stop. VoxScribe transcribes both tracks, puts them in time order, removes the echo that comes from your speakers, and writes a markdown note with action items, decisions, questions and the full transcript. Your lines are labelled <strong>You</strong>, everyone else <strong>Others</strong>.</li><li>If you quit during a meeting, VoxScribe asks first. The recording is kept for a week even if no notes were written.</li></ol>
+  <p>Tip: with headphones there is no echo to remove, and the notes come out cleanest.</p>
+  <h2 id="16-audio-and-video-to-text-or-captions">16. Audio and video to text or captions</h2>
+  <ol><li>Click <strong>Import Audio</strong> and pick a file, or <strong>Import Folder</strong> to do a whole folder.</li><li>Tick <strong>Save .srt captions</strong> to also get a subtitle file next to each source. Captions are capped at two short lines and cut at pauses. An existing caption file is never overwritten.</li><li>When a folder finishes, a report lists what was saved, skipped and failed, flags cards that look too fast to read, and lets you retry failures in one click.</li><li><strong>(Pro)</strong> <strong>Also .vtt, .md, .docx</strong> and <strong>Label speakers</strong>. Name the speakers in Settings, Files, and the names appear in the output.</li><li>Caption line length and the speaker names are in Settings, Files.</li></ol>
+  <p>Folder import has 2 free runs, then it is a Pro feature.</p>
+  <h2 id="17-snippets-pro">17. Snippets (Pro)</h2>
+  <p>Say a short phrase, get a whole block of text.</p>
+  <ol><li>Settings, Pro, SNIPPETS (PRO). One per line:</li></ol>
+  <pre><code>my address =&gt; 12 Example Street, Cairo
+sign off =&gt; Best regards, Ahmed
+today is =&gt; {date}
+paste it =&gt; {clipboard}</code></pre>
+  <ol><li>Dictate the trigger phrase on its own. The snippet is typed in its place.</li><li>Variables: <code>{date}</code>, <code>{time}</code>, <code>{clipboard}</code> are filled in live.</li></ol>
+  <h2 id="18-per-app-profiles-and-the-second-language-key-pro">18. Per-app profiles and the second language key (Pro)</h2>
+  <p><strong>Per-app profiles.</strong> Settings, Pro. One line per program, matched by its executable name:</p>
+  <pre><code>code.exe =&gt; code=on, cleanup=off, language=en
+slack.exe =&gt; mode=chat, smart=off
+winword.exe =&gt; packs=legal</code></pre>
+  <p>Options: <code>mode</code>, <code>language</code>, <code>cleanup</code>, <code>voice_commands</code>, <code>code</code>, <code>smart</code>, <code>period</code>, <code>packs</code> (use <code>packs=medical+legal</code>, or <code>packs=off</code>). Anything a profile does not set uses your normal setting.</p>
+  <p><strong>Second language key.</strong> Settings, Speech, SECOND LANGUAGE KEY (PRO). Hold this key instead of the main one to dictate in your second language, with no trip to Settings.</p>
+  <h2 id="19-code-dictation-and-smart-formatting-pro">19. Code dictation and smart formatting (Pro)</h2>
+  <p>Settings, Pro, PRO TOOLS.</p>
+  <ul><li><strong>Code dictation:</strong> say the symbols and casing of code ("snake case user name" becomes <code>user_name</code>, "open paren x close paren" becomes <code>(x)</code>).</li><li><strong>Smart formatting:</strong> spoken emails, web addresses and numbers are typed the way they are written: "john dot smith at gmail dot com" becomes john.smith@gmail.com, "example dot com slash pricing" becomes example.com/pricing, "one hundred and five dollars" becomes $105. A lone small number is left as a word.</li></ul>
+  <h2 id="20-command-line">20. Command line</h2>
+  <p>The same engine runs from scripts. From a source checkout:</p>
+  <pre><code>venv\Scripts\python.exe cli.py meeting.mp3
+venv\Scripts\python.exe cli.py talk.mp4 --format srt --output captions
+venv\Scripts\python.exe cli.py interview.m4a --language auto --translate</code></pre>
+  <p>Text goes to stdout or into the <code>--output</code> folder (an existing file is never replaced). <code>--raw</code> gives text exactly as heard. <code>.vtt</code>, <code>.md</code> and the three most accurate models need Pro. <code>cli.py --help</code> lists every option.</p>
+  <h2 id="21-privacy-offline-mode-and-disabled-apps">21. Privacy, offline mode and disabled apps</h2>
+  <p>Settings, Privacy.</p>
+  <ul><li>After each dictation the status line shows how many outside connections were made. Normally zero.</li><li><strong>Offline mode: block all network use</strong> shuts every connection. Downloads, update checks and pings stop until you turn it off.</li><li><strong>View connection log</strong> lists every connection the app tried.</li><li><strong>Send anonymous usage pings</strong> (app version and Windows version only, a random id, never audio or text) can be switched off.</li><li><strong>DISABLED APPS:</strong> list programs where VoxScribe must do nothing, for example <code>keepass.exe</code>.</li></ul>
+  <h2 id="22-startup-look-history-insights-and-updates">22. Startup, look, history, Insights and updates</h2>
+  <ul><li><strong>Start VoxScribe automatically when Windows starts:</strong> Settings, General, STARTUP.</li><li><strong>APPEARANCE:</strong> Light, Dark or Same as Windows.</li><li><strong>Today</strong> list in the main window keeps your recent dictations.</li><li><strong>Insights</strong> (left-hand side) shows your own statistics, such as words per day and the time saved against typing. Settings, About also has STATISTICS.</li><li><strong>Check for updates</strong> is in Settings, About and the tray menu. Settings and Pro license are kept when you update.</li></ul>
+  <h2 id="23-pro-license">23. Pro license</h2>
+  <p>Pro is a one-time $14 payment and covers two PCs and two phones. Everything else stays free, with no account.</p>
+  <ol><li>Settings, Pro, <strong>Get Pro ($14 once)</strong>.</li><li>Paste the license key and click <strong>Unlock</strong>.</li><li>To move it to a new PC, click <strong>Remove license</strong> on the old one first.</li></ol>
+  <h2 id="24-troubleshooting">24. Troubleshooting</h2>
+  <div class="tablewrap"><table><thead><tr><th>Problem</th><th>Try</th></tr></thead><tbody><tr><td>Nothing is typed</td><td>Click into a text box first. Check the app is not in DISABLED APPS. Password boxes are skipped on purpose.</td></tr><tr><td>Silent or very quiet</td><td>Use <strong>Test microphone</strong>. Pick your headset or mic by name instead of Auto-detect.</td></tr><tr><td>First word missing</td><td>Tick <strong>Keep microphone ready</strong>.</td></tr><tr><td>Wrong words</td><td>Add them to custom vocabulary, use a term pack, run <strong>Teach VoxScribe your voice</strong>, or press F8 to try harder.</td></tr><tr><td>Poor accuracy outside English</td><td>Use a bigger Whisper model, or Cohere or Parakeet for supported languages.</td></tr><tr><td>Slow</td><td>Pick Fast, switch on GPU, or use Parakeet for English.</td></tr><tr><td>Meeting has no "Others"</td><td>Tick <strong>Also record what this PC plays</strong>. Play audio on the default output device.</td></tr><tr><td>SmartScreen warning</td><td>More info, Run anyway. The installer is unsigned.</td></tr></tbody></table></div>
+  <p>Still stuck? Open an issue: https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues</p>
+
+  <div class="cta-row">
+    <a class="btn btn-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download VoxScribe (free)</a>
+    <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">View source on GitHub</a>
+  </div>
+  <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="privacy-at-a-glance.html">Privacy at a glance</a></p>
+</div>
+</body>
+</html>
