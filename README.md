@@ -48,7 +48,14 @@ No account, no subscription. MIT licensed.
 
 - **Hold-to-talk hotkey (F9 by default, changeable):** works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
 - **Direct typing into the focused window:** not clipboard/paste, so it never overwrites what you've copied
-- **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU; your audio never leaves your machine
+- **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU (or your NVIDIA graphics card, optional); your audio never leaves your machine
+- **More speech models, only if you want them:** Cohere Transcribe (strong Arabic that keeps your dialect), Parakeet (fast and accurate English plus 24 European languages) and Moonshine Arabic, each downloaded only when you pick it in Settings, Speech. Whisper stays the default and takes over if a model fails
+- **Start meeting:** records your microphone (You) and what the PC plays (Others), removes the echo when you use speakers, and writes a markdown note with action items, decisions, questions and the transcript into a folder you choose, for example your Obsidian vault. Everything stays on the PC
+- **Term packs for medicine, law and business:** words like MRI, metformin, habeas corpus and EBITDA are written correctly with any speech model. Import your own list as a plain text file. With Pro, pick packs per program
+- **Teach VoxScribe your voice:** read a short script and it finds the words it mishears in your voice or accent, then offers to fix them from then on
+- **Spoken formats:** "one twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b), "fifty thousand dollars" becomes $50,000. Off by default
+- **Notes inbox key:** hold it and speak, and the words are saved as a timestamped line in a markdown file instead of being typed
+- **Read it back and unsure words:** hear each dictation in Windows' own voice, and see the words the model was unsure about underlined in the transcript. Both are off until you turn them on
 - **Rule-based text cleanup:** strips filler words ("um", "uh", "like", "you know") without calling any paid AI API
 - **Spoken commands:** say "period", "new line" or "question mark" for symbols, "scratch that" or "delete last word" to take back what you just typed, and "capitalize that", "all caps" or "replace X with Y" to change it. An optional "send it" presses Enter
 - **Custom vocabulary and word replacements:** teach it names and jargon, and fix words it mishears the same way every time. Right-click a word in the transcript to always correct it, and export or import both lists as one file (the Android app reads it too)
@@ -59,7 +66,7 @@ No account, no subscription. MIT licensed.
 - **Never types into password boxes:** in browsers and apps, and what was said there stays out of the history
 - **Audio and video to captions:** import a file or a whole folder and get an .srt next to each one, capped at two short lines, timed from the word timestamps and cut at pauses. It never overwrites an existing caption file, and a report lists what was saved, skipped or failed, with a retry. Folder import has 2 free runs, then it is a Pro feature
 - **Floating status indicator:** small pill shows Recording/Transcribing state
-- **Runs from the system tray:** starts hidden, stays out of your way
+- **Runs from the system tray:** starts hidden, stays out of your way. Light, dark or Same as Windows look
 
 ## Download
 
@@ -112,7 +119,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Windows 10 or 11
 - A working microphone
-- ~1GB free disk space (app + downloaded model)
+- ~1GB free disk space (app + downloaded model); the optional speech models and the NVIDIA GPU option add their own downloads, which you choose
 
 ## How it works
 
@@ -124,7 +131,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- Network use is limited to: the one-time Whisper model download on first run, a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, and once on each day you dictate; can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
+- Network use is limited to: the one-time Whisper model download on first run (plus any optional speech model or GPU files you choose to download), a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, and once on each day you dictate; can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
 
 ## Building from source
 
