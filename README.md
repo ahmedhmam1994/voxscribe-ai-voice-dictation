@@ -46,6 +46,8 @@ No account, no subscription. MIT licensed.
 
 ## Features
 
+New here? The [full tutorial](docs/TUTORIAL.md) walks through every feature step by step.
+
 - **Hold-to-talk hotkey (F9 by default, changeable):** works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
 - **Direct typing into the focused window:** not clipboard/paste, so it never overwrites what you've copied
 - **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU (or your NVIDIA graphics card, optional); your audio never leaves your machine
