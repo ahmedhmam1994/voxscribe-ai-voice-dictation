@@ -194,7 +194,7 @@ Records a meeting or call and writes notes. Everything stays on the PC.
 
 1. Settings, General, **MEETING NOTES FOLDER**: choose where notes go (default `Documents\VoxScribe Meetings`). Point it at your Obsidian vault if you like.
 2. Leave **Also record what this PC plays (calls)** ticked to capture the other people. Untick it for a microphone-only recording.
-3. Click **Start meeting** in the main window, or use the tray menu. VoxScribe asks you to confirm, because recording other people needs their consent where you live.
+3. Click **Start meeting** in the main window, or use the tray menu. VoxScribe asks you to confirm before it starts. Tell everyone on the call that it is being transcribed: recording other people needs their consent in many places.
 4. Talk or join your call. The button turns into a stop button. Normal dictation is paused during a meeting.
 5. Click it again to stop. VoxScribe transcribes both tracks, puts them in time order, removes the echo that comes from your speakers, and writes a markdown note with action items, decisions, questions and the full transcript. Your lines are labelled **You**, everyone else **Others**.
 6. If you quit during a meeting, VoxScribe asks first. The recording is kept for a week even if no notes were written.
@@ -281,6 +281,8 @@ Settings, Privacy.
 ## 23. Pro license
 
 Pro is a one-time $14 payment and covers two PCs and two phones. Everything else stays free, with no account.
+
+What Pro adds: Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels.
 
 1. Settings, Pro, **Get Pro ($14 once)**.
 2. Paste the license key and click **Unlock**.

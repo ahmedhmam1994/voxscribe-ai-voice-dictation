@@ -48,11 +48,13 @@ No account, no subscription. MIT licensed.
 
 New here? The [full tutorial](docs/TUTORIAL.md) walks through every feature step by step.
 
+**What Pro adds:** the optional one-time $14 unlock covers Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels. Everything else in this list is free.
+
 - **Hold-to-talk hotkey (F9 by default, changeable):** works system-wide, in any app; change it from the tray menu's "Change Hotkey..."
 - **Direct typing into the focused window:** not clipboard/paste, so it never overwrites what you've copied
 - **100% local transcription:** powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper) running on your CPU (or your NVIDIA graphics card, optional); your audio never leaves your machine
 - **More speech models, only if you want them:** Cohere Transcribe (strong Arabic that keeps your dialect), Parakeet (fast and accurate English plus 24 European languages) and Moonshine Arabic, each downloaded only when you pick it in Settings, Speech. Whisper stays the default and takes over if a model fails
-- **Start meeting:** records your microphone (You) and what the PC plays (Others), removes the echo when you use speakers, and writes a markdown note with action items, decisions, questions and the transcript into a folder you choose, for example your Obsidian vault. Everything stays on the PC
+- **Start meeting:** records your microphone (You) and what the PC plays (Others), removes the echo when you use speakers, and writes a markdown note with action items, decisions, questions and the transcript into a folder you choose, for example your Obsidian vault. Everything stays on the PC. VoxScribe asks you to confirm before it records, and you should tell the other people on the call that it is being transcribed
 - **Term packs for medicine, law and business:** words like MRI, metformin, habeas corpus and EBITDA are written correctly with any speech model. Import your own list as a plain text file. With Pro, pick packs per program
 - **Teach VoxScribe your voice:** read a short script and it finds the words it mishears in your voice or accent, then offers to fix them from then on
 - **Spoken formats:** "one twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b), "fifty thousand dollars" becomes $50,000. Off by default
