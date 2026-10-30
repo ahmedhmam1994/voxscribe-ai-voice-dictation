@@ -71,6 +71,40 @@ tmp_ret = collect_all('soundcard')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
+# Windows version-info resource (the Details tab of VoxScribe.exe). An exe with
+# no company, product or version looks anonymous to AV heuristics and to
+# SmartScreen; this gives it a proper identity. The version comes from
+# app/version.py so there is nothing extra to bump by hand.
+import os
+import re
+
+from PyInstaller.utils.win32.versioninfo import (
+    FixedFileInfo, StringFileInfo, StringStruct, StringTable, VarFileInfo, VarStruct, VSVersionInfo,
+)
+
+with open('app/version.py', encoding='utf-8') as _f:
+    _version = re.search(r'__version__\s*=\s*"([^"]+)"', _f.read()).group(1)
+_v = tuple((int(p) for p in _version.split('.')[:3])) + (0,) * (4 - len(_version.split('.')[:3]))
+os.makedirs('build', exist_ok=True)
+_version_file = os.path.join('build', 'version_info.txt')
+with open(_version_file, 'w', encoding='utf-8') as _f:
+    _f.write(str(VSVersionInfo(
+        ffi=FixedFileInfo(filevers=_v, prodvers=_v, mask=0x3f, flags=0x0, OS=0x40004, fileType=0x1, subtype=0x0),
+        kids=[
+            StringFileInfo([StringTable('040904B0', [
+                StringStruct('CompanyName', 'VoxScribe'),
+                StringStruct('FileDescription', 'VoxScribe voice dictation'),
+                StringStruct('FileVersion', _version),
+                StringStruct('InternalName', 'VoxScribe'),
+                StringStruct('LegalCopyright', 'MIT License'),
+                StringStruct('OriginalFilename', 'VoxScribe.exe'),
+                StringStruct('ProductName', 'VoxScribe'),
+                StringStruct('ProductVersion', _version),
+            ])]),
+            VarFileInfo([VarStruct('Translation', [1033, 1200])]),
+        ],
+    )))
+
 a = Analysis(
     ['main.py'],
     pathex=[],
@@ -111,6 +145,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='app/icon.ico',
+    version=_version_file,
 )
 coll = COLLECT(
     exe,

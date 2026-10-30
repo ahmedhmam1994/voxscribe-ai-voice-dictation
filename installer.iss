@@ -9,6 +9,12 @@
 [Setup]
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppPublisher=VoxScribe
+AppPublisherURL=https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany=VoxScribe
+VersionInfoDescription=VoxScribe Setup
+VersionInfoProductName=VoxScribe
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
