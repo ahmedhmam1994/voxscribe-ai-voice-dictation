@@ -205,11 +205,17 @@ scoop install voxscribe</code></pre>
   <h2>Questions</h2>
   <div class="faq-item">
     <h3>Will you sign the app?</h3>
-    <p>Yes, when it can be paid for. Signing certificates are a yearly cost, and a free app has to earn that first. Until then this page, the published hashes and the open source code are the way to check it.</p>
+    <p>Yes, it is being worked on. A free signing program for open source projects is the first route, and a paid certificate is the fallback. Until then this page, the published hashes and the open source code are the way to check it.</p>
   </div>
   <div class="faq-item">
-    <h3>My antivirus deleted the installer. What now?</h3>
-    <p>Check the hash and the VirusTotal result first. If both look right, restore the file from your antivirus quarantine, or install with winget instead. Please also <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">open a GitHub issue</a> with the antivirus name, so the false alarm can be reported to them.</p>
+    <h3>My antivirus deleted the installer, or removed VoxScribe after installing. What now?</h3>
+    <p>This is a false alarm. VoxScribe is open source, it is not signed yet, and it uses a global hotkey and types into other windows, which is a pattern antivirus programs often flag in unsigned apps. Check the hash first (see above). If it matches, you can put it back:</p>
+    <ol>
+      <li>Open <strong>Windows Security</strong>, then <strong>Virus &amp; threat protection</strong>, then <strong>Protection history</strong>.</li>
+      <li>Find the VoxScribe item, open <strong>Actions</strong>, and choose <strong>Restore</strong>, or <strong>Allow on device</strong>.</li>
+      <li>If it keeps coming back, add the folder <code>%LocalAppData%\Programs\VoxScribe</code> as an exclusion under <strong>Manage settings</strong>, then <strong>Exclusions</strong>, and run the installer again.</li>
+    </ol>
+    <p>Your settings and Pro license are stored separately and are kept. You can also install with winget instead. Please <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">open a GitHub issue</a> with the antivirus name and the exact detection name it shows, so the false alarm can be reported to the vendor.</p>
   </div>
   <div class="faq-item">
     <h3>Does the Android app have the same problem?</h3>
