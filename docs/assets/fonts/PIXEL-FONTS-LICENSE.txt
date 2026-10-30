@@ -1,0 +1,8 @@
+Silkscreen (Silkscreen-400.woff2, Silkscreen-700.woff2)
+Copyright 2001 The Silkscreen Project Authors (Jason Kottke)
+
+VT323 (VT323-400.woff2)
+Copyright 2011 The VT323 Project Authors (Peter Hull)
+
+Both fonts are licensed under the SIL Open Font License, Version 1.1.
+Full text: https://openfontlicense.org/open-font-license-official-text/
