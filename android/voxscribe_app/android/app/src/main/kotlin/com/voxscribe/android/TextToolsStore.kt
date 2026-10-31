@@ -18,6 +18,9 @@ object TextToolsStore {
     private const val KEY_PROFILES = "profiles"
     private const val KEY_MODE = "mode"
     private const val KEY_AUTO_MODES = "auto_modes"
+    private const val KEY_TERM_PACKS = "term_packs"
+    private const val KEY_SPOKEN_FORMATS = "spoken_formats"
+    private const val KEY_READ_BACK = "read_back"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -33,6 +36,12 @@ object TextToolsStore {
         val sendIt: Boolean = false,
         val mode: String = Modes.DEFAULT,
         val autoModes: Boolean = true,
+        /** The term pack ids switched on, comma separated (see [TermPackStore]). */
+        val termPacks: String = "",
+        /** Doses, references and amounts for the packs that are on. Off by default. */
+        val spokenFormats: Boolean = false,
+        /** Read each dictation from the floating button aloud. Off by default. */
+        val readBack: Boolean = false,
     )
 
     fun snapshot(context: Context): Snapshot {
@@ -47,6 +56,9 @@ object TextToolsStore {
             sendIt = p.getBoolean(KEY_SEND_IT, false),
             mode = p.getString(KEY_MODE, Modes.DEFAULT) ?: Modes.DEFAULT,
             autoModes = p.getBoolean(KEY_AUTO_MODES, true),
+            termPacks = p.getString(KEY_TERM_PACKS, "").orEmpty(),
+            spokenFormats = p.getBoolean(KEY_SPOKEN_FORMATS, false),
+            readBack = p.getBoolean(KEY_READ_BACK, false),
         )
     }
 
@@ -61,6 +73,9 @@ object TextToolsStore {
             .putBoolean(KEY_SEND_IT, snapshot.sendIt)
             .putString(KEY_MODE, snapshot.mode)
             .putBoolean(KEY_AUTO_MODES, snapshot.autoModes)
+            .putString(KEY_TERM_PACKS, snapshot.termPacks)
+            .putBoolean(KEY_SPOKEN_FORMATS, snapshot.spokenFormats)
+            .putBoolean(KEY_READ_BACK, snapshot.readBack)
             .apply()
     }
 }

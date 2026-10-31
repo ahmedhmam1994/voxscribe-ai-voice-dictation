@@ -31,6 +31,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
@@ -67,11 +68,15 @@ class BubbleService : Service() {
     private val gesture = HoldOrTap()
     private var snoozedUntil = 0L
 
+    /** True while running with the MICROPHONE foreground type (see [promote]). */
+    private var micForeground = false
+
     override fun onCreate() {
         super.onCreate()
         Telemetry.sendIfDue(this)
         isRunning = true
         instance = this
+        DictationTileService.requestRefresh(this)
         createNotificationChannel()
         createAlertChannel()
         addBubbleToWindow()
@@ -86,23 +91,12 @@ class BubbleService : Service() {
         Thread { WhisperEngine.isAvailable(this) }.start()
     }
 
-    @Suppress("InlinedApi") // constant only, ServiceCompat dispatches correctly per-OS-version
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // ServiceCompat picks the right startForeground() overload for the
-        // running OS version on its own -- these type flags are only
-        // actually required/enforced on Android 14+, but passing them
-        // unconditionally is safe since they're just compile-time constants.
-        // MICROPHONE is required alongside AndroidManifest.xml's
-        // foregroundServiceType="...|microphone": without it, a background
-        // service's AudioRecord silently captures nothing (confirmed via
-        // logcat: "AppOps: Operation not started ... op=RECORD_AUDIO" /
-        // "silencing record") even though the runtime permission is granted.
-        ServiceCompat.startForeground(
-            this,
-            NOTIFICATION_ID,
-            buildNotification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-        )
+        if (!promote()) {
+            // Android refused to keep the button running from here: give up quietly instead of crashing.
+            stopSelf()
+            return START_NOT_STICKY
+        }
         // The notification's "Show now" button brings a snoozed bubble back early.
         if (intent?.action == ACTION_UNSNOOZE) endSnooze()
         return START_STICKY
@@ -114,6 +108,7 @@ class BubbleService : Service() {
         super.onDestroy()
         isRunning = false
         instance = null
+        DictationTileService.requestRefresh(this)
         watchHandler.removeCallbacksAndMessages(null)
         gesture.reset()
         getSystemService(NotificationManager::class.java)?.cancel(ALERT_NOTIFICATION_ID)
@@ -351,10 +346,13 @@ class BubbleService : Service() {
     }
 
     private var shown: Boolean? = null
+    private var pinged = false
 
     /**
      * Fades the button in when a text box gets focus and out when it loses it,
-     * with a slight grow and shrink, instead of snapping on and off. The system
+     * springing in with a small overshoot and shrinking away, instead of
+     * snapping on and off. The first time it appears after the service starts
+     * it also sends out one ring, so a new user notices it. The system
      * animation scale applies, so with animations off it is instant.
      */
     private fun applyVisibility() {
@@ -367,12 +365,16 @@ class BubbleService : Service() {
         if (show) {
             if (view.visibility != View.VISIBLE) {
                 view.alpha = 0f
-                view.scaleX = HIDDEN_SCALE
-                view.scaleY = HIDDEN_SCALE
+                view.scaleX = APPEAR_SCALE
+                view.scaleY = APPEAR_SCALE
                 view.visibility = View.VISIBLE
             }
-            view.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160)
-                .setInterpolator(DecelerateInterpolator()).start()
+            view.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(320)
+                .setInterpolator(OvershootInterpolator(1.6f)).start()
+            if (!pinged) {
+                pinged = true
+                view.postDelayed({ if (shown == true) view.ping() }, 260)
+            }
         } else {
             view.animate().alpha(0f).scaleX(HIDDEN_SCALE).scaleY(HIDDEN_SCALE).setDuration(140)
                 .withEndAction {
@@ -501,6 +503,16 @@ class BubbleService : Service() {
         val view = bubbleView ?: return
         view.mode = BubbleView.Mode.ICON
         if (success) {
+            // The check pops in, so a landed dictation is felt as well as seen.
+            // Not while fading out: cancelling that would leave the button half-shown.
+            if (shown == true) {
+                view.animate().cancel()
+                view.alpha = 1f
+                view.scaleX = POP_SCALE
+                view.scaleY = POP_SCALE
+                view.animate().scaleX(1f).scaleY(1f).setDuration(280)
+                    .setInterpolator(OvershootInterpolator(2.2f)).start()
+            }
             view.setImageResource(R.drawable.ic_check)
             view.imageTintList = ContextCompat.getColorStateList(this, R.color.vox_on_primary)
             view.backgroundTintList = ContextCompat.getColorStateList(this, R.color.vox_primary)
@@ -550,7 +562,35 @@ class BubbleService : Service() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Makes this a foreground service. MICROPHONE is required alongside the
+     * manifest's foregroundServiceType="...|microphone": without it a background
+     * service's AudioRecord silently captures nothing (logcat: "AppOps:
+     * Operation not started ... op=RECORD_AUDIO" / "silencing record") even
+     * though the permission is granted. Android 14 only allows that type while
+     * the app is in use, which a start from the Quick Settings tile may not
+     * count as, so then the button runs without it until the next press, which
+     * tries again. False when Android refuses both.
+     */
+    @Suppress("InlinedApi") // constants only, ServiceCompat dispatches per OS version
+    private fun promote(): Boolean {
+        val notification = buildNotification()
+        micForeground = runCatching {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            )
+        }.onFailure { Log.w(TAG, "Microphone foreground type refused", it) }.isSuccess
+        if (micForeground) return true
+        return runCatching {
+            ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        }.onFailure { Log.w(TAG, "Foreground start refused", it) }.isSuccess
+    }
+
     private fun onHoldStart(): Boolean {
+        if (!micForeground) promote()
         if (!hasRecordAudioPermission()) {
             // Phase 5's onboarding should prevent BubbleService from ever
             // starting without this already granted -- this is a defensive
@@ -685,6 +725,8 @@ class BubbleService : Service() {
         lastInsertWorked = inserted
         flash(inserted)
         if (inserted) showTapHintOnce()
+        // Read it back: hear what was typed without looking at the screen.
+        if (TextToolsStore.snapshot(this).readBack) ReadAloud.speak(this, text)
         if (!inserted) {
             val clipboard = getSystemService(ClipboardManager::class.java)
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
@@ -814,12 +856,16 @@ class BubbleService : Service() {
         private const val SHAKE_MS = 360L
         private const val PRESSED_SCALE = 0.9f
         private const val HIDDEN_SCALE = 0.85f
+        private const val APPEAR_SCALE = 0.5f
+        private const val POP_SCALE = 0.82f
 
         /**
          * There is exactly one instance of this service at a time (Android
          * manages that); lets the app UI show whether
          * the bubble is currently active without needing a bound connection.
          */
+        private const val TAG = "VoxBubble"
+
         var isRunning: Boolean = false
             private set
 

@@ -8,10 +8,14 @@ class CountUpText extends StatelessWidget {
     required this.value,
     required this.format,
     this.style,
+    this.animate = true,
     super.key,
   });
 
   final int value;
+
+  /// Off shows the number straight away, like reduced motion does.
+  final bool animate;
 
   /// Turns the number being shown into text, for example "12,480" or "3 days".
   final String Function(int value) format;
@@ -21,12 +25,15 @@ class CountUpText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final still = MediaQuery.disableAnimationsOf(context);
+    final still = !animate || MediaQuery.disableAnimationsOf(context);
     return Semantics(
       label: format(value),
       child: ExcludeSemantics(
         child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: value.toDouble()),
+          tween: Tween(
+            begin: still ? value.toDouble() : 0,
+            end: value.toDouble(),
+          ),
           duration: still ? Duration.zero : duration,
           curve: Curves.easeOutCubic,
           builder: (context, shown, _) =>

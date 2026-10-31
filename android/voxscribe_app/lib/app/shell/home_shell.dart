@@ -17,6 +17,7 @@ import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
+import 'package:voxscribe_app/features/termpacks/term_packs_controller.dart';
 import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 
@@ -73,12 +74,14 @@ class _HomeShellState extends State<HomeShell> {
   late final TextToolsController _textTools = TextToolsController(
     repository: widget.textToolsRepository,
   );
+  late final TermPacksController _packs = TermPacksController();
   late final ReleaseController _release = ReleaseController(
     repository: widget.releaseRepository,
   );
   late final AppLifecycleListener _lifecycle;
   var _notesShown = false;
   var _index = 0;
+  var _insightsVisits = 0;
 
   @override
   void initState() {
@@ -116,6 +119,7 @@ class _HomeShellState extends State<HomeShell> {
     _pro.dispose();
     _snippets.dispose();
     _textTools.dispose();
+    _packs.dispose();
     _release.dispose();
     super.dispose();
   }
@@ -136,8 +140,14 @@ class _HomeShellState extends State<HomeShell> {
                     controller: _dictation,
                     history: _history,
                     textTools: _textTools,
+                    setup: _setup,
                   ),
-                  InsightsScreen(history: _history),
+                  // A new key on every visit, so its numbers and chart animate
+                  // in where they can be seen, not once hidden at launch.
+                  InsightsScreen(
+                    key: ValueKey(_insightsVisits),
+                    history: _history,
+                  ),
                   SettingsScreen(
                     settings: widget.settings,
                     setup: _setup,
@@ -146,6 +156,8 @@ class _HomeShellState extends State<HomeShell> {
                     pro: _pro,
                     snippets: _snippets,
                     textTools: _textTools,
+                    packs: _packs,
+                    engine: widget.engine,
                     openLink: widget.releaseRepository.open,
                   ),
                 ],
@@ -158,7 +170,10 @@ class _HomeShellState extends State<HomeShell> {
         destinations: _destinations,
         selectedIndex: _index,
         onSelected: (index) {
-          setState(() => _index = index);
+          setState(() {
+            if (index == 1 && _index != 1) _insightsVisits++;
+            _index = index;
+          });
           _refresh();
         },
       ),

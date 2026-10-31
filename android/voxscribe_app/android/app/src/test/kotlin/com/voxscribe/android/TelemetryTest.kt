@@ -68,4 +68,38 @@ class TelemetryTest {
         assertTrue(body.contains("\"app_version\":\"1.1.0\\\\x\""))
         assertEquals(-1, body.indexOf('\n'))
     }
+
+    @Test
+    fun aNewUserSendsEachSetupStepOnceInOrder() {
+        val first = Telemetry.setupEvents(enabled = true, done = emptySet(), handled = null)
+        assertEquals(emptyList<String>(), first.send)
+
+        val opened = Telemetry.setupEvents(true, setOf("setup_opened"), first.handled)
+        assertEquals(listOf("setup_opened"), opened.send)
+
+        val micAndOverlay = Telemetry.setupEvents(true, setOf("setup_overlay", "setup_microphone"), opened.handled)
+        assertEquals(listOf("setup_microphone", "setup_overlay"), micAndOverlay.send)
+
+        val again = Telemetry.setupEvents(true, setOf("setup_microphone", "setup_overlay"), micAndOverlay.handled)
+        assertEquals(emptyList<String>(), again.send)
+    }
+
+    @Test
+    fun anUpdateSendsNothingForStepsDoneBefore() {
+        val done = setOf("setup_microphone", "setup_accessibility", "setup_overlay", "bubble_started")
+        val first = Telemetry.setupEvents(enabled = true, done = done, handled = null)
+        assertEquals(emptyList<String>(), first.send)
+        assertTrue("setup_opened" in first.handled)
+
+        assertEquals(emptyList<String>(), Telemetry.setupEvents(true, done + "setup_opened", first.handled).send)
+    }
+
+    @Test
+    fun setupStepsAreRememberedButNotSentWhileThePingIsOff() {
+        val off = Telemetry.setupEvents(enabled = false, done = setOf("setup_microphone"), handled = emptySet())
+        assertEquals(emptyList<String>(), off.send)
+
+        val on = Telemetry.setupEvents(true, setOf("setup_microphone", "setup_overlay"), off.handled)
+        assertEquals(listOf("setup_overlay"), on.send)
+    }
 }

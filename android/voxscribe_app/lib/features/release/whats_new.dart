@@ -1,6 +1,15 @@
 /// What each version added. A version with no entry here shows no "what's
 /// new" sheet on first launch, so a quiet bug fix stays quiet.
 const whatsNewByVersion = <String, List<String>>{
+  '1.1.3': [
+    'Term packs: medical, law and business word lists fix how field words are written, like "metformin" or "MRI". Add your own list too. Find them under Settings, Words for your field.',
+    'Teach your voice: read a few sentences aloud and VoxScribe finds the words it hears wrong, then adds the fixes for you.',
+    'Spoken formats for the packs: "one twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID.',
+    'Read it back: the floating button can read your dictation aloud with the offline voice on your phone, and the Dictation screen has a Listen button.',
+    'A Quick Settings tile turns the floating button on and off from the notification shade.',
+    'A reminder on the Dictation screen until setup is finished.',
+    'Livelier screens: a live wave while you talk, words that type themselves in, and a smoother Insights page.',
+  ],
   '1.1.2': [
     'A new Floating button group in Settings: record by holding, by tapping once to start and once to stop, or both.',
     'Choose a small, medium or large floating button.',

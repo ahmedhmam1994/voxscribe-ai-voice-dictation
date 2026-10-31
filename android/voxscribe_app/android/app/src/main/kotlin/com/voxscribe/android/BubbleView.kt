@@ -1,5 +1,7 @@
 package com.voxscribe.android
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -7,7 +9,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.view.animation.DecelerateInterpolator
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.core.content.ContextCompat
 import kotlin.math.sin
 
 /**
@@ -18,9 +22,14 @@ import kotlin.math.sin
  * In the last seconds before a recording's time limit, a ring fills in
  * around the edge so the cut-off never comes as a surprise.
  *
- * The level is information, so it always moves; the transcribing wave is
- * decoration and stands still when the system's animations are switched off
- * (Developer options animator scale 0, or Remove animations in Accessibility).
+ * Behind the bars, a soft disc swells with your voice; while transcribing an
+ * arc runs around the edge. [ping] sends one ring out from the middle, so a
+ * new user notices the button the first time it appears.
+ *
+ * The level is information, so it always moves; the transcribing wave, the
+ * arc and the ping are decoration and stand still when the system's
+ * animations are switched off (Developer options animator scale 0, or Remove
+ * animations in Accessibility).
  */
 class BubbleView @JvmOverloads constructor(
     context: Context,
@@ -57,6 +66,14 @@ class BubbleView @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
     }
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
+    private val pingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private var pingAnimator: ValueAnimator? = null
+    private var pingProgress = -1f
     private val ring = RectF()
     private val bar = RectF()
     // Newest level first. The center bar shows history[0]; the bars beside it
@@ -93,17 +110,42 @@ class BubbleView @JvmOverloads constructor(
         }
     }
 
+    /** One ring that grows out from the middle and fades. Skipped when animations are off. */
+    fun ping() {
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        pingAnimator?.cancel()
+        pingAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = PING_MS
+            interpolator = DecelerateInterpolator(1.6f)
+            addUpdateListener {
+                pingProgress = it.animatedValue as Float
+                invalidate()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    pingProgress = -1f
+                    invalidate()
+                }
+            })
+            start()
+        }
+    }
+
     override fun onDetachedFromWindow() {
         removeCallbacks(frame)
+        pingAnimator?.cancel()
         super.onDetachedFromWindow()
     }
 
     override fun onDraw(canvas: Canvas) {
+        val density = resources.displayMetrics.density
         if (mode == Mode.ICON) {
             super.onDraw(canvas)
+            drawPing(canvas, density)
             return
         }
-        val density = resources.displayMetrics.density
+        if (mode == Mode.LEVEL) drawGlow(canvas)
+        if (mode == Mode.WORKING) drawArc(canvas, density)
         val barWidth = 3.5f * density
         val gap = 2.5f * density
         val maxHeight = height * 0.46f
@@ -127,6 +169,40 @@ class BubbleView @JvmOverloads constructor(
         if (mode == Mode.LEVEL) drawLimitRing(canvas, density)
     }
 
+    /** A disc in the bar color, faint and small in silence, larger as you speak. */
+    private fun drawGlow(canvas: Canvas) {
+        val radius = minOf(width, height) / 2f
+        glowPaint.color = barPaint.color
+        glowPaint.alpha = (22 + 34 * smoothed).toInt()
+        canvas.drawCircle(width / 2f, height / 2f, radius * (0.5f + 0.38f * smoothed), glowPaint)
+    }
+
+    private fun drawArc(canvas: Canvas, density: Float) {
+        if (!ValueAnimator.areAnimatorsEnabled()) return
+        val stroke = 2.5f * density
+        val inset = 3f * density + stroke / 2f
+        arcPaint.strokeWidth = stroke
+        arcPaint.color = barPaint.color
+        arcPaint.alpha = 150
+        ring.set(inset, inset, width - inset, height - inset)
+        canvas.drawArc(ring, phase * 40f % 360f, 80f, false, arcPaint)
+    }
+
+    private fun drawPing(canvas: Canvas, density: Float) {
+        if (pingProgress < 0f) return
+        val radius = minOf(width, height) / 2f
+        val stroke = 2.5f * density
+        pingPaint.strokeWidth = stroke
+        pingPaint.color = ContextCompat.getColor(context, R.color.vox_on_primary)
+        pingPaint.alpha = (200 * (1f - pingProgress)).toInt()
+        canvas.drawCircle(
+            width / 2f,
+            height / 2f,
+            (radius - stroke) * (0.45f + 0.55f * pingProgress),
+            pingPaint,
+        )
+    }
+
     private fun drawLimitRing(canvas: Canvas, density: Float) {
         if (recordingDeadline == 0L) return
         val remaining = recordingDeadline - SystemClock.elapsedRealtime()
@@ -143,5 +219,7 @@ class BubbleView @JvmOverloads constructor(
     companion object {
         /** How long before the time limit the ring starts filling. */
         const val LIMIT_WARNING_MS = 15_000L
+
+        private const val PING_MS = 900L
     }
 }

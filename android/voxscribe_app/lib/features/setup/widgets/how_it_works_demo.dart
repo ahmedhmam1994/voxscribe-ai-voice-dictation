@@ -79,7 +79,11 @@ class _HowItWorksDemoState extends State<HowItWorksDemo>
 }
 
 class _DemoPainter extends CustomPainter {
-  _DemoPainter({required this.t, required this.colors, required this.textStyle});
+  _DemoPainter({
+    required this.t,
+    required this.colors,
+    required this.textStyle,
+  });
 
   // Timeline of one loop, in seconds.
   static const press = 0.8;

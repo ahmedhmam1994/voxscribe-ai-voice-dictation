@@ -82,6 +82,32 @@
                 android:value="Floating dictation bubble: an alternative to switching keyboards, lets the user hold the bubble to record and dictate into the focused field." />
         </service>
 
+        <!-- Quick Settings tile: turns the floating button on and off from the
+             notification shade. -->
+        <service
+            android:name=".DictationTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_mic"
+            android:label="@string/tile_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.quicksettings.TOGGLEABLE_TILE"
+                android:value="true" />
+        </service>
+
+        <!-- Invisible step the tile opens: Android only lets a visible app start
+             a service that records, so the tile cannot start the button itself. -->
+        <activity
+            android:name=".TileLaunchActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- Read by the Flutter tool to generate GeneratedPluginRegistrant. -->
         <meta-data
             android:name="flutterEmbedding"
@@ -90,6 +116,10 @@
 
     <!-- Lets the Flutter engine query activities that can process text. -->
     <queries>
+        <!-- Read it back: the phone's text-to-speech engine. -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />

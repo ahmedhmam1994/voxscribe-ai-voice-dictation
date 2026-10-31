@@ -26,6 +26,7 @@ object SettingsStore {
     private const val KEY_TAP_HINT_SHOWN = "tap_hint_shown"
     private const val KEY_FIRST_DICTATION_SENT = "first_dictation_sent"
     private const val KEY_LAST_DICTATION_DAY = "last_dictation_day"
+    private const val KEY_SETUP_EVENTS_SENT = "setup_events_sent"
 
     /** BCP-47 tag -> display name shown in the language picker. Null tag means "device default". */
     val FALLBACK_LANGUAGES: List<Pair<String?, String>> = listOf(
@@ -118,6 +119,17 @@ object SettingsStore {
 
     fun setLastDictationDay(context: Context, day: String) {
         prefs(context).edit().putString(KEY_LAST_DICTATION_DAY, day).apply()
+    }
+
+    /**
+     * The one-time setup pings already handled (see [Telemetry.setupEvents]),
+     * or null before the app has looked at the setup steps for the first time.
+     */
+    fun setupEventsSent(context: Context): Set<String>? =
+        prefs(context).getStringSet(KEY_SETUP_EVENTS_SENT, null)?.toSet()
+
+    fun setSetupEventsSent(context: Context, events: Set<String>) {
+        prefs(context).edit().putStringSet(KEY_SETUP_EVENTS_SENT, events).apply()
     }
 
     /** A random id made on this phone, so a repeat launch is not counted as a new person. */

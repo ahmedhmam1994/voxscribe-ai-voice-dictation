@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
+import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_language.dart';
 import 'package:voxscribe_app/features/dictation/widgets/language_picker.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
@@ -9,10 +10,13 @@ import 'package:voxscribe_app/features/pro/pro_page.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/widgets/settings_group.dart';
+import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
+import 'package:voxscribe_app/features/termpacks/term_packs_controller.dart';
+import 'package:voxscribe_app/features/termpacks/term_packs_page.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_pages.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
@@ -28,6 +32,8 @@ class SettingsScreen extends StatelessWidget {
     required this.pro,
     required this.snippets,
     required this.textTools,
+    required this.packs,
+    required this.engine,
     this.openLink,
     super.key,
   });
@@ -39,6 +45,10 @@ class SettingsScreen extends StatelessWidget {
   final ProController pro;
   final SnippetsController snippets;
   final TextToolsController textTools;
+  final TermPacksController packs;
+
+  /// For Teach your voice, which records like the Dictation screen.
+  final DictationEngine engine;
 
   /// Opens a web page in the browser. Null hides the links.
   final Future<void> Function(String url)? openLink;
@@ -106,6 +116,25 @@ class SettingsScreen extends StatelessWidget {
                           BubbleSize.large: 'Large',
                         },
                         onChanged: settings.setBubbleSize,
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Read it back',
+                        subtitle:
+                            'Your phone reads each dictation aloud after it '
+                            'is typed, so you can check it without looking.',
+                        value: tools.readBack,
+                        onChanged: (value) =>
+                            textTools.setReadBack(value: value),
+                      ),
+                      SettingsRow(
+                        title: 'Quick Settings tile',
+                        subtitle:
+                            'Turn the button on and off from the '
+                            'notification shade. On Xiaomi phones, turn on '
+                            'Autostart for VoxScribe first, and add the tile '
+                            'again after an update.',
+                        trailing: const Icon(Icons.add),
+                        onTap: () => _addQuickTile(context),
                       ),
                     ],
                   ),
@@ -193,6 +222,24 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () => _push(
                           context,
                           ReplacementsPage(controller: textTools),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'Words for your field',
+                    children: [
+                      SettingsRow(
+                        title: 'Term packs',
+                        subtitle: _packsLine(tools.enabledPacks),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          TermPacksPage(
+                            packs: packs,
+                            textTools: textTools,
+                            engine: engine,
+                          ),
                         ),
                       ),
                     ],
@@ -356,6 +403,38 @@ class SettingsScreen extends StatelessWidget {
 
   void _push(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+  }
+
+  /// Which packs are on, or what they are for when none is.
+  String _packsLine(List<String> enabled) {
+    if (enabled.isEmpty) {
+      return 'Medical, law and business words, written right. Off.';
+    }
+    const builtIn = {
+      'medical': 'Medical',
+      'legal': 'Law',
+      'business': 'Business',
+    };
+    final names = [
+      for (final id in enabled) builtIn[id] ?? id.replaceFirst('user:', ''),
+    ];
+    return 'On: ${names.join(', ')}';
+  }
+
+  Future<void> _addQuickTile(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final message = switch (await setup.platform.addQuickTile()) {
+      QuickTileResult.added => 'VoxScribe button added to your tiles.',
+      QuickTileResult.alreadyAdded =>
+        'VoxScribe button is already in your tiles. Swipe down twice '
+            'from the top to find it.',
+      QuickTileResult.declined => null,
+      QuickTileResult.manual =>
+        'Swipe down twice from the top, tap the pencil, and drag '
+            'VoxScribe button into your tiles.',
+    };
+    if (message == null) return;
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   /// "3 replacements" when there are some, otherwise what the feature is for.

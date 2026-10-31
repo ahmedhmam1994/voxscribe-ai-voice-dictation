@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/insights/domain/insights.dart';
+import 'package:voxscribe_app/features/insights/widgets/insight_visuals.dart';
 import 'package:voxscribe_app/features/insights/widgets/week_bars.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 import 'package:voxscribe_app/shared/widgets/count_up_text.dart';
+import 'package:voxscribe_app/shared/widgets/rolling_number.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
 import 'package:voxscribe_app/shared/widgets/vox_card.dart';
 
@@ -66,11 +68,17 @@ class InsightsScreen extends StatelessWidget {
     return [
       VoxCard(
         padding: const EdgeInsets.all(18),
-        child: _Stat(
-          value: insights.totalWords,
-          format: _thousands,
-          caption: 'words dictated, all time',
-          valueStyle: theme.displayMedium,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RollingNumber(
+              value: insights.totalWords,
+              format: _thousands,
+              style: theme.displayMedium,
+            ),
+            const SizedBox(height: 4),
+            Text('words dictated, all time', style: theme.bodySmall),
+          ],
         ),
       ),
       const SizedBox(height: 10),
@@ -91,11 +99,20 @@ class InsightsScreen extends StatelessWidget {
           Expanded(
             child: VoxCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: _Stat(
-                value: insights.streakDays,
-                format: (n) => n == 1 ? '1 day' : '$n days',
-                caption: 'current streak',
-                valueStyle: _smallStat(theme),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Stat(
+                    value: insights.streakDays,
+                    format: (n) => n == 1 ? '1 day' : '$n days',
+                    caption: 'current streak',
+                    valueStyle: _smallStat(theme),
+                  ),
+                  const SizedBox(height: 10),
+                  DayDots(
+                    active: [for (final w in insights.wordsPerDay) w > 0],
+                  ),
+                ],
               ),
             ),
           ),
@@ -110,19 +127,25 @@ class InsightsScreen extends StatelessWidget {
         const SectionLabel('Longest dictation'),
         VoxCard(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Text.rich(
-            TextSpan(
-              children: [
+          child: Row(
+            children: [
+              Expanded(child: WordStrip(text: longest.text)),
+              const SizedBox(width: 12),
+              Text.rich(
                 TextSpan(
-                  text: '${longest.wordCount} words',
-                  style: theme.bodyMedium,
+                  children: [
+                    TextSpan(
+                      text: '${longest.wordCount} words',
+                      style: theme.bodyMedium,
+                    ),
+                    TextSpan(
+                      text: ', ${longest.duration.inSeconds} s',
+                      style: theme.bodyMedium?.copyWith(color: c.muted),
+                    ),
+                  ],
                 ),
-                TextSpan(
-                  text: ', ${longest.duration.inSeconds} s',
-                  style: theme.bodyMedium?.copyWith(color: c.muted),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ],

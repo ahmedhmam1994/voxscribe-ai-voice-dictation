@@ -109,5 +109,40 @@ void main() {
       await controller.performPrimaryAction();
       expect(controller.errorMessage, isNull);
     });
+
+    test('the reminder waits for the real state, then shows until the '
+        'button is on', () async {
+      final platform = FakeSetupPlatform(_micOnly);
+      final controller = SetupController(platform: platform);
+      expect(controller.showReminder, isFalse);
+
+      await controller.refresh();
+      expect(controller.showReminder, isTrue);
+
+      platform.status = _allGranted;
+      await controller.refresh();
+      expect(controller.showReminder, isTrue);
+
+      platform.status = _allGranted.copyWith(bubbleRunning: true);
+      await controller.refresh();
+      expect(controller.showReminder, isFalse);
+    });
+
+    test('Not now hides the reminder', () async {
+      final controller = SetupController(platform: FakeSetupPlatform());
+      await controller.refresh();
+
+      controller.hideReminder();
+
+      expect(controller.showReminder, isFalse);
+    });
+
+    test('opening the setup screen is reported to the platform', () async {
+      final platform = FakeSetupPlatform();
+      await SetupController(platform: platform).opened();
+
+      expect(platform.openedCount, 1);
+      expect(platform.calls, isEmpty);
+    });
   });
 }

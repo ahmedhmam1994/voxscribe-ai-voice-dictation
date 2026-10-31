@@ -12,7 +12,26 @@ class TextToolsSettings {
     this.sendIt = false,
     this.mode = 'default',
     this.autoModes = true,
+    this.termPacks = '',
+    this.spokenFormats = false,
+    this.readBack = false,
   });
+
+  /// The term pack ids switched on, comma separated. None by default.
+  final String termPacks;
+
+  /// Doses, legal references and amounts written out for the packs that are on.
+  final bool spokenFormats;
+
+  /// The phone reads each dictation from the floating button aloud.
+  final bool readBack;
+
+  /// [termPacks] as a list.
+  List<String> get enabledPacks => termPacks
+      .split(',')
+      .map((id) => id.trim())
+      .where((id) => id.isNotEmpty)
+      .toList();
 
   /// The dictation mode: 'default', 'chat', 'email', 'code' (Pro) or 'notes'.
   final String mode;
@@ -53,6 +72,9 @@ class TextToolsSettings {
     bool? sendIt,
     String? mode,
     bool? autoModes,
+    String? termPacks,
+    bool? spokenFormats,
+    bool? readBack,
   }) {
     return TextToolsSettings(
       voiceCommands: voiceCommands ?? this.voiceCommands,
@@ -64,6 +86,9 @@ class TextToolsSettings {
       sendIt: sendIt ?? this.sendIt,
       mode: mode ?? this.mode,
       autoModes: autoModes ?? this.autoModes,
+      termPacks: termPacks ?? this.termPacks,
+      spokenFormats: spokenFormats ?? this.spokenFormats,
+      readBack: readBack ?? this.readBack,
     );
   }
 
@@ -78,7 +103,10 @@ class TextToolsSettings {
       other.profiles == profiles &&
       other.sendIt == sendIt &&
       other.mode == mode &&
-      other.autoModes == autoModes;
+      other.autoModes == autoModes &&
+      other.termPacks == termPacks &&
+      other.spokenFormats == spokenFormats &&
+      other.readBack == readBack;
 
   @override
   int get hashCode => Object.hash(
@@ -91,5 +119,8 @@ class TextToolsSettings {
     sendIt,
     mode,
     autoModes,
+    termPacks,
+    spokenFormats,
+    readBack,
   );
 }

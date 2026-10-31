@@ -18,6 +18,8 @@ class MainActivity : FlutterActivity() {
         SettingsChannel(this).register(messenger)
         ProChannel(this).register(messenger)
         TextToolsChannel(this).register(messenger)
+        TermPacksChannel(this).register(messenger)
+        ReadAloudChannel(this).register(messenger)
         ReleaseChannel(this).register(messenger)
         wordListFiles.register(messenger)
         fileImport.register(messenger)

@@ -17,6 +17,9 @@ class DictationController extends ChangeNotifier {
   /// How many recent input levels the meter shows.
   static const meterBars = 14;
 
+  /// How many recent input levels the transcript card's waveform shows.
+  static const waveformBars = 56;
+
   final DictationEngine _engine;
   final HistoryController _history;
   final DateTime Function() _clock;
@@ -27,7 +30,7 @@ class DictationController extends ChangeNotifier {
   String? _errorMessage;
   var _language = 'en';
   var _changingLanguage = false;
-  List<double> _recentLevels = const [];
+  List<double> _levels = const [];
 
   DictationStatus get status => _status;
 
@@ -38,7 +41,12 @@ class DictationController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   /// The last [meterBars] input levels, oldest first.
-  List<double> get recentLevels => _recentLevels;
+  List<double> get recentLevels => _levels.length > meterBars
+      ? _levels.sublist(_levels.length - meterBars)
+      : _levels;
+
+  /// The last [waveformBars] input levels of this recording, oldest first.
+  List<double> get waveform => _levels;
 
   /// The language code in use, or an empty string for automatic detection.
   String get language => _language;
@@ -81,7 +89,7 @@ class DictationController extends ChangeNotifier {
   Future<void> holdStarted() async {
     if (!canStart) return;
     _errorMessage = null;
-    _recentLevels = const [];
+    _levels = const [];
     _setStatus(DictationStatus.recording);
     _levelSubscription = _engine.levels.listen(_addLevel);
     try {
@@ -133,9 +141,9 @@ class DictationController extends ChangeNotifier {
   }
 
   void _addLevel(double level) {
-    final next = [..._recentLevels, level.clamp(0.0, 1.0)];
-    _recentLevels = next.length > meterBars
-        ? next.sublist(next.length - meterBars)
+    final next = [..._levels, level.clamp(0.0, 1.0)];
+    _levels = next.length > waveformBars
+        ? next.sublist(next.length - waveformBars)
         : next;
     notifyListeners();
   }

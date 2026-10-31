@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:voxscribe_app/shared/widgets/rolling_number.dart';
 import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 
 import 'support/fake_history_repository.dart';
@@ -28,7 +29,12 @@ void main() {
     await tester.pumpWidget(buildTestApp(history: history));
     await openTab(tester, 'Insights');
 
-    expect(find.text('1,200'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is RollingNumber && w.format(w.value) == '1,200',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('words dictated, all time'), findsOneWidget);
     expect(find.text('120'), findsOneWidget);
     expect(find.text('1 day'), findsOneWidget);

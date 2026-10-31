@@ -42,13 +42,20 @@ data class TextOptions(
     val endPeriod: Boolean = true,
     /** The dictation mode in use (see [Modes]). */
     val mode: String = Modes.DEFAULT,
+    /** The words of the term packs that are on, for the correction pass (see [TermPacks]). */
+    val packTerms: List<String> = emptyList(),
+    /** The rare pack words that may also be repaired when misspelled. */
+    val packFuzzyTerms: List<String> = emptyList(),
+    /** The pack ids whose spoken formats apply; empty when spoken formats are off. */
+    val spokenFormatPacks: List<String> = emptyList(),
 )
 
 /**
  * Turns a raw transcript into the text to type, in the same order as the
  * Windows app: editing commands, then templates, then either code dictation
- * or (cleanup, voice commands, smart formatting), then word replacements and
- * snippets. Code dictation, smart formatting, templates and profiles are Pro.
+ * or (cleanup, voice commands, smart formatting), then word replacements, the
+ * term pack corrections, spoken formats and snippets. Code dictation, smart
+ * formatting, templates and profiles are Pro.
  */
 object TextPipeline {
 
@@ -120,6 +127,8 @@ object TextPipeline {
             if (text.isNotEmpty() && !options.endPeriod) text = Modes.dropFinalPeriod(text)
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
+        if (text.isNotEmpty()) text = TermPacks.correct(text, options.packTerms, options.packFuzzyTerms)
+        if (text.isNotEmpty()) text = SpokenFormats.apply(text, options.spokenFormatPacks)
         if (text.isNotEmpty() && options.pro) text = SnippetExpander.expand(text, options.snippets)
         val transform = trailing
         if (transform != null && text.isNotEmpty()) text = VoiceCommands.applyTransform(text, transform)
@@ -165,6 +174,8 @@ object TextPipeline {
         val mode = Modes.modeFor(packageName, profileMode, saved.mode, saved.autoModes, pro)
         // A profile's own option wins, then the mode, then the normal setting.
         val chosen = (Modes.options[mode] ?: emptyMap()) + profile
+        val packIds = TermPackStore.enabled(saved)
+        val packs = TermPackStore.packs(context, packIds)
         return TextOptions(
             pro = pro,
             cleanup = chosen["cleanup"] ?: SettingsStore.cleanupEnabled(context),
@@ -177,6 +188,9 @@ object TextPipeline {
             replacements = Replacements.parse(saved.replacements),
             snippets = if (pro) SnippetStore.all(context) else emptyList(),
             templates = if (pro) Templates.parseLines(saved.templates) else emptyList(),
+            packTerms = TermPacks.combinedTerms(packs),
+            packFuzzyTerms = TermPacks.combinedFuzzy(packs),
+            spokenFormatPacks = if (saved.spokenFormats) packIds else emptyList(),
         )
     }
 }

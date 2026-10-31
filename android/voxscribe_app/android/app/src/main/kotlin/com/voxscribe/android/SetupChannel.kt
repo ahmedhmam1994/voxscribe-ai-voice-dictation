@@ -2,9 +2,14 @@ package com.voxscribe.android
 
 import android.Manifest
 import android.app.Activity
+import android.app.StatusBarManager
+import android.content.ComponentName
 import android.content.Intent
+import android.graphics.drawable.Icon
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Looper
+import android.os.Handler
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
@@ -25,7 +30,15 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
-            "getStatus" -> result.success(status())
+            "getStatus" -> {
+                val status = status()
+                Telemetry.sendSetupProgress(activity, doneSteps(status))
+                result.success(status)
+            }
+            "setupOpened" -> {
+                Telemetry.sendSetupOpened(activity)
+                result.success(null)
+            }
             "requestMicrophone" -> {
                 requestMicrophone()
                 result.success(null)
@@ -45,6 +58,7 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                 )
                 result.success(null)
             }
+            "addQuickTile" -> addQuickTile(result)
             "setBubbleRunning" -> setBubbleRunning(call.argument<Boolean>("running") == true, result)
             else -> result.notImplemented()
         }
@@ -61,6 +75,16 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         "notifications" to NotificationManagerCompat.from(activity).areNotificationsEnabled(),
     )
 
+    /** The setup pings (see [Telemetry.SETUP_EVENTS]) whose step is done in [status]. */
+    private fun doneSteps(status: Map<String, Boolean>): Set<String> = buildSet {
+        if (status["microphone"] == true) add("setup_microphone")
+        if (status["accessibility"] == true && status["accessibilityConnected"] == true) {
+            add("setup_accessibility")
+        }
+        if (status["overlay"] == true) add("setup_overlay")
+        if (status["bubbleRunning"] == true) add("bubble_started")
+    }
+
     private fun hasMicrophone(): Boolean =
         ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
@@ -72,6 +96,47 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             permissions += Manifest.permission.POST_NOTIFICATIONS
         }
         ActivityCompat.requestPermissions(activity, permissions.toTypedArray(), REQUEST_CODE)
+    }
+
+    /** Android 13+ shows its own "Add tile" prompt; older versions need the user to add it by hand. */
+    /**
+     * Asks Android to add the tile and answers "added", "already", "declined" or
+     * "manual" (the user has to add it by hand). Some phones (MIUI) take the
+     * request and show nothing, so when no prompt took the screen within a
+     * moment the answer is "manual".
+     */
+    private fun addQuickTile(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return result.success("manual")
+        val manager = activity.getSystemService(StatusBarManager::class.java) ?: return result.success("manual")
+        val main = Handler(Looper.getMainLooper())
+        var answered = false
+        fun answer(value: String) {
+            if (answered) return
+            answered = true
+            result.success(value)
+        }
+        val asked = runCatching {
+            manager.requestAddTileService(
+                ComponentName(activity, DictationTileService::class.java),
+                activity.getString(R.string.tile_label),
+                Icon.createWithResource(activity, R.drawable.ic_tile_mic),
+                ContextCompat.getMainExecutor(activity),
+            ) { code ->
+                main.post {
+                    answer(
+                        when (code) {
+                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> "added"
+                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> "already"
+                            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED -> "declined"
+                            else -> "manual"
+                        },
+                    )
+                }
+            }
+        }.isSuccess
+        if (!asked) return answer("manual")
+        // A shown prompt takes the focus; still focused means nothing was shown.
+        main.postDelayed({ if (activity.hasWindowFocus()) answer("manual") }, 1500)
     }
 
     private fun setBubbleRunning(running: Boolean, result: MethodChannel.Result) {

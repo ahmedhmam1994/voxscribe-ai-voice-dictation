@@ -26,6 +26,7 @@ class _SetupScreenState extends State<SetupScreen> {
     // Coming back from a system screen or permission dialog.
     _lifecycle = AppLifecycleListener(onResume: widget.controller.refresh);
     widget.controller.refresh();
+    widget.controller.opened();
   }
 
   @override

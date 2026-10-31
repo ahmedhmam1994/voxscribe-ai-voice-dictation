@@ -24,6 +24,9 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         sendIt: raw['sendIt'] as bool? ?? false,
         mode: raw['mode'] as String? ?? 'default',
         autoModes: raw['autoModes'] as bool? ?? true,
+        termPacks: raw['termPacks'] as String? ?? '',
+        spokenFormats: raw['spokenFormats'] as bool? ?? false,
+        readBack: raw['readBack'] as bool? ?? false,
       );
     } on PlatformException {
       return TextToolsSettings.defaults;
@@ -43,6 +46,9 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         'sendIt': settings.sendIt,
         'mode': settings.mode,
         'autoModes': settings.autoModes,
+        'termPacks': settings.termPacks,
+        'spokenFormats': settings.spokenFormats,
+        'readBack': settings.readBack,
       });
     } on PlatformException {
       // The screen already shows the new value; it just will not persist.

@@ -27,6 +27,9 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         "sendIt" to saved.sendIt,
                         "mode" to saved.mode,
                         "autoModes" to saved.autoModes,
+                        "termPacks" to saved.termPacks,
+                        "spokenFormats" to saved.spokenFormats,
+                        "readBack" to saved.readBack,
                     ),
                 )
             }
@@ -43,6 +46,9 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         sendIt = call.argument<Boolean>("sendIt") == true,
                         mode = call.argument<String>("mode") ?: Modes.DEFAULT,
                         autoModes = call.argument<Boolean>("autoModes") != false,
+                        termPacks = call.argument<String>("termPacks").orEmpty(),
+                        spokenFormats = call.argument<Boolean>("spokenFormats") == true,
+                        readBack = call.argument<Boolean>("readBack") == true,
                     ),
                 )
                 result.success(null)

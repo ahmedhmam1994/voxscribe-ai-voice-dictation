@@ -28,6 +28,21 @@ class FakeSetupPlatform implements SetupPlatform {
   Future<void> openNotificationSettings() =>
       _record('openNotificationSettings');
 
+  /// How often the setup screen reported itself open (kept out of [calls]).
+  var openedCount = 0;
+
+  @override
+  Future<void> setupOpened() async => openedCount++;
+
+  /// What [addQuickTile] answers.
+  var tileResult = QuickTileResult.added;
+
+  @override
+  Future<QuickTileResult> addQuickTile() async {
+    await _record('addQuickTile');
+    return tileResult;
+  }
+
   @override
   Future<void> setBubbleRunning({required bool running}) async {
     await _record('setBubbleRunning:$running');

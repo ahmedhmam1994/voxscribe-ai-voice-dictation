@@ -11,8 +11,36 @@ class SetupController extends ChangeNotifier {
   SetupStatus _status = SetupStatus.none;
   String? _errorMessage;
   var _busy = false;
+  var _loaded = false;
+  var _reminderHidden = false;
 
   SetupStatus get status => _status;
+
+  /// The phone's state has been read at least once, so [status] is real.
+  bool get loaded => _loaded;
+
+  /// Whether the Dictation screen should point new users to the setup steps:
+  /// until every step is done and the floating button is on, unless they
+  /// chose Not now in this session.
+  bool get showReminder =>
+      _loaded &&
+      !_reminderHidden &&
+      !(_status.permissionsComplete && _status.bubbleRunning);
+
+  /// Not now: hides the Dictation screen's setup card until the app restarts.
+  void hideReminder() {
+    _reminderHidden = true;
+    notifyListeners();
+  }
+
+  /// Call when the setup screen opens.
+  Future<void> opened() async {
+    try {
+      await platform.setupOpened();
+    } on SetupException {
+      // Only feeds the usage ping; never worth showing.
+    }
+  }
 
   /// A short explanation of the last failed action, or null.
   String? get errorMessage => _errorMessage;
@@ -24,6 +52,7 @@ class SetupController extends ChangeNotifier {
   Future<void> refresh() async {
     try {
       _status = await platform.getStatus();
+      _loaded = true;
     } on SetupException catch (error) {
       _errorMessage = error.message;
     }

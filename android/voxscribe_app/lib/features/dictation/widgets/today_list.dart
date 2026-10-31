@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/core/formatting.dart';
 import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
+import 'package:voxscribe_app/shared/widgets/count_up_text.dart';
 
 /// Today's dictations, newest first. A dictation that has only just been
 /// made fades and slides in; older ones are simply there.
@@ -43,6 +44,7 @@ class TodayList extends StatelessWidget {
             animate: clock().difference(entries[i].createdAt) < freshFor,
             child: _EntryRow(
               entry: entries[i],
+              fresh: clock().difference(entries[i].createdAt) < freshFor,
               showDivider: i > 0,
               onFixWord: onFixWord,
             ),
@@ -55,11 +57,15 @@ class TodayList extends StatelessWidget {
 class _EntryRow extends StatelessWidget {
   const _EntryRow({
     required this.entry,
+    required this.fresh,
     required this.showDivider,
     required this.onFixWord,
   });
 
   final DictationEntry entry;
+
+  /// Just made: its word count ticks up instead of simply showing.
+  final bool fresh;
   final bool showDivider;
   final void Function(String text)? onFixWord;
 
@@ -87,9 +93,12 @@ class _EntryRow extends StatelessWidget {
               children: [
                 Text(entry.text, style: theme.bodyMedium),
                 const SizedBox(height: 4),
-                Text(
-                  '${formatWordCount(entry.wordCount)}, '
-                  '${formatSeconds(entry.duration)}',
+                CountUpText(
+                  value: entry.wordCount,
+                  animate: fresh,
+                  format: (words) =>
+                      '${formatWordCount(words)}, '
+                      '${formatSeconds(entry.duration)}',
                   style: theme.bodySmall?.copyWith(fontSize: 12),
                 ),
                 if (onFixWord != null)

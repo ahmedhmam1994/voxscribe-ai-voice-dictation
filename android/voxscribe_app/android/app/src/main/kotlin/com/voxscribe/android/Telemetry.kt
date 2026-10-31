@@ -15,6 +15,9 @@ import java.util.UUID
  *   starts (the button runs on its own and people rarely open the app itself).
  * - "first_dictation", once per install, the first time a dictation is saved.
  * - "dictated_today", at most once a day, when a dictation is saved that day.
+ * - Setup steps, each once per install: "setup_opened", "setup_microphone",
+ *   "setup_accessibility", "setup_overlay" and "bubble_started", so it shows
+ *   which step new users stop at.
  *
  * Each sends the app version, the Android version and a random id made on the
  * phone. Never audio, never text, no word counts, nothing about other apps,
@@ -39,6 +42,52 @@ object Telemetry {
         if (!firstSent) events += "first_dictation"
         if (lastDay != today) events += "dictated_today"
         return events
+    }
+
+    /** The setup pings in the order a new user reaches them. */
+    val SETUP_EVENTS = listOf(
+        "setup_opened", "setup_microphone", "setup_accessibility", "setup_overlay", "bubble_started",
+    )
+
+    /** What to send now, and the full set to remember as handled. */
+    data class SetupPings(val send: List<String>, val handled: Set<String>)
+
+    /**
+     * Each setup ping goes out once, the first time its step is [done].
+     * [handled] is null on the very first look: steps already done then were
+     * done before this version (an update, not a new user), so they are only
+     * remembered, never sent. While the ping is off, steps are remembered too,
+     * so turning it on later doesn't send a burst of old steps.
+     */
+    fun setupEvents(enabled: Boolean, done: Set<String>, handled: Set<String>?): SetupPings {
+        if (handled == null) {
+            // Anything already done means an existing user, who opened setup long ago.
+            val baseline = if (done.isEmpty()) done else done + "setup_opened"
+            return SetupPings(emptyList(), baseline)
+        }
+        val fresh = SETUP_EVENTS.filter { it in done && it !in handled }
+        return SetupPings(if (enabled) fresh else emptyList(), handled + fresh)
+    }
+
+    /** Call with the setup steps that are done right now (names from [SETUP_EVENTS]). */
+    fun sendSetupProgress(context: Context, done: Set<String>) {
+        val app = context.applicationContext
+        val pings = setupEvents(
+            enabled = SettingsStore.usagePingEnabled(app),
+            done = done,
+            handled = SettingsStore.setupEventsSent(app),
+        )
+        // Marked before sending, so two quick status reads send each event once.
+        SettingsStore.setSetupEventsSent(app, pings.handled)
+        pings.send.forEach { post(app, it) }
+    }
+
+    /** Call when the setup screen opens. */
+    fun sendSetupOpened(context: Context) {
+        val app = context.applicationContext
+        // Not before the first look at the steps, which tells new users from updates.
+        if (SettingsStore.setupEventsSent(app) == null) return
+        sendSetupProgress(app, setOf("setup_opened"))
     }
 
     /** The event, as PostHog's capture API takes it. */

@@ -11,6 +11,9 @@ import 'package:voxscribe_app/features/dictation/widgets/transcript_actions.dart
 import 'package:voxscribe_app/features/dictation/widgets/transcript_card.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/import/file_import_screen.dart';
+import 'package:voxscribe_app/features/readaloud/read_aloud.dart';
+import 'package:voxscribe_app/features/setup/setup_controller.dart';
+import 'package:voxscribe_app/features/setup/widgets/setup_reminder_card.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 import 'package:voxscribe_app/shared/widgets/section_label.dart';
@@ -21,17 +24,23 @@ class DictationScreen extends StatelessWidget {
     required this.controller,
     required this.history,
     required this.textTools,
+    required this.setup,
+    this.readAloud = const MethodChannelReadAloud(),
     super.key,
   });
 
   final DictationController controller;
   final HistoryController history;
   final TextToolsController textTools;
+  final SetupController setup;
+
+  /// Reads a transcript aloud with the phone's voice.
+  final ReadAloud readAloud;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([controller, history]),
+      listenable: Listenable.merge([controller, history, setup]),
       builder: (context, _) {
         final hasTranscript = controller.transcript != null;
         final now = DateTime.now();
@@ -45,6 +54,7 @@ class DictationScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
                 children: [
+                  if (setup.showReminder) SetupReminderCard(controller: setup),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: StatusPill(
@@ -54,7 +64,11 @@ class DictationScreen extends StatelessWidget {
                     ),
                   ),
                   const SectionLabel('Transcript'),
-                  TranscriptCard(transcript: controller.transcript),
+                  TranscriptCard(
+                    transcript: controller.transcript,
+                    status: controller.status,
+                    waveform: controller.waveform,
+                  ),
                   const SizedBox(height: 10),
                   TranscriptActions(
                     onCopy: hasTranscript ? () => _copy(controller) : null,
@@ -66,6 +80,8 @@ class DictationScreen extends StatelessWidget {
                           )
                         : null,
                     onClear: hasTranscript ? controller.clearTranscript : null,
+                    onListen: () =>
+                        readAloud.speak(controller.transcript ?? ''),
                   ),
                   const SectionLabel('Today'),
                   TodayList(
@@ -83,6 +99,8 @@ class DictationScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
               child: HoldToDictateButton(
                 status: controller.status,
+                levels: controller.recentLevels,
+                invite: history.entries.isEmpty,
                 onHoldStart: controller.holdStarted,
                 onHoldEnd: controller.holdReleased,
               ),

@@ -37,6 +37,25 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       _invoke('openNotificationSettings');
 
   @override
+  Future<void> setupOpened() => _invoke('setupOpened');
+
+  @override
+  Future<QuickTileResult> addQuickTile() async {
+    try {
+      return switch (await _channel.invokeMethod<String>('addQuickTile')) {
+        'added' => QuickTileResult.added,
+        'already' => QuickTileResult.alreadyAdded,
+        'declined' => QuickTileResult.declined,
+        _ => QuickTileResult.manual,
+      };
+    } on PlatformException {
+      return QuickTileResult.manual;
+    } on MissingPluginException {
+      return QuickTileResult.manual;
+    }
+  }
+
+  @override
   Future<void> setBubbleRunning({required bool running}) {
     return _invoke('setBubbleRunning', {'running': running});
   }

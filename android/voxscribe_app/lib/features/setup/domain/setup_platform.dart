@@ -25,6 +25,23 @@ abstract interface class SetupPlatform {
   /// Opens this app's notification settings, where they can be allowed.
   Future<void> openNotificationSettings();
 
+  /// Tells the native side the setup screen opened, for its one-time ping.
+  Future<void> setupOpened();
+
+  /// Asks Android to add the VoxScribe button tile to Quick Settings.
+  Future<QuickTileResult> addQuickTile();
+
   /// Starts or stops the floating button.
   Future<void> setBubbleRunning({required bool running});
+}
+
+/// How a request to add the Quick Settings tile ended.
+enum QuickTileResult {
+  added,
+  alreadyAdded,
+  declined,
+
+  /// Android could not ask (older Android, or a phone that ignores the
+  /// request), so the user adds the tile by hand.
+  manual,
 }

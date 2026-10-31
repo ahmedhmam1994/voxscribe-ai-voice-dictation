@@ -137,6 +137,8 @@ void main() {
     await tester.pumpWidget(buildTestApp(history: history));
     await openTab(tester, 'Settings');
 
+    await tester.ensureVisible(find.text('Clear history'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Clear history'));
     await tester.pumpAndSettle();
     expect(find.text('Clear history?'), findsOneWidget);

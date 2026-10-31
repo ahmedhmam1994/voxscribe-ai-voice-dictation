@@ -117,6 +117,19 @@ class TextToolsController extends ChangeNotifier {
   Future<void> setCodeDictation({required bool value}) =>
       _change(_settings.copyWith(codeDictation: value));
 
+  /// Switches one term pack on or off, keeping the order the others were turned on in.
+  Future<void> setTermPackEnabled(String id, {required bool enabled}) {
+    final ids = _settings.enabledPacks.where((other) => other != id).toList();
+    if (enabled) ids.add(id);
+    return _change(_settings.copyWith(termPacks: ids.join(',')));
+  }
+
+  Future<void> setSpokenFormats({required bool value}) =>
+      _change(_settings.copyWith(spokenFormats: value));
+
+  Future<void> setReadBack({required bool value}) =>
+      _change(_settings.copyWith(readBack: value));
+
   Future<void> setReplacements(String value) =>
       _change(_settings.copyWith(replacements: value));
 
