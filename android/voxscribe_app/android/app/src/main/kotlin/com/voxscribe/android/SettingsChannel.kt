@@ -24,6 +24,7 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
                     "bubbleSize" to SettingsStore.bubbleSize(context).key,
                 ),
             )
+            "getDiagnostics" -> result.success(FirstRun.diagnosticsText(context))
             "setCleanup" -> {
                 SettingsStore.setCleanupEnabled(context, call.argument<Boolean>("value") == true)
                 result.success(null)

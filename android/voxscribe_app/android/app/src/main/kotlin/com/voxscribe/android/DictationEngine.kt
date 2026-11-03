@@ -81,12 +81,17 @@ class DictationEngine(
     val willUseWhisper: Boolean
         get() = SettingsStore.preferWhisper(context) && WhisperEngine.isAvailable(context)
 
+    @Volatile private var releasedAt = 0L
+
     fun startListening() {
         cancelled = false
+        releasedAt = 0L
+        FirstRun.step(context, "first_press", once = true)
         if (willUseWhisper) startWhisperCapture() else startFallbackRecognizer()
     }
 
     fun stopListening() {
+        releasedAt = System.currentTimeMillis()
         if (usingWhisper) {
             // The capture thread notices `capturing = false`, stops/releases
             // the AudioRecord, transcribes, and posts the result back to the
@@ -148,6 +153,10 @@ class DictationEngine(
     private fun deliver(spoken: Spoken) {
         when (spoken) {
             is Spoken.Text -> {
+                if (spoken.text.isNotBlank() && releasedAt > 0) {
+                    val seconds = (System.currentTimeMillis() - releasedAt) / 1000.0
+                    FirstRun.step(context, "first_speed", once = true, extra = mapOf("time" to FirstRun.secondsBucket(seconds)))
+                }
                 onResult(spoken.text)
                 val send = spoken.thenSend
                 if (send != null && spoken.text.isNotBlank()) onSend(send)
@@ -177,6 +186,9 @@ class DictationEngine(
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             record.release()
             usingWhisper = false
+            val granted = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            FirstRun.step(context, "mic_failed", FirstRun.micCode(granted))
             onFailure(context.getString(R.string.status_no_recognizer))
             return
         }
@@ -185,6 +197,7 @@ class DictationEngine(
         capturing = true
         val pcmBytes = ByteArrayOutputStream()
         record.startRecording()
+        FirstRun.step(context, "mic_opened", once = true)
 
         captureThread = Thread {
             val chunk = ByteArray(bufSize)
@@ -203,10 +216,16 @@ class DictationEngine(
                 // near-empty buffer -- a very fast tap-and-release can reach
                 // here with only a handful of samples. Below this floor
                 // there's nothing usable to transcribe anyway.
+                val heldMs = samples.size * 1000L / WhisperEngine.SAMPLE_RATE
+                if (heldMs < FirstRun.TAP_MS) FirstRun.step(context, "tap_too_short")
                 if (samples.size < WhisperEngine.SAMPLE_RATE / 4) {
                     mainHandler.post { onResult("") }
                 } else {
                     val spoken = TranscriptCleanup.removeNonSpeechTags(WhisperEngine.transcribe(samples))
+                    if (heldMs >= FirstRun.TAP_MS && spoken.isBlank()) {
+                        val peak = samples.maxOfOrNull { kotlin.math.abs(it) } ?: 0f
+                        FirstRun.step(context, "no_speech", extra = mapOf("level" to FirstRun.levelFor(peak)))
+                    }
                     val finished = finish(spoken)
                     mainHandler.post { deliver(finished) }
                 }

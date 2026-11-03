@@ -117,9 +117,11 @@ object WhisperEngine {
                 "Whisper model assets not found under assets/$ASSET_DIR -- " +
                     "falling back to SpeechRecognizer. See README-ANDROID.md Milestone 2."
             )
+            FirstRun.step(context, "model_failed", FirstRun.modelCode(null, filesPresent = false))
             return
         }
 
+        val loadStarted = System.currentTimeMillis()
         try {
             val config = OfflineRecognizerConfig(
                 featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
@@ -139,6 +141,8 @@ object WhisperEngine {
             recognizer = OfflineRecognizer(context.assets, config)
             available = true
             Log.i(TAG, "Whisper (sherpa-onnx) recognizer loaded from bundled assets.")
+            val seconds = (System.currentTimeMillis() - loadStarted) / 1000.0
+            FirstRun.step(context, "model_ready", once = true, extra = mapOf("load" to FirstRun.secondsBucket(seconds)))
         } catch (e: Throwable) {
             // A real device/library mismatch (wrong AAR version, corrupt model
             // file, unsupported ABI) surfaces here as an UnsatisfiedLinkError
@@ -149,6 +153,7 @@ object WhisperEngine {
             loadError = e.message ?: e.javaClass.simpleName
             recognizer = null
             available = false
+            FirstRun.step(context, "model_failed", FirstRun.modelCode(e, filesPresent = true))
         }
     }
 

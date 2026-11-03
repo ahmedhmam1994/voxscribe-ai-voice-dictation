@@ -33,5 +33,9 @@ object SnippetStore {
 
     /** Expands [text] when Pro is unlocked and it is a trigger; otherwise returns it unchanged. */
     fun expandIfPro(context: Context, text: String): String =
-        if (LicenseStore.isPro(context)) SnippetExpander.expand(text, all(context)) else text
+        if (LicenseStore.isPro(context)) {
+            SnippetExpander.expand(text, all(context)).also { if (it != text) FirstRun.feature(context, "snippets") }
+        } else {
+            text
+        }
 }

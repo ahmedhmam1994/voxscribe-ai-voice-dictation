@@ -74,6 +74,8 @@ class BubbleService : Service() {
     override fun onCreate() {
         super.onCreate()
         Telemetry.sendIfDue(this)
+        if (SettingsStore.bubbleAlive(this)) FirstRun.step(this, "service_killed")
+        SettingsStore.setBubbleAlive(this, true)
         isRunning = true
         instance = this
         DictationTileService.requestRefresh(this)
@@ -106,6 +108,7 @@ class BubbleService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        SettingsStore.setBubbleAlive(this, false)
         isRunning = false
         instance = null
         DictationTileService.requestRefresh(this)
@@ -726,8 +729,13 @@ class BubbleService : Service() {
         flash(inserted)
         if (inserted) showTapHintOnce()
         // Read it back: hear what was typed without looking at the screen.
-        if (TextToolsStore.snapshot(this).readBack) ReadAloud.speak(this, text)
+        if (TextToolsStore.snapshot(this).readBack) {
+            FirstRun.feature(this, "read_back")
+            ReadAloud.speak(this, text)
+        }
         if (!inserted) {
+            val service = VoxScribeAccessibilityService.instance
+            FirstRun.step(this, "insert_failed", FirstRun.insertCode(service != null, inputType))
             val clipboard = getSystemService(ClipboardManager::class.java)
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
             Toast.makeText(this, R.string.bubble_insert_failed_clipboard_fallback, Toast.LENGTH_SHORT).show()

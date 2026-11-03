@@ -19,6 +19,10 @@ import java.util.UUID
  *   "setup_accessibility", "setup_overlay" and "bubble_started", so it shows
  *   which step new users stop at.
  *
+ * - First-run funnel steps (see [FirstRun]): the speech model loaded, the microphone opened,
+ *   the first press, and the failures that keep people from a first dictation, each with
+ *   a short fixed code.
+ *
  * Each sends the app version, the Android version and a random id made on the
  * phone. Never audio, never text, no word counts, nothing about other apps,
  * nothing that names the person. All three are off with the one switch in
@@ -91,10 +95,18 @@ object Telemetry {
     }
 
     /** The event, as PostHog's capture API takes it. */
-    fun payload(distinctId: String, appVersion: String, osVersion: String, event: String = "app_launched"): String =
-        """{"api_key":"${escape(API_KEY)}","event":"${escape(event)}","distinct_id":"${escape(distinctId)}",""" +
+    fun payload(
+        distinctId: String,
+        appVersion: String,
+        osVersion: String,
+        event: String = "app_launched",
+        extra: Map<String, String> = emptyMap(),
+    ): String {
+        val more = extra.entries.joinToString("") { ",\"${escape(it.key)}\":\"${escape(it.value)}\"" }
+        return """{"api_key":"${escape(API_KEY)}","event":"${escape(event)}","distinct_id":"${escape(distinctId)}",""" +
             """"properties":{"app_version":"${escape(appVersion)}","os":"Android",""" +
-            """"os_version":"${escape(osVersion)}","platform":"android"}}"""
+            """"os_version":"${escape(osVersion)}","platform":"android"$more}}"""
+    }
 
     private fun escape(value: String): String =
         value.replace("\\", "\\\\").replace("\"", "\\\"").filter { it >= ' ' }
@@ -130,8 +142,11 @@ object Telemetry {
         events.forEach { post(app, it) }
     }
 
-    private fun post(app: Context, event: String) {
-        val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty(), event)
+    /** A first-run funnel event (see [FirstRun]): the ping plus a fixed code and the phone's make and memory range. */
+    fun sendFunnel(app: Context, event: String, props: Map<String, String>) = post(app, event, props)
+
+    private fun post(app: Context, event: String, extra: Map<String, String> = emptyMap()) {
+        val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty(), event, extra)
         Thread {
             try {
                 val connection = URL(ENDPOINT).openConnection() as HttpURLConnection

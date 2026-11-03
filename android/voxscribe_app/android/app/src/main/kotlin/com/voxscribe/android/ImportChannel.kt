@@ -64,6 +64,7 @@ class ImportChannel(private val activity: Activity) :
             }
             "transcribeFolder" -> {
                 if (!LicenseStore.isPro(activity) && folderRunsLeft(activity) <= 0) {
+                    FirstRun.step(activity, "pro_wall_seen", "folder_import")
                     result.error("pro", "Transcribing a whole folder needs Pro. One file at a time stays free.", null)
                     return
                 }
@@ -108,8 +109,14 @@ class ImportChannel(private val activity: Activity) :
             return true
         }
         when (requestCode) {
-            REQUEST_FILE -> runFile(uri, result)
-            REQUEST_FOLDER -> runFolder(uri, call, result)
+            REQUEST_FILE -> {
+                FirstRun.feature(activity, "file_import")
+                runFile(uri, result)
+            }
+            REQUEST_FOLDER -> {
+                FirstRun.feature(activity, "folder_import")
+                runFolder(uri, call, result)
+            }
             REQUEST_SAVE -> try {
                 activity.contentResolver.openOutputStream(uri, "wt")!!.use {
                     it.write(call.argument<String>("text").orEmpty().toByteArray(Charsets.UTF_8))

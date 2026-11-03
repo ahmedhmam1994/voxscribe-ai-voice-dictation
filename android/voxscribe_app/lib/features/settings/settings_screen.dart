@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/features/dictation/dictation_controller.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
@@ -7,6 +8,7 @@ import 'package:voxscribe_app/features/dictation/widgets/language_picker.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/pro/pro_controller.dart';
 import 'package:voxscribe_app/features/pro/pro_page.dart';
+import 'package:voxscribe_app/features/settings/data/diagnostics.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/widgets/settings_group.dart';
@@ -35,6 +37,7 @@ class SettingsScreen extends StatelessWidget {
     required this.packs,
     required this.engine,
     this.openLink,
+    this.diagnostics = loadDiagnostics,
     super.key,
   });
 
@@ -49,6 +52,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// For Teach your voice, which records like the Dictation screen.
   final DictationEngine engine;
+
+  /// Builds the text behind "Copy diagnostics".
+  final Future<String> Function() diagnostics;
 
   /// Opens a web page in the browser. Null hides the links.
   final Future<void> Function(String url)? openLink;
@@ -350,6 +356,15 @@ class SettingsScreen extends StatelessWidget {
                           onTap: () => open(_privacyUrl),
                         ),
                       SettingsRow(
+                        title: 'Copy diagnostics',
+                        subtitle:
+                            'Copies where setup stopped and your phone model '
+                            'so you can paste it into a message. Nothing is '
+                            'sent for you.',
+                        trailing: const Icon(Icons.copy, size: 20),
+                        onTap: () => _copyDiagnostics(context),
+                      ),
+                      SettingsRow(
                         title: 'Clear history',
                         subtitle:
                             'Removes every saved dictation and resets '
@@ -446,6 +461,17 @@ class SettingsScreen extends StatelessWidget {
   Future<void> _chooseLanguage(BuildContext context) async {
     final code = await pickLanguage(context, dictation.language);
     if (code != null) await dictation.chooseLanguage(code);
+  }
+
+  Future<void> _copyDiagnostics(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final text = await diagnostics();
+    if (text.isNotEmpty) await Clipboard.setData(ClipboardData(text: text));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(text.isEmpty ? 'Could not read diagnostics' : 'Copied'),
+      ),
+    );
   }
 
   Future<void> _confirmClear(BuildContext context) async {

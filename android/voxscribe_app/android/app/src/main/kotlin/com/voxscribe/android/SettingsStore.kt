@@ -107,6 +107,43 @@ object SettingsStore {
         prefs(context).edit().putString(KEY_LAST_PING_DAY, day).apply()
     }
 
+    // First-run funnel (see [FirstRun]): which steps went out, and the last one reached.
+    fun funnelOnceSent(context: Context, event: String): Boolean =
+        prefs(context).getBoolean("funnel_once_$event", false)
+
+    fun setFunnelOnceSent(context: Context, event: String) {
+        prefs(context).edit().putBoolean("funnel_once_$event", true).apply()
+    }
+
+    fun funnelDay(context: Context, event: String): String? = prefs(context).getString("funnel_day_$event", null)
+
+    fun setFunnelDay(context: Context, event: String, day: String) {
+        prefs(context).edit().putString("funnel_day_$event", day).apply()
+    }
+
+    /** True while the floating button's service is alive; still true at the next start means it was killed. */
+    fun bubbleAlive(context: Context): Boolean = prefs(context).getBoolean("bubble_alive", false)
+
+    fun setBubbleAlive(context: Context, alive: Boolean) {
+        prefs(context).edit().putBoolean("bubble_alive", alive).apply()
+    }
+
+    fun setFunnelNote(context: Context, step: String, code: String, atMillis: Long) {
+        prefs(context).edit()
+            .putString("funnel_last_step", step).putString("funnel_last_code", code)
+            .putLong("funnel_last_at", atMillis).apply()
+    }
+
+    /** The last funnel step reached: name, code and time in milliseconds. */
+    fun funnelNote(context: Context): Triple<String, String, Long> {
+        val p = prefs(context)
+        return Triple(
+            p.getString("funnel_last_step", "").orEmpty(),
+            p.getString("funnel_last_code", "").orEmpty(),
+            p.getLong("funnel_last_at", 0L),
+        )
+    }
+
     /** The one-time "first_dictation" ping has gone out (see [Telemetry]). */
     fun firstDictationSent(context: Context): Boolean = prefs(context).getBoolean(KEY_FIRST_DICTATION_SENT, false)
 
