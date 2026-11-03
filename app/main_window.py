@@ -81,6 +81,7 @@ from core import (
     code_dictation,
     diarize,
     engines,
+    firstrun,
     gpu,
     history,
     inbox,
@@ -924,8 +925,11 @@ class ModelLoaderThread(QThread):
                 self.progress.emit(f"Downloading model... {mb} of about {expected_mb} MB")
                 self.download.emit(mb, expected_mb)
 
+    load_seconds = 0.0
+
     def run(self) -> None:
         stop = threading.Event()
+        started = time.monotonic()
         try:
             # Settings -> Whisper Model Size: takes effect on the next
             # launch (this thread only runs at startup), not live mid-
@@ -958,6 +962,7 @@ class ModelLoaderThread(QThread):
             self.failed.emit(str(exc))
             return
         stop.set()
+        self.load_seconds = time.monotonic() - started
         self.done.emit(transcriber)
 
 
@@ -1419,6 +1424,13 @@ class MainWindow(QMainWindow):
         status_row = QHBoxLayout()
         self.status_pill = StatusPill()
         status_row.addWidget(self.status_pill)
+        # Shown after two empty dictations in a row: jumps to the mic level test.
+        self._mic_test_button = QPushButton("Open mic test")
+        self._mic_test_button.setObjectName("ghostButton")
+        self._mic_test_button.setCursor(Qt.PointingHandCursor)
+        self._mic_test_button.clicked.connect(self._open_mic_test)
+        self._mic_test_button.hide()
+        status_row.addWidget(self._mic_test_button)
         # First-run model download: a bar that glides along next to the
         # status text, so a slow download reads as moving, not frozen.
         self._model_progress = QProgressBar()
@@ -1691,6 +1703,11 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
 
         self._model_failed = False
+        self._settings_open_section = 0  # Settings page to open on (2 is Audio)
+        self._no_speech_streak = 0  # empty dictations in a row
+        self._last_peak = 1.0  # loudest sample of the last recording, 0 to 1
+        self._released_at = 0.0  # when the key was let go, for release-to-text timing
+        self._last_mic_kind = ""
         self._typing_lock = threading.Lock()
         # Set for "how are you? send it": press Enter once that text is typed.
         self._send_after_typing = False
@@ -1922,6 +1939,7 @@ class MainWindow(QMainWindow):
             # silently swallowing this left them with no clue why
             # dictating into other apps never did anything.
             self._hotkey_registration_error = str(exc)
+            firstrun.step("hotkey_failed", code=firstrun.classify_hotkey_error(str(exc)))
 
         self._update_hotkey_hint()
 
@@ -2103,7 +2121,8 @@ class MainWindow(QMainWindow):
         privacy_layout = _new_section("Privacy", "Network use and where VoxScribe stays quiet.")
         about_layout = _new_section("About", "Version, updates and usage.")
         nav_layout.addStretch(1)
-        _show_section(0)
+        _show_section(self._settings_open_section)
+        self._settings_open_section = 0
 
         class _SectionProxy:
             """Lets the long builder below keep calling layout.addWidget /
@@ -2159,9 +2178,11 @@ class MainWindow(QMainWindow):
         license_buy_button = QPushButton("Get Pro ($14 once)")
         license_buy_button.setObjectName("primaryOutlineButton")
         license_buy_button.setCursor(Qt.PointingHandCursor)
-        license_buy_button.clicked.connect(
-            lambda: webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
-        )
+        def _open_buy_page() -> None:
+            firstrun.step("pro_buy_clicked", code="settings")
+            webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
+
+        license_buy_button.clicked.connect(_open_buy_page)
         layout.addWidget(license_buy_button)
 
         license_key_edit = QLineEdit()
@@ -2216,6 +2237,7 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
 
             ok, message = hotkey_license.activate_online(key)
+            firstrun.step("pro_activation", code=firstrun.classify_activation(ok, message))
             license_unlock_button.setEnabled(True)
             if not ok:
                 license_status_label.setText(message or "Activation failed -- try again.")
@@ -3573,6 +3595,26 @@ class MainWindow(QMainWindow):
         update_button.clicked.connect(lambda: self._start_update_check(manual=True))
         layout.addWidget(update_button)
 
+        diagnostics_button = QPushButton("Copy diagnostics")
+        diagnostics_button.setObjectName("secondaryButton")
+        diagnostics_button.setCursor(Qt.PointingHandCursor)
+        layout.addWidget(diagnostics_button)
+        diagnostics_hint = QLabel(
+            "Copies a short report (version, Windows, the last step VoxScribe reached, "
+            "microphone and model) to paste into a bug report. No audio or text. "
+            "Nothing is sent anywhere."
+        )
+        diagnostics_hint.setObjectName("settingsHint")
+        diagnostics_hint.setWordWrap(True)
+        layout.addWidget(diagnostics_hint)
+
+        def _copy_diagnostics() -> None:
+            QApplication.clipboard().setText(self._diagnostics_text())
+            diagnostics_button.setText("Copied")
+            QTimer.singleShot(1800, lambda: diagnostics_button.setText("Copy diagnostics"))
+
+        diagnostics_button.clicked.connect(_copy_diagnostics)
+
         def _apply() -> None:
             changes = []
 
@@ -3745,6 +3787,8 @@ class MainWindow(QMainWindow):
                 new_mode = modes.DEFAULT_MODE
             if new_mode != hotkey_settings.get_mode():
                 hotkey_settings.set_mode(new_mode)
+                if new_mode != modes.DEFAULT_MODE:
+                    firstrun.feature("dictation_mode")
                 changes.append(f"Dictation mode: {modes.MODE_LABELS[new_mode].split(' (')[0]}.")
             if hotkey_license.is_pro():
                 new_auto_modes = auto_modes_checkbox.isChecked()
@@ -4418,12 +4462,19 @@ class MainWindow(QMainWindow):
         self._model_progress.hide()
         self.transcriber = transcriber
         self._model_failed = False
+        loader = getattr(self, "_loader", None)
+        firstrun.step(
+            "model_ready",
+            once=True,
+            load=firstrun.seconds_bucket(getattr(loader, "load_seconds", 0.0)),
+        )
         self.record_button.setText("Start Recording")
         self._set_status("Ready", "ready")
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
 
     def _on_model_load_failed(self, message: str) -> None:
+        firstrun.step("model_failed", code=firstrun.classify_model_error(message))
         self._model_progress.hide()
         self._model_failed = True
         self._set_status("Model failed to load. Click Retry.", "error")
@@ -4556,6 +4607,7 @@ class MainWindow(QMainWindow):
             return
 
         self._dictation_started_at = time.time()
+        firstrun.step("first_press", once=True)
         self._inbox_session, self._inbox_pending = self._inbox_pending, False
         read_aloud.stop()
         # A new dictation starts: the previous one can no longer be redone.
@@ -4591,6 +4643,7 @@ class MainWindow(QMainWindow):
             self._set_status("Recording...", "recording")
             self._indicator.show_status("recording", self._mode_badge())
             _play_start_sound()
+            firstrun.step("mic_opened", once=True, mic=self._mic_kind(device))
             return
 
         # Record at the device's own native rate rather than forcing 16kHz --
@@ -4616,6 +4669,7 @@ class MainWindow(QMainWindow):
         except Exception as exc:  # noqa: BLE001
             self.stream = None
             self._hotkey_active_session = False
+            firstrun.step("mic_failed", code=firstrun.classify_mic_error(str(exc)))
             self._set_status(f"No microphone available: {exc}", "error")
             self._indicator.flash_error("No microphone available")
             return
@@ -4625,6 +4679,17 @@ class MainWindow(QMainWindow):
         self._set_status("Recording...", "recording")
         self._indicator.show_status("recording", self._mode_badge())
         _play_start_sound()
+        firstrun.step("mic_opened", once=True, mic=self._mic_kind(device))
+
+    def _mic_kind(self, device: int | None) -> str:
+        """bluetooth, usb, built_in or other for the mic in use. The name is never sent."""
+        try:
+            names = dict(list_input_devices())
+            kind = firstrun.mic_kind(names.get(device) if device is not None else None)
+        except Exception:  # noqa: BLE001
+            kind = "other"
+        self._last_mic_kind = kind
+        return kind
 
     def _stop_recording(self) -> None:
         # Capture now, while the user is still (presumably) looking at the
@@ -4657,6 +4722,8 @@ class MainWindow(QMainWindow):
         audio = resample_to_16k(audio, self._record_rate)
         self._chunks = []
         self._last_recording_duration = len(audio) / SAMPLE_RATE
+        self._last_peak = float(np.max(np.abs(audio))) if len(audio) else 0.0
+        self._released_at = time.monotonic()
 
         params = (
             self._effective_language(),
@@ -4842,7 +4909,10 @@ class MainWindow(QMainWindow):
         if text and hotkey_settings.get_arabic_terms_enabled():
             text = arabic_terms.apply_arabic_terms(text)
         if text and pro:
+            before = text
             text = snippets.expand_snippet(text)
+            if text != before:
+                firstrun.feature("snippets")
         if text and trailing_mode:
             text = apply_transform(text, trailing_mode)
         return text
@@ -4914,6 +4984,7 @@ class MainWindow(QMainWindow):
             cached = (
                 self._redo_model if self._redo_model and self._redo_model[0] == size else None
             )
+        firstrun.feature("try_harder")
         language, prompt, task = redo["params"]
         self._indicator.show_status("redo")
         self._set_status("Trying harder...", "transcribing")
@@ -5077,6 +5148,14 @@ class MainWindow(QMainWindow):
             hotkey_settings.record_dictation(len(text.split()))
             history.add_entry(text, self._last_recording_duration)
             telemetry.send_dictation_used()
+            if self._released_at:
+                firstrun.step(
+                    "first_speed",
+                    once=True,
+                    release_to_text=firstrun.seconds_bucket(time.monotonic() - self._released_at),
+                )
+            self._no_speech_streak = 0
+            self._mic_test_button.hide()
             self._refresh_history_feed()
             if inbox_note:
                 self._save_to_inbox(text)
@@ -5095,10 +5174,51 @@ class MainWindow(QMainWindow):
                 QTimer.singleShot(700, lambda: read_aloud.speak(text))
             self._after_first_dictation()
         else:
-            self._set_status("No speech heard. Check the microphone volume.", "error")
-            # Usually a mic that is too quiet or muted: say so instead of
+            # A quick tap of the key is not a failed dictation, so it does not count.
+            if self._last_recording_duration >= 0.6:
+                self._no_speech_streak += 1
+                firstrun.step(
+                    "no_speech",
+                    level=telemetry.level_for_peak(self._last_peak),
+                    mic=self._last_mic_kind,
+                )
+            else:
+                firstrun.step("tap_too_short")
+            key = hotkey_settings.get_hotkey()
+            self._set_status(
+                f"No speech heard. Hold {key.upper()} while you talk, and check the mic in "
+                "Windows Settings, Privacy.",
+                "error",
+            )
+            # Usually a mic that is too quiet, muted or blocked: say so instead of
             # silently vanishing.
             self._indicator.flash_error("No speech heard")
+            self._mic_test_button.setVisible(self._no_speech_streak >= 2)
+
+    def _diagnostics_text(self) -> str:
+        """The local report behind Settings > About > Copy diagnostics."""
+        try:
+            device = resolve_input_device(hotkey_settings.get_input_device())
+            names = dict(list_input_devices())
+            mic = names.get(device, "auto-detect") if device is not None else "auto-detect"
+        except Exception:  # noqa: BLE001
+            mic = "unknown"
+        lines = [
+            f"Hotkey: {self._hotkey.upper()}, talk mode {hotkey_settings.get_talk_mode()}",
+            f"Microphone: {mic}",
+            f"Model: {hotkey_settings.get_model_size()}, GPU "
+            f"{'on' if hotkey_settings.get_gpu_acceleration_enabled() else 'off'}",
+            f"Model ready: {'yes' if self.transcriber is not None else 'no'}",
+            f"Last recording: {self._last_recording_duration:.1f} s, "
+            f"level {telemetry.level_for_peak(self._last_peak)}",
+            f"Empty dictations in a row: {self._no_speech_streak}",
+        ]
+        return firstrun.diagnostics_text(lines)
+
+    def _open_mic_test(self) -> None:
+        """Opens Settings on the Audio page, where the "Test microphone" button is."""
+        self._settings_open_section = 2
+        self._open_settings_dialog()
 
     # -- meetings (core/meeting.py) -------------------------------------
 
@@ -5150,6 +5270,7 @@ class MainWindow(QMainWindow):
         if error:
             self._set_status(error, "error")
             return
+        firstrun.feature("meeting")
         if use_loopback and not self._meeting.has_loopback:
             self._tray_notify(
                 "VoxScribe",
@@ -5423,9 +5544,11 @@ class MainWindow(QMainWindow):
                 # else is focused (possibly a chat or another private
                 # field), so hold it instead. The text is already in the
                 # transcript and history; clicking the balloon copies it.
+                firstrun.step("type_failed", code="no_focus")
                 self._hold_text(text)
                 return
         if focused_is_password():
+            firstrun.step("type_failed", code="password_field")
             self._set_status("Not typed: the box is a password field", "error")
             self._indicator.flash_error("Not typing into a password field", 2500)
             return
@@ -5478,7 +5601,7 @@ class MainWindow(QMainWindow):
                         # whatever comes next in that window.
                         self._last_typed_text = ""
                 except Exception:  # noqa: BLE001
-                    pass
+                    firstrun.step("type_failed", code="error")
 
         threading.Thread(target=_type, daemon=True).start()
 
@@ -5660,6 +5783,7 @@ class MainWindow(QMainWindow):
             self._set_status("No audio or video files found", "error")
             return
         is_batch = len(files) > 1 or any(os.path.isdir(p) for p in paths)
+        firstrun.feature("batch_import" if is_batch else "file_import")
 
         trial_note = ""
         if is_batch and not retry and not hotkey_license.is_pro():
@@ -5738,8 +5862,10 @@ class MainWindow(QMainWindow):
         first_button = box.addButton("Import first file only", QMessageBox.ActionRole)
         box.addButton("Cancel", QMessageBox.RejectRole)
         box.setDefaultButton(pro_button)
+        firstrun.step("pro_wall_seen", code="batch")
         box.exec()
         if box.clickedButton() is pro_button:
+            firstrun.step("pro_buy_clicked", code="batch")
             webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
         elif box.clickedButton() is first_button:
             self._begin_import(files[:1])

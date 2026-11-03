@@ -89,3 +89,41 @@ def test_a_failure_never_escapes(monkeypatch, tmp_path):
     monkeypatch.setattr(telemetry, "_capture", broken)
 
     telemetry.send_dictation_used()  # must not raise
+
+
+def _isolate_with_props(monkeypatch, tmp_path, *, enabled=True):
+    ini_path = str(tmp_path / "settings.ini")
+    monkeypatch.setattr(
+        telemetry, "_settings", lambda: QSettings(ini_path, QSettings.Format.IniFormat)
+    )
+    monkeypatch.setattr(app_settings, "get_telemetry_enabled", lambda: enabled)
+    sent: list[tuple[str, dict]] = []
+    monkeypatch.setattr(telemetry, "_capture", lambda event, **extra: sent.append((event, extra)))
+    return sent
+
+
+def test_level_for_peak_buckets():
+    assert telemetry.level_for_peak(0.0) == "silent"
+    assert telemetry.level_for_peak(0.02) == "quiet"
+    assert telemetry.level_for_peak(0.4) == "normal"
+
+
+def test_send_once_sends_one_event_per_install(monkeypatch, tmp_path):
+    sent = _isolate_with_props(monkeypatch, tmp_path)
+    telemetry.send_once("model_ready", load="2_5s")
+    telemetry.send_once("model_ready", load="under_2s")
+    assert sent == [("model_ready", {"load": "2_5s"})]
+
+
+def test_send_daily_sends_at_most_once_a_day(monkeypatch, tmp_path):
+    sent = _isolate_with_props(monkeypatch, tmp_path)
+    telemetry.send_daily("no_speech", level="silent")
+    telemetry.send_daily("no_speech", level="quiet")
+    assert sent == [("no_speech", {"level": "silent"})]
+
+
+def test_send_helpers_respect_the_telemetry_switch(monkeypatch, tmp_path):
+    sent = _isolate_with_props(monkeypatch, tmp_path, enabled=False)
+    telemetry.send_once("model_ready")
+    telemetry.send_daily("no_speech", level="silent")
+    assert sent == []
