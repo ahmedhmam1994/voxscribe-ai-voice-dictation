@@ -44,7 +44,7 @@ class TranscriptCard extends StatelessWidget {
       );
     } else if (text == null) {
       body = Text(
-        'Hold the green button and talk. Your words appear here.',
+        'Hold the green button and talk. Names on your screen are spelled the way the screen spells them.',
         key: const ValueKey('hint'),
         style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: c.muted),
       );

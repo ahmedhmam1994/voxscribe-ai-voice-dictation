@@ -12,19 +12,22 @@ import 'package:voxscribe_app/features/settings/data/diagnostics.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/widgets/settings_group.dart';
+import 'package:voxscribe_app/features/privacy/network_log.dart';
+import 'package:voxscribe_app/features/privacy/privacy_receipt_page.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
+import 'package:voxscribe_app/features/speechmodel/fast_model_row.dart';
 import 'package:voxscribe_app/features/termpacks/term_packs_controller.dart';
 import 'package:voxscribe_app/features/termpacks/term_packs_page.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_pages.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
-/// Every setting, in groups: setup, Pro, dictation, voice commands, word
-/// replacements, the Pro tools, appearance, and privacy and data.
+/// Every setting, in seven groups: setup, dictation, the floating button, voice
+/// and words, Pro, appearance, and privacy and data.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     required this.settings,
@@ -37,9 +40,13 @@ class SettingsScreen extends StatelessWidget {
     required this.packs,
     required this.engine,
     this.openLink,
+    this.networkLog = const MethodChannelNetworkLog(),
     this.diagnostics = loadDiagnostics,
     super.key,
   });
+
+  /// The privacy receipt's entries.
+  final NetworkLog networkLog;
 
   final SettingsController settings;
   final SetupController setup;
@@ -99,6 +106,47 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
+                    label: 'Dictation',
+                    children: [
+                      SettingsRow(
+                        title: 'Language you speak',
+                        trailing: Text(
+                          languageForCode(dictation.language).name,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: context.vox.muted),
+                        ),
+                        onTap: dictation.canStart
+                            ? () => _chooseLanguage(context)
+                            : null,
+                      ),
+                      const FastModelRow(),
+                      SettingsRow(
+                        title: 'Dictation mode',
+                        subtitle: unlocked && tools.autoModes
+                            ? '${modeName(tools.mode)}, switching by app.'
+                            : modeName(tools.mode),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          ModesPage(controller: textTools, pro: pro),
+                        ),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Remove filler words',
+                        subtitle: 'Takes out "um", "uh" and repeated words.',
+                        value: values.cleanup,
+                        onChanged: (value) => settings.setCleanup(value: value),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Add a space after dictated text',
+                        subtitle: 'So the next dictation does not run into it.',
+                        value: values.trailingSpace,
+                        onChanged: (value) =>
+                            settings.setTrailingSpace(value: value),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
                     label: 'Floating button',
                     children: [
                       _PickerRow<RecordingMode>(
@@ -123,15 +171,6 @@ class SettingsScreen extends StatelessWidget {
                         },
                         onChanged: settings.setBubbleSize,
                       ),
-                      SettingsSwitchRow(
-                        title: 'Read it back',
-                        subtitle:
-                            'Your phone reads each dictation aloud after it '
-                            'is typed, so you can check it without looking.',
-                        value: tools.readBack,
-                        onChanged: (value) =>
-                            textTools.setReadBack(value: value),
-                      ),
                       SettingsRow(
                         title: 'Quick Settings tile',
                         subtitle:
@@ -145,52 +184,7 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
-                    label: 'Dictation',
-                    children: [
-                      SettingsRow(
-                        title: 'Language you speak',
-                        trailing: Text(
-                          languageForCode(dictation.language).name,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: context.vox.muted),
-                        ),
-                        onTap: dictation.canStart
-                            ? () => _chooseLanguage(context)
-                            : null,
-                      ),
-                      SettingsSwitchRow(
-                        title: 'Remove filler words',
-                        subtitle: 'Takes out "um", "uh" and repeated words.',
-                        value: values.cleanup,
-                        onChanged: (value) => settings.setCleanup(value: value),
-                      ),
-                      SettingsSwitchRow(
-                        title: 'Add a space after dictated text',
-                        subtitle: 'So the next dictation does not run into it.',
-                        value: values.trailingSpace,
-                        onChanged: (value) =>
-                            settings.setTrailingSpace(value: value),
-                      ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'Dictation mode',
-                    children: [
-                      SettingsRow(
-                        title: 'Mode',
-                        subtitle: unlocked && tools.autoModes
-                            ? '${modeName(tools.mode)}, switching by app.'
-                            : modeName(tools.mode),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _push(
-                          context,
-                          ModesPage(controller: textTools, pro: pro),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'Voice commands',
+                    label: 'Voice and words',
                     children: [
                       SettingsRow(
                         title: 'Voice commands',
@@ -212,11 +206,6 @@ class SettingsScreen extends StatelessWidget {
                         onTap: () =>
                             _push(context, SendItPage(controller: textTools)),
                       ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'Word replacements',
-                    children: [
                       SettingsRow(
                         title: 'Your replacements',
                         subtitle: _countLine(
@@ -225,16 +214,14 @@ class SettingsScreen extends StatelessWidget {
                           'Fix words the model keeps getting wrong.',
                         ),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _push(
-                          context,
-                          ReplacementsPage(controller: textTools),
-                        ),
+                        onTap: () {
+                          textTools.refreshLearned();
+                          _push(
+                            context,
+                            ReplacementsPage(controller: textTools),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'Words for your field',
-                    children: [
                       SettingsRow(
                         title: 'Term packs',
                         subtitle: _packsLine(tools.enabledPacks),
@@ -247,6 +234,32 @@ class SettingsScreen extends StatelessWidget {
                             engine: engine,
                           ),
                         ),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Spell names from the screen',
+                        subtitle:
+                            'Names and app words shown on screen, like the '
+                            'person you are writing to, fix how they are '
+                            'spelled. Read on your phone only, never kept.',
+                        value: tools.screenSpelling,
+                        onChanged: (value) =>
+                            textTools.setScreenSpelling(value: value),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Read it back',
+                        subtitle:
+                            'Your phone reads each dictation aloud after it '
+                            'is typed, so you can check it without looking.',
+                        value: tools.readBack,
+                        onChanged: (value) =>
+                            textTools.setReadBack(value: value),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Fill forms by voice',
+                        subtitle: _formFillLine(tools.formFillsLeft),
+                        value: tools.formFill,
+                        onChanged: (value) =>
+                            textTools.setFormFill(value: value),
                       ),
                     ],
                   ),
@@ -346,6 +359,15 @@ class SettingsScreen extends StatelessWidget {
                         onChanged: (value) =>
                             settings.setUsagePing(value: value),
                       ),
+                      SettingsRow(
+                        title: 'Privacy receipt',
+                        subtitle:
+                            'Every time VoxScribe went online from this '
+                            'phone, and what it sent. Never your words.',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () =>
+                            _push(context, PrivacyReceiptPage(log: networkLog)),
+                      ),
                       if (openLink case final open?)
                         SettingsRow(
                           title: 'Privacy at a glance',
@@ -434,6 +456,16 @@ class SettingsScreen extends StatelessWidget {
       for (final id in enabled) builtIn[id] ?? id.replaceFirst('user:', ''),
     ];
     return 'On: ${names.join(', ')}';
+  }
+
+  /// How form filling works, and the free fills left without Pro.
+  String _formFillLine(int left) {
+    const how =
+        'Say "Name Sam Lee, phone 555 0100, email sam at mail dot com" '
+        'and every box on the form fills at once.';
+    if (left < 0) return how;
+    if (left == 0) return '$how Your free fills are used up: Pro keeps it on.';
+    return '$how $left free ${left == 1 ? 'fill' : 'fills'} left, unlimited with Pro.';
   }
 
   Future<void> _addQuickTile(BuildContext context) async {

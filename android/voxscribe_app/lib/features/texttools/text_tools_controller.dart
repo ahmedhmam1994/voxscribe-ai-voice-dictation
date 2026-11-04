@@ -130,6 +130,30 @@ class TextToolsController extends ChangeNotifier {
   Future<void> setReadBack({required bool value}) =>
       _change(_settings.copyWith(readBack: value));
 
+  Future<void> setFormFill({required bool value}) =>
+      _change(_settings.copyWith(formFill: value));
+
+  Future<void> setScreenSpelling({required bool value}) =>
+      _change(_settings.copyWith(screenSpelling: value));
+
+  Future<void> setLearnFixes({required bool value}) =>
+      _change(_settings.copyWith(learnFixes: value));
+
+  /// Reads the learned fixes again: the floating button learns them while
+  /// this screen is not open.
+  Future<void> refreshLearned() async {
+    final saved = await repository.load();
+    _settings = _settings.copyWith(learned: saved.learned);
+    notifyListeners();
+  }
+
+  /// Removes one learned fix; it is spelled as heard again from then on.
+  Future<void> forgetLearned(String heard) async {
+    final left = await repository.forgetLearned(heard);
+    _settings = _settings.copyWith(learned: left);
+    notifyListeners();
+  }
+
   Future<void> setReplacements(String value) =>
       _change(_settings.copyWith(replacements: value));
 

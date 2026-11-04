@@ -49,6 +49,7 @@ class MethodChannelReleaseRepository implements ReleaseRepository {
   @override
   Future<ReleaseInfo?> fetchLatest() async {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+    await _recordCheck();
     try {
       final request = await client.getUrl(_releasesUrl);
       request.headers.set('Accept', 'application/vnd.github+json');
@@ -71,6 +72,22 @@ class MethodChannelReleaseRepository implements ReleaseRepository {
       await _channel.invokeMethod<bool>('openUrl', {'url': url});
     } on PlatformException {
       // Nothing to fall back to; the user can open the releases page by hand.
+    }
+  }
+
+  /// Adds the update check to the privacy receipt (see `NetworkLog.kt`).
+  Future<void> _recordCheck() async {
+    try {
+      await const MethodChannel('com.voxscribe.android/networklog')
+          .invokeMethod<void>('record', {
+            'what': 'Update check',
+            'url': _releasesUrl.toString(),
+            'sent': 'Nothing about you: a request for the list of releases',
+          });
+    } on PlatformException {
+      // The check still runs; it is just not listed.
+    } on MissingPluginException {
+      // Tests.
     }
   }
 }

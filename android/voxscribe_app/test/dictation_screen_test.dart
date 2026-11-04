@@ -11,7 +11,7 @@ void main() {
     expect(find.text('Ready'), findsOneWidget);
     expect(find.text('Hold to dictate'), findsOneWidget);
     expect(find.text('No dictations yet today.'), findsOneWidget);
-    expect(find.textContaining('Your words appear here'), findsOneWidget);
+    expect(find.textContaining('Hold the green button and talk'), findsOneWidget);
   });
 
   testWidgets('hold, release, then the text and history appear', (

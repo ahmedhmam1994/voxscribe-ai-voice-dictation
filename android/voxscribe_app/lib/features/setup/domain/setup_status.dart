@@ -12,6 +12,7 @@ class SetupStatus {
     required this.overlay,
     required this.bubbleRunning,
     this.accessibilityNeedsRestart = false,
+    this.accessibilityRestricted = false,
     this.notifications = true,
   });
 
@@ -36,6 +37,11 @@ class SetupStatus {
   /// Accessibility is switched on, but Android has disconnected the service,
   /// as it can after an app update. Switching it off and on fixes it.
   final bool accessibilityNeedsRestart;
+
+  /// VoxScribe was installed from a file, so Android 13+ may grey out the
+  /// accessibility switch ("Restricted setting") until it is allowed in App
+  /// info. Android does not tell apps whether it is still blocked.
+  final bool accessibilityRestricted;
 
   bool isDone(SetupStep step) => switch (step) {
     SetupStep.microphone => microphone,
@@ -62,6 +68,7 @@ class SetupStatus {
       overlay: overlay,
       bubbleRunning: bubbleRunning ?? this.bubbleRunning,
       accessibilityNeedsRestart: accessibilityNeedsRestart,
+      accessibilityRestricted: accessibilityRestricted,
       notifications: notifications,
     );
   }

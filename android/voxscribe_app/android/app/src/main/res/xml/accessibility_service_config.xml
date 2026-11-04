@@ -7,13 +7,16 @@
   the app or window changes (typeWindowStateChanged), and to show the bubble
   only while a text box is being edited with the keyboard open
   (typeWindowContentChanged, typeWindowsChanged and flagRetrieveInteractiveWindows,
-  used only to see whether the keyboard window is present). Nothing on screen is
-  read beyond that, except for the optional "send it" command: when it is said, the
-  window is searched for a button labelled Send (labels and ids only, never message
-  text), which is tapped.
+  used only to see whether the keyboard window is present). Beyond that, the screen
+  is read only while dictating: its words fix how names are spelled (ScreenWords,
+  can be turned off), its box labels let one sentence fill a form (FormFill), and
+  "send it" searches for a button labelled Send. typeViewTextChanged is only acted
+  on for the box VoxScribe just typed into, so a spelling fix the person makes
+  there can be learned (LearnedWords, can be turned off). Nothing read is kept or
+  sent, apart from a learned fix itself, which stays on the phone.
 -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accessibilityEventTypes="typeViewFocused|typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged"
+    android:accessibilityEventTypes="typeViewFocused|typeWindowStateChanged|typeWindowContentChanged|typeWindowsChanged|typeViewTextChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"

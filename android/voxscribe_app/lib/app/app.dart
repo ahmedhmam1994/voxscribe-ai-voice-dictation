@@ -4,6 +4,8 @@ import 'package:voxscribe_app/app/shell/home_shell.dart';
 import 'package:voxscribe_app/app/theme/app_theme.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
 import 'package:voxscribe_app/features/history/domain/history_repository.dart';
+import 'package:voxscribe_app/features/import/data/method_channel_file_import_repository.dart';
+import 'package:voxscribe_app/features/import/file_import_screen.dart';
 import 'package:voxscribe_app/features/pro/domain/pro_repository.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
 import 'package:voxscribe_app/features/settings/domain/settings_repository.dart';
@@ -41,7 +43,12 @@ class VoxScribeApp extends StatefulWidget {
   State<VoxScribeApp> createState() => _VoxScribeAppState();
 }
 
-class _VoxScribeAppState extends State<VoxScribeApp> {
+class _VoxScribeAppState extends State<VoxScribeApp>
+    with WidgetsBindingObserver {
+  final _navigator = GlobalKey<NavigatorState>();
+  final _imports = MethodChannelFileImportRepository();
+  var _showingShared = false;
+
   // Lives here, above MaterialApp, because the theme choice changes it.
   late final SettingsController _settings = SettingsController(
     repository: widget.settingsRepository,
@@ -51,10 +58,33 @@ class _VoxScribeAppState extends State<VoxScribeApp> {
   void initState() {
     super.initState();
     _settings.load();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openShared());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _openShared();
+  }
+
+  /// A voice note or recording shared from another app opens the transcribe
+  /// screen and starts at once.
+  Future<void> _openShared() async {
+    if (_showingShared || !await _imports.hasShared()) return;
+    final navigator = _navigator.currentState;
+    if (navigator == null) return;
+    _showingShared = true;
+    await navigator.push(
+      MaterialPageRoute<void>(
+        builder: (_) => const FileImportScreen(shared: true),
+      ),
+    );
+    _showingShared = false;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _settings.dispose();
     super.dispose();
   }
@@ -65,6 +95,7 @@ class _VoxScribeAppState extends State<VoxScribeApp> {
       listenable: _settings,
       builder: (context, _) {
         return MaterialApp(
+          navigatorKey: _navigator,
           title: 'VoxScribe',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,

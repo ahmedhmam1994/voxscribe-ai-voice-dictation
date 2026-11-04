@@ -35,6 +35,12 @@ object ActivationClient {
             .put("platform", PLATFORM)
         if (action != null) json.put("action", action)
         val body = json.toString()
+        NetworkLog.record(
+            context,
+            what = if (action == "deactivate") "Remove Pro license" else "Pro activation",
+            url = ENDPOINT,
+            sent = "Your license key and an id Android gives this app",
+        )
         return try {
             val connection = URL(ENDPOINT).openConnection() as HttpURLConnection
             connection.requestMethod = "POST"

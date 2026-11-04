@@ -10,6 +10,8 @@ package com.voxscribe.android
  *   "twenty five percent"               gives 25%
  *   "one hundred and five dollars"      gives $105
  *   "five five five one two three four" gives 5551234
+ *   "order number four eight two nine"  gives order number 4829
+ *   "three forty five in the afternoon" gives 3:45 in the afternoon
  *
  * Conservative on purpose: a lone small number ("one of them") stays a word,
  * and a number phrase that does not parse cleanly is left untouched.
@@ -41,6 +43,30 @@ object SmartFormat {
         "\\b(?:(?:$digitWord|oh)(?:[\\s,-]+|\\b)){7,}",
         RegexOption.IGNORE_CASE,
     )
+
+    private val hourWords = ones.filterValues { it in 1..12 }.keys.joinToString("|")
+    private val minuteRun = "(?:(?:$numberWord)(?:[\\s-]+(?:and[\\s-]+)?(?:$numberWord))*)"
+    private const val DAYPART = "a\\.?m\\.?|p\\.?m\\.?|in the (?:morning|afternoon|evening)|at night|tonight"
+    /** "three forty five pm", "three hundred forty five in the afternoon", "four oh five am". */
+    private val timeRe = Regex(
+        "\\b(?<whole>(?:$hourWords)\\s+oh\\s+(?:$digitWord)|$minuteRun)\\s+(?<suffix>$DAYPART)(?![\\w])",
+        RegexOption.IGNORE_CASE,
+    )
+    /** "at three forty five": a bare time needs the "at" so it cannot be a plain number. */
+    private val atTimeRe = Regex(
+        "\\bat\\s+(?<hour>$hourWords)\\s+(?:oh\\s+(?<ohmin>$numberWord)|(?<min>(?:twenty|thirty|forty|fifty)(?:[\\s-]+(?:one|two|three|four|five|six|seven|eight|nine))?|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen))\\b" +
+            "(?!\\s+(?:dollars?|euros?|percent|people|items?|times|minutes?|hours?|years?|days?))",
+        RegexOption.IGNORE_CASE,
+    )
+    /** One spoken piece of a code: a digit, "oh", a teen, or a tens word with an optional digit ("twenty nine"). */
+    private val codePiece = "(?:${tens.keys.joinToString("|")})(?:[\\s-]+(?:$digitWord))?" +
+        "|(?:${ones.filterValues { it >= 10 }.keys.joinToString("|")})|$digitWord|oh"
+    private val codeRe = Regex(
+        "\\b(?<kw>number|code|pin|id|zip|extension|reference|ref|order)\\s+" +
+            "(?<digits>(?:$codePiece)(?:[\\s,-]+(?:$codePiece)){1,})\\b",
+        RegexOption.IGNORE_CASE,
+    )
+    private val codePieceRe = Regex(codePiece, RegexOption.IGNORE_CASE)
 
     private const val TLDS = "com|org|net|io|co|edu|gov|app|dev|ai|me|info|uk|de|fr"
     private const val PART = "[a-z0-9]+"
@@ -137,6 +163,9 @@ object SmartFormat {
         val unit = (match.groups["unit"]?.value ?: "").lowercase()
         val text = if (decimals != null) {
             "$value." + decimals.lowercase().split(Regex("\\s+")).joinToString("") { digits.getValue(it).toString() }
+        } else if (value >= 10_000 || (value >= 1000 && unit.isNotEmpty())) {
+            // 25000 reads as 25,000, but a bare 2026 stays a year.
+            "%,d".format(java.util.Locale.US, value)
         } else {
             value.toString()
         }
@@ -149,12 +178,66 @@ object SmartFormat {
         }
     }
 
+    /** "three forty five" gives "3:45", "three hundred forty five" gives "3:45", or null when it is not a clock time. */
+    private fun clock(phrase: String): String? {
+        val words = phrase.lowercase().split(Regex("[\\s-]+")).filter { it.isNotEmpty() }
+        val whole = parseNumberWords(phrase)
+        if (whole != null && whole in 100..1259 && whole % 100 < 60 && whole / 100 in 1..12) {
+            return "${whole / 100}:${(whole % 100).toString().padStart(2, '0')}"
+        }
+        val hour = words.firstOrNull()?.let { ones[it] } ?: return null
+        if (hour !in 1..12) return null
+        val rest = words.drop(1)
+        if (rest.isEmpty()) return "$hour"
+        val minutes = if (rest.first() == "oh" && rest.size == 2) {
+            ones[rest[1]]?.takeIf { it in 1..9 }
+        } else {
+            parseNumberWords(rest.joinToString(" "))?.takeIf { it in 10..59 }
+        } ?: return null
+        return "$hour:${minutes.toString().padStart(2, '0')}"
+    }
+
+    private fun time(match: MatchResult): String {
+        val time = clock(match.groups["whole"]!!.value) ?: return match.value
+        val suffix = match.groups["suffix"]!!.value
+        val ampm = suffix.replace(".", "").uppercase()
+        return if (ampm == "AM" || ampm == "PM") "$time $ampm" else "$time $suffix"
+    }
+
+    private fun atTime(match: MatchResult): String {
+        val hour = ones.getValue(match.groups["hour"]!!.value.lowercase())
+        val minutes = match.groups["ohmin"]?.value?.let { ones[it.lowercase()] }
+            ?: parseNumberWords(match.groups["min"]!!.value)
+            ?: return match.value
+        if (minutes !in 1..59) return match.value
+        return "at $hour:${minutes.toString().padStart(2, '0')}"
+    }
+
+    private fun code(match: MatchResult): String {
+        val pieces = codePieceRe.findAll(match.groups["digits"]!!.value.lowercase()).map { it.value }.toList()
+        val parts = pieces.map { piece ->
+            when {
+                piece == "oh" -> "0"
+                piece in digits -> digits.getValue(piece).toString()
+                else -> parseNumberWords(piece)?.toString()
+            }
+        }
+        if (parts.any { it == null }) return match.value
+        val text = parts.joinToString("")
+        // Two plain pieces are a number, not a code: "order twenty five". Keep those as words.
+        if (pieces.size < 3 && text.length < 4) return match.value
+        return "${match.groups["kw"]!!.value} $text"
+    }
+
     /** Rewrites spoken emails, web addresses and numbers. Other text is unchanged. */
     fun format(text: String): String {
         if (text.isEmpty()) return text
         var result = emailRe.replace(text) { email(it) }
         result = urlRe.replace(result) { url(it) }
         result = phoneRe.replace(result) { phone(it) }
+        result = codeRe.replace(result) { code(it) }
+        result = timeRe.replace(result) { time(it) }
+        result = atTimeRe.replace(result) { atTime(it) }
         return numberRe.replace(result) { number(it) }
     }
 }

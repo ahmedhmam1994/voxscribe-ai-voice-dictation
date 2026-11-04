@@ -147,6 +147,13 @@ object Telemetry {
 
     private fun post(app: Context, event: String, extra: Map<String, String> = emptyMap()) {
         val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty(), event, extra)
+        val basics = "The event name, the app version, the Android version and a random id"
+        NetworkLog.record(
+            app,
+            what = "Usage ping ($event)",
+            url = ENDPOINT,
+            sent = if (extra.isEmpty()) basics else "$basics, a short fixed code and the phone's make and memory range",
+        )
         Thread {
             try {
                 val connection = URL(ENDPOINT).openConnection() as HttpURLConnection

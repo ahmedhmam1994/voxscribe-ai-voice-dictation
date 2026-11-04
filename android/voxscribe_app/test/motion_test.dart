@@ -44,7 +44,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(VoiceWaveform), findsOneWidget);
-    expect(find.textContaining('Your words appear here'), findsNothing);
+    expect(find.textContaining('Hold the green button and talk'), findsNothing);
     // One meter in the status pill, one in the button.
     expect(find.byType(LevelMeter), findsNWidgets(2));
 

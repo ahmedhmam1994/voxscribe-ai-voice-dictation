@@ -84,30 +84,44 @@ Future<void> showWhatsNewSheet(
                 ),
               ),
               const SizedBox(height: 16),
-              for (final note in notes)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
+              // Scrolls when the notes are long or the text is large, so the
+              // button below is always reachable.
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Icon(
-                          Icons.check,
-                          color: vox.accentInk,
-                          size: 18,
+                      for (final note in notes)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Icon(
+                                  Icons.check,
+                                  color: vox.accentInk,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  note,
+                                  style: TextStyle(
+                                    color: vox.text,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          note,
-                          style: TextStyle(color: vox.text, height: 1.35),
-                        ),
-                      ),
                     ],
                   ),
                 ),
+              ),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,

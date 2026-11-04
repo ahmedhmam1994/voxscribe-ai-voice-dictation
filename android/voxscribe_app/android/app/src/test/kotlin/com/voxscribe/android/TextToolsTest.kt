@@ -208,6 +208,27 @@ class SmartFormatTest {
         assertEquals("", f(""))
     }
 
+    @Test fun clockTimes() {
+        assertEquals("3:45 in the afternoon", f("three hundred forty five in the afternoon"))
+        assertEquals("3:45 PM", f("three forty five pm"))
+        assertEquals("4:05 AM", f("four oh five a.m."))
+        assertEquals("meet at 9:30", f("meet at nine thirty"))
+        assertEquals("5:00 in the evening", f("five hundred in the evening"))
+    }
+
+    @Test fun clockRulesStayOutOfPlainNumbers() {
+        assertEquals("the total was 345", f("the total was three hundred forty five"))
+        assertEquals("$345", f("three hundred forty five dollars"))
+        assertEquals("at $345", f("at three hundred forty five dollars"))
+        assertEquals("at 20 people", f("at twenty people"))
+    }
+
+    @Test fun codeDigits() {
+        assertEquals("my order number 4829 is ready", f("my order number four eight two nine is ready"))
+        assertEquals("pin 1005", f("pin one oh oh five"))
+        assertEquals("one two three go", f("one two three go"))
+    }
+
     @Test fun parseNumberWords() {
         assertEquals(123, SmartFormat.parseNumberWords("one hundred twenty three"))
         assertEquals(999, SmartFormat.parseNumberWords("nine hundred ninety nine"))

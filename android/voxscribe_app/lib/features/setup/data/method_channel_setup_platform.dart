@@ -16,6 +16,9 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       microphone: map['microphone'] ?? false,
       accessibility: accessibilityOn && connected,
       accessibilityNeedsRestart: accessibilityOn && !connected,
+      // Only matters while the switch is still off.
+      accessibilityRestricted:
+          !accessibilityOn && (map['accessibilityRestricted'] ?? false),
       overlay: map['overlay'] ?? false,
       bubbleRunning: map['bubbleRunning'] ?? false,
       notifications: map['notifications'] ?? true,
@@ -28,6 +31,9 @@ class MethodChannelSetupPlatform implements SetupPlatform {
   @override
   Future<void> openAccessibilitySettings() =>
       _invoke('openAccessibilitySettings');
+
+  @override
+  Future<void> openAppInfo() => _invoke('openAppInfo');
 
   @override
   Future<void> openOverlaySettings() => _invoke('openOverlaySettings');

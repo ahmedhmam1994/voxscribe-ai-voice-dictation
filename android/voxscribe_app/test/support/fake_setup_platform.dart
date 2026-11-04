@@ -22,6 +22,9 @@ class FakeSetupPlatform implements SetupPlatform {
       _record('openAccessibilitySettings');
 
   @override
+  Future<void> openAppInfo() => _record('openAppInfo');
+
+  @override
   Future<void> openOverlaySettings() => _record('openOverlaySettings');
 
   @override

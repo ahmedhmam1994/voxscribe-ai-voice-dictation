@@ -30,6 +30,11 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         "termPacks" to saved.termPacks,
                         "spokenFormats" to saved.spokenFormats,
                         "readBack" to saved.readBack,
+                        "formFill" to saved.formFill,
+                        "formFillsLeft" to FormFillTries.left(context),
+                        "screenSpelling" to saved.screenSpelling,
+                        "learnFixes" to saved.learnFixes,
+                        "learned" to LearnedWords.text(context),
                     ),
                 )
             }
@@ -49,9 +54,16 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                         termPacks = call.argument<String>("termPacks").orEmpty(),
                         spokenFormats = call.argument<Boolean>("spokenFormats") == true,
                         readBack = call.argument<Boolean>("readBack") == true,
+                        formFill = call.argument<Boolean>("formFill") != false,
+                        screenSpelling = call.argument<Boolean>("screenSpelling") != false,
+                        learnFixes = call.argument<Boolean>("learnFixes") != false,
                     ),
                 )
                 result.success(null)
+            }
+            "forgetLearned" -> {
+                LearnedWords.forget(context, call.argument<String>("heard").orEmpty())
+                result.success(LearnedWords.text(context))
             }
             else -> result.notImplemented()
         }

@@ -15,6 +15,8 @@ import android.speech.SpeechRecognizer
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
 import kotlin.math.sqrt
 
 /**
@@ -81,12 +83,16 @@ class DictationEngine(
     val willUseWhisper: Boolean
         get() = SettingsStore.preferWhisper(context) && WhisperEngine.isAvailable(context)
 
+    // The names on screen, read while the person talks (see ScreenWords).
+    @Volatile private var screenCapture: FutureTask<List<String>>? = null
+
     @Volatile private var releasedAt = 0L
 
     fun startListening() {
         cancelled = false
         releasedAt = 0L
         FirstRun.step(context, "first_press", once = true)
+        screenCapture = if (interactive) FutureTask { ScreenWords.capture(context) }.also { Thread(it).start() } else null
         if (willUseWhisper) startWhisperCapture() else startFallbackRecognizer()
     }
 
@@ -139,7 +145,8 @@ class DictationEngine(
      * and hands the result to the right callback.
      */
     private fun finish(raw: String): Spoken {
-        val spoken = TextPipeline.process(raw, TextPipeline.optionsFor(context, focusedPackage()), interactive)
+        val screen = runCatching { screenCapture?.get(SCREEN_WAIT_MS, TimeUnit.MILLISECONDS) }.getOrNull().orEmpty()
+        val spoken = TextPipeline.process(raw, TextPipeline.optionsFor(context, focusedPackage(), screen), interactive)
         if (isDebuggable()) {
             // Debug builds only, so a mis-heard command can be told apart from a bug.
             Log.d("VoxPipeline", "heard=[$raw] interactive=$interactive package=${focusedPackage()} -> ${spoken::class.simpleName}")
@@ -309,5 +316,7 @@ class DictationEngine(
 
     private companion object {
         const val LEVEL_GAIN = 6.0
+        // The screen was being read the whole time the person talked; this is only for a very busy screen.
+        const val SCREEN_WAIT_MS = 400L
     }
 }

@@ -12,6 +12,8 @@ class StepCard extends StatelessWidget {
     required this.state,
     this.description,
     this.highlighted = false,
+    this.actionLabel,
+    this.onAction,
     super.key,
   });
 
@@ -21,6 +23,10 @@ class StepCard extends StatelessWidget {
   /// Shown under the title. Pass it only for the step being worked on.
   final String? description;
   final bool highlighted;
+
+  /// A second way through the step, shown under the description.
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +65,14 @@ class StepCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(text, style: theme.bodyMedium?.copyWith(color: c.muted)),
               ],
+              if (actionLabel case final label?)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: onAction,
+                    child: Text(label, style: TextStyle(color: c.accentInk)),
+                  ),
+                ),
             ],
           ),
         ),

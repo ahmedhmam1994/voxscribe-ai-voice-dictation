@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.k2fsa.sherpa.onnx.FeatureConfig
 import com.k2fsa.sherpa.onnx.OfflineModelConfig
+import com.k2fsa.sherpa.onnx.OfflineNemoEncDecCtcModelConfig
 import com.k2fsa.sherpa.onnx.OfflineRecognizer
 import com.k2fsa.sherpa.onnx.OfflineRecognizerConfig
 import com.k2fsa.sherpa.onnx.OfflineWhisperModelConfig
@@ -56,6 +57,9 @@ object WhisperEngine {
 
     /** sherpa-onnx's FeatureConfig/OfflineStream both expect 16kHz audio. */
     const val SAMPLE_RATE = 16000
+
+    /** The bundled model's token list, also read by [ScreenWords] for its common words. */
+    const val TOKENS_ASSET = "$ASSET_DIR/$TOKENS"
 
     private var recognizer: OfflineRecognizer? = null
     private var checkedAvailability = false
@@ -123,24 +127,9 @@ object WhisperEngine {
 
         val loadStarted = System.currentTimeMillis()
         try {
-            val config = OfflineRecognizerConfig(
-                featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
-                modelConfig = OfflineModelConfig(
-                    whisper = OfflineWhisperModelConfig(
-                        encoder = "$ASSET_DIR/$ENCODER",
-                        decoder = "$ASSET_DIR/$DECODER",
-                        // Empty means auto-detect. See SettingsStore.whisperLanguage.
-                        language = SettingsStore.whisperLanguage(context),
-                        task = "transcribe",
-                    ),
-                    tokens = "$ASSET_DIR/$TOKENS",
-                    numThreads = 2,
-                    provider = "cpu",
-                ),
-            )
-            recognizer = OfflineRecognizer(context.assets, config)
+            recognizer = loadFast(context) ?: OfflineRecognizer(context.assets, whisperConfig(context))
             available = true
-            Log.i(TAG, "Whisper (sherpa-onnx) recognizer loaded from bundled assets.")
+            Log.i(TAG, "Speech recognizer (sherpa-onnx) ready.")
             val seconds = (System.currentTimeMillis() - loadStarted) / 1000.0
             FirstRun.step(context, "model_ready", once = true, extra = mapOf("load" to FirstRun.secondsBucket(seconds)))
         } catch (e: Throwable) {
@@ -154,6 +143,46 @@ object WhisperEngine {
             recognizer = null
             available = false
             FirstRun.step(context, "model_failed", FirstRun.modelCode(e, filesPresent = true))
+        }
+    }
+
+    private fun whisperConfig(context: Context) = OfflineRecognizerConfig(
+        featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
+        modelConfig = OfflineModelConfig(
+            whisper = OfflineWhisperModelConfig(
+                encoder = "$ASSET_DIR/$ENCODER",
+                decoder = "$ASSET_DIR/$DECODER",
+                // Empty means auto-detect. See SettingsStore.whisperLanguage.
+                language = SettingsStore.whisperLanguage(context),
+                task = "transcribe",
+            ),
+            tokens = "$ASSET_DIR/$TOKENS",
+            numThreads = 2,
+            provider = "cpu",
+        ),
+    )
+
+    /** The downloaded English model when the user picked it, or null to use the bundled Whisper. */
+    private fun loadFast(context: Context): OfflineRecognizer? {
+        if (!FastModel.isSelected(context)) return null
+        return try {
+            val dir = FastModel.dir(context)
+            OfflineRecognizer(
+                null,
+                OfflineRecognizerConfig(
+                    featConfig = FeatureConfig(sampleRate = SAMPLE_RATE, featureDim = 80),
+                    modelConfig = OfflineModelConfig(
+                        nemo = OfflineNemoEncDecCtcModelConfig(model = java.io.File(dir, FastModel.MODEL_FILE).path),
+                        tokens = java.io.File(dir, FastModel.TOKENS_FILE).path,
+                        numThreads = 2,
+                        provider = "cpu",
+                    ),
+                ),
+            ).also { Log.i(TAG, "English fast model loaded.") }
+        } catch (e: Throwable) {
+            // A damaged download must never leave dictation broken: fall back to Whisper.
+            Log.e(TAG, "Fast model failed to load, using Whisper", e)
+            null
         }
     }
 

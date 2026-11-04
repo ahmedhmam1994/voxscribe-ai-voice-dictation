@@ -86,7 +86,7 @@ object FirstRun {
         ).filterValues { it.isNotEmpty() }
     }
 
-    val FEATURES = setOf("snippets", "read_back", "file_import", "folder_import", "learned_word")
+    val FEATURES = setOf("snippets", "read_back", "file_import", "folder_import", "learned_word", "fast_model", "share_import")
 
     /** The first time each feature is used, once per install. Only the fixed name is sent. */
     fun feature(context: Context, name: String) {

@@ -15,7 +15,22 @@ class TextToolsSettings {
     this.termPacks = '',
     this.spokenFormats = false,
     this.readBack = false,
+    this.formFill = true,
+    this.formFillsLeft = 5,
+    this.screenSpelling = true,
+    this.learnFixes = true,
+    this.learned = '',
   });
+
+  /// A word you fix after VoxScribe typed it is spelled your way from then on.
+  final bool learnFixes;
+
+  /// The fixes learned so far, one `heard => fixed` per line. Read from the
+  /// phone, never saved from here: removing one goes through the repository.
+  final String learned;
+
+  /// Names shown on screen while you dictate fix how they are spelled.
+  final bool screenSpelling;
 
   /// The term pack ids switched on, comma separated. None by default.
   final String termPacks;
@@ -25,6 +40,13 @@ class TextToolsSettings {
 
   /// The phone reads each dictation from the floating button aloud.
   final bool readBack;
+
+  /// Speak once, fill the whole form: "Name Sam Lee, phone ..., email ..."
+  /// puts each part in the box with that label.
+  final bool formFill;
+
+  /// Free form fills left before Pro, or -1 with Pro. Read from the phone, never saved.
+  final int formFillsLeft;
 
   /// [termPacks] as a list.
   List<String> get enabledPacks => termPacks
@@ -75,6 +97,11 @@ class TextToolsSettings {
     String? termPacks,
     bool? spokenFormats,
     bool? readBack,
+    bool? formFill,
+    int? formFillsLeft,
+    bool? screenSpelling,
+    bool? learnFixes,
+    String? learned,
   }) {
     return TextToolsSettings(
       voiceCommands: voiceCommands ?? this.voiceCommands,
@@ -89,6 +116,11 @@ class TextToolsSettings {
       termPacks: termPacks ?? this.termPacks,
       spokenFormats: spokenFormats ?? this.spokenFormats,
       readBack: readBack ?? this.readBack,
+      formFill: formFill ?? this.formFill,
+      formFillsLeft: formFillsLeft ?? this.formFillsLeft,
+      screenSpelling: screenSpelling ?? this.screenSpelling,
+      learnFixes: learnFixes ?? this.learnFixes,
+      learned: learned ?? this.learned,
     );
   }
 
@@ -106,7 +138,12 @@ class TextToolsSettings {
       other.autoModes == autoModes &&
       other.termPacks == termPacks &&
       other.spokenFormats == spokenFormats &&
-      other.readBack == readBack;
+      other.readBack == readBack &&
+      other.formFill == formFill &&
+      other.formFillsLeft == formFillsLeft &&
+      other.screenSpelling == screenSpelling &&
+      other.learnFixes == learnFixes &&
+      other.learned == learned;
 
   @override
   int get hashCode => Object.hash(
@@ -122,5 +159,10 @@ class TextToolsSettings {
     termPacks,
     spokenFormats,
     readBack,
+    formFill,
+    formFillsLeft,
+    screenSpelling,
+    learnFixes,
+    learned,
   );
 }

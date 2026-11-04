@@ -48,6 +48,12 @@ data class TextOptions(
     val packFuzzyTerms: List<String> = emptyList(),
     /** The pack ids whose spoken formats apply; empty when spoken formats are off. */
     val spokenFormatPacks: List<String> = emptyList(),
+    /** The names on screen when this was said, for [ScreenWords]; empty when that is off. */
+    val screenTerms: List<String> = emptyList(),
+    /** The everyday words that are never taken for a name. */
+    val commonWords: Set<String> = emptySet(),
+    /** True with the English fast model, which leaves the last full stop out. */
+    val fastModel: Boolean = false,
 )
 
 /**
@@ -124,10 +130,12 @@ object TextPipeline {
             if (text.isNotEmpty() && options.cleanup) text = TranscriptCleanup.clean(text)
             if (text.isNotEmpty() && options.voiceCommands) text = VoiceCommands.apply(text)
             if (text.isNotEmpty() && options.pro && options.smartFormat) text = SmartFormat.format(text)
+            if (text.isNotEmpty() && options.cleanup) text = SentenceFix.fix(text, closeEnd = options.fastModel)
             if (text.isNotEmpty() && !options.endPeriod) text = Modes.dropFinalPeriod(text)
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
         if (text.isNotEmpty()) text = TermPacks.correct(text, options.packTerms, options.packFuzzyTerms)
+        if (text.isNotEmpty()) text = ScreenWords.correct(text, options.screenTerms, options.commonWords)
         if (text.isNotEmpty()) text = SpokenFormats.apply(text, options.spokenFormatPacks)
         if (text.isNotEmpty() && options.pro) text = SnippetExpander.expand(text, options.snippets)
         val transform = trailing
@@ -161,8 +169,8 @@ object TextPipeline {
         return Spoken.TemplatePrompt(session.name, session.prompt.orEmpty())
     }
 
-    /** The options for dictating right now, with the focused app's profile applied. */
-    fun optionsFor(context: Context, packageName: String?): TextOptions {
+    /** The options for dictating right now, with the focused app's profile applied and the names on screen. */
+    fun optionsFor(context: Context, packageName: String?, screenTerms: List<String> = emptyList()): TextOptions {
         val pro = LicenseStore.isPro(context)
         val saved = TextToolsStore.snapshot(context)
         val profile = if (pro) {
@@ -185,12 +193,17 @@ object TextPipeline {
             codeDictation = chosen["code"] ?: saved.codeDictation,
             endPeriod = chosen["period"] ?: true,
             mode = mode,
-            replacements = Replacements.parse(saved.replacements),
+            // Your own replacements first, then the fixes learned from you.
+            replacements = Replacements.parse(saved.replacements) +
+                if (saved.learnFixes) LearnedWords.all(context).map { it.heard to it.fixed } else emptyList(),
             snippets = if (pro) SnippetStore.all(context) else emptyList(),
             templates = if (pro) Templates.parseLines(saved.templates) else emptyList(),
             packTerms = TermPacks.combinedTerms(packs),
             packFuzzyTerms = TermPacks.combinedFuzzy(packs),
             spokenFormatPacks = if (saved.spokenFormats) packIds else emptyList(),
+            screenTerms = screenTerms,
+            commonWords = if (screenTerms.isEmpty()) emptySet() else ScreenWords.common(context),
+            fastModel = FastModel.isSelected(context),
         )
     }
 }

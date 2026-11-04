@@ -16,6 +16,9 @@ object SettingsStore {
     private const val KEY_CLEANUP_ENABLED = "cleanup_enabled"
     private const val KEY_TRAILING_SPACE = "trailing_space"
     private const val KEY_WHISPER_LANGUAGE = "whisper_language"
+    private const val KEY_SPEECH_MODEL = "speech_model"
+    const val MODEL_BASE = "base"
+    const val MODEL_FAST = "fast"
     private const val DEFAULT_WHISPER_LANGUAGE = "en"
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_USAGE_PING = "usage_ping"
@@ -83,6 +86,14 @@ object SettingsStore {
 
     fun setWhisperLanguage(context: Context, code: String) {
         prefs(context).edit().putString(KEY_WHISPER_LANGUAGE, code).apply()
+    }
+
+    /** Which speech model dictates: [MODEL_BASE] (bundled Whisper) or [MODEL_FAST] (downloaded English model). */
+    fun speechModel(context: Context): String =
+        prefs(context).getString(KEY_SPEECH_MODEL, MODEL_BASE) ?: MODEL_BASE
+
+    fun setSpeechModel(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_SPEECH_MODEL, value).apply()
     }
 
     /** The app theme: "system", "light" or "dark". */

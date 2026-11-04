@@ -20,6 +20,10 @@ abstract interface class SetupPlatform {
 
   Future<void> openAccessibilitySettings();
 
+  /// Opens this app's App info page, where Android 13+ lets the user allow
+  /// restricted settings.
+  Future<void> openAppInfo();
+
   Future<void> openOverlaySettings();
 
   /// Opens this app's notification settings, where they can be allowed.

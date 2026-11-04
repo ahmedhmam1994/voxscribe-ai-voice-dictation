@@ -68,6 +68,8 @@ void main() {
     await tester.pumpWidget(buildTestApp(settings: settings));
     await openTab(tester, 'Settings');
 
+    await tester.ensureVisible(find.text('Send an anonymous usage ping'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Send an anonymous usage ping'));
     await tester.pumpAndSettle();
 

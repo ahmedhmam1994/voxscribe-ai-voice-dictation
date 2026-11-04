@@ -27,6 +27,11 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         termPacks: raw['termPacks'] as String? ?? '',
         spokenFormats: raw['spokenFormats'] as bool? ?? false,
         readBack: raw['readBack'] as bool? ?? false,
+        formFill: raw['formFill'] as bool? ?? true,
+        formFillsLeft: raw['formFillsLeft'] as int? ?? 5,
+        screenSpelling: raw['screenSpelling'] as bool? ?? true,
+        learnFixes: raw['learnFixes'] as bool? ?? true,
+        learned: raw['learned'] as String? ?? '',
       );
     } on PlatformException {
       return TextToolsSettings.defaults;
@@ -49,9 +54,24 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
         'termPacks': settings.termPacks,
         'spokenFormats': settings.spokenFormats,
         'readBack': settings.readBack,
+        'formFill': settings.formFill,
+        'screenSpelling': settings.screenSpelling,
+        'learnFixes': settings.learnFixes,
       });
     } on PlatformException {
       // The screen already shows the new value; it just will not persist.
+    }
+  }
+
+  @override
+  Future<String> forgetLearned(String heard) async {
+    try {
+      return await _channel.invokeMethod<String>('forgetLearned', {
+            'heard': heard,
+          }) ??
+          '';
+    } on PlatformException {
+      return '';
     }
   }
 }

@@ -71,4 +71,14 @@ class FakeTextToolsRepository implements TextToolsRepository {
 
   @override
   Future<void> save(TextToolsSettings settings) async => saved = settings;
+
+  @override
+  Future<String> forgetLearned(String heard) async {
+    final left = saved.learned
+        .split('\n')
+        .where((line) => line.split('=>').first.trim() != heard)
+        .join('\n');
+    saved = saved.copyWith(learned: left);
+    return left;
+  }
 }

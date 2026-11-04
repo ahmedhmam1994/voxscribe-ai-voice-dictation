@@ -67,6 +67,17 @@ class FileImportController extends ChangeNotifier {
     }
   });
 
+  /// The file another app shared to VoxScribe.
+  Future<void> transcribeShared() => _run(() async {
+    final result = await repository.transcribeShared();
+    if (result == null) return;
+    _file = result;
+    _folder = null;
+    if (result.text.isEmpty) {
+      _message = 'No speech was found in ${result.name}.';
+    }
+  });
+
   Future<void> transcribeFolder() => _run(() async {
     final result = await repository.transcribeFolder(
       srt: _saveSrt,

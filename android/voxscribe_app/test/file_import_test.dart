@@ -25,6 +25,12 @@ class FakeImport implements FileImportRepository {
   Stream<ImportProgress> get progress => _progress.stream;
 
   @override
+  Future<bool> hasShared() async => false;
+
+  @override
+  Future<FileImportResult?> transcribeShared() async => file;
+
+  @override
   Future<FolderStatus> folderStatus() async => status;
 
   @override
@@ -107,6 +113,19 @@ void main() {
     final ctl = FileImportController(repository: repo);
     await ctl.transcribeFolder();
     expect(ctl.message, contains('needs Pro'));
+  });
+
+  testWidgets('a file shared from another app is transcribed at once', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(extensions: const [VoxColors.dark]),
+        home: FileImportScreen(repository: FakeImport(), shared: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Hello from the file.'), findsOneWidget);
   });
 
   testWidgets('the screen shows free tries and the transcript', (tester) async {

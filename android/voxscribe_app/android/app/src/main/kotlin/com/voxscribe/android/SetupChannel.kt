@@ -47,6 +47,10 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                 activity.startActivity(BubblePermissions.accessibilitySettingsIntent())
                 result.success(null)
             }
+            "openAppInfo" -> {
+                activity.startActivity(BubblePermissions.appInfoIntent(activity))
+                result.success(null)
+            }
             "openOverlaySettings" -> {
                 activity.startActivity(BubblePermissions.overlayPermissionIntent(activity))
                 result.success(null)
@@ -64,16 +68,19 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         }
     }
 
-    private fun status(): Map<String, Boolean> = mapOf(
-        "microphone" to hasMicrophone(),
-        "accessibility" to BubblePermissions.isAccessibilityServiceEnabled(activity),
-        // Android can leave the service switched on but disconnected after an app update.
-        "accessibilityConnected" to (VoxScribeAccessibilityService.instance != null),
-        "overlay" to BubblePermissions.hasOverlayPermission(activity),
-        "bubbleRunning" to BubbleService.isRunning,
-        // Off by default on Android 13 and newer until the user allows it.
-        "notifications" to NotificationManagerCompat.from(activity).areNotificationsEnabled(),
-    )
+    private fun status(): Map<String, Boolean> =
+        mapOf(
+            "microphone" to hasMicrophone(),
+            "accessibility" to BubblePermissions.isAccessibilityServiceEnabled(activity),
+            // Android can leave the service switched on but disconnected after an app update.
+            "accessibilityConnected" to (VoxScribeAccessibilityService.instance != null),
+            // Installed from a file on Android 13+: the switch is greyed out until allowed in App info.
+            "accessibilityRestricted" to BubblePermissions.mayBeRestricted(activity),
+            "overlay" to BubblePermissions.hasOverlayPermission(activity),
+            "bubbleRunning" to BubbleService.isRunning,
+            // Off by default on Android 13 and newer until the user allows it.
+            "notifications" to NotificationManagerCompat.from(activity).areNotificationsEnabled(),
+        )
 
     /** The setup pings (see [Telemetry.SETUP_EVENTS]) whose step is done in [status]. */
     private fun doneSteps(status: Map<String, Boolean>): Set<String> = buildSet {

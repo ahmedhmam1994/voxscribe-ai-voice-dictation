@@ -81,7 +81,7 @@ object TermPacks {
     private val softPairs = listOf("aeiou", "bp", "dt", "gk", "sz", "fv", "ck", "cs")
     private const val VOWELS = "aeiou"
 
-    private fun soft(a: Char, b: Char): Boolean = softPairs.any { a in it && b in it }
+    fun soft(a: Char, b: Char): Boolean = softPairs.any { a in it && b in it }
 
     private fun substitutionCost(a: Char, b: Char): Double = when {
         a == b -> 0.0

@@ -94,6 +94,34 @@ class MethodChannelFileImportRepository implements FileImportRepository {
   }
 
   @override
+  Future<bool> hasShared() async {
+    try {
+      return await _channel.invokeMethod<bool>('hasShared') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  @override
+  Future<FileImportResult?> transcribeShared() async {
+    try {
+      final raw = await _channel.invokeMapMethod<String, Object?>(
+        'transcribeShared',
+      );
+      if (raw == null) return null;
+      return FileImportResult(
+        name: raw['name'] as String? ?? 'recording',
+        text: raw['text'] as String? ?? '',
+        srt: raw['srt'] as String? ?? '',
+      );
+    } on PlatformException catch (e) {
+      throw ImportFailed(e.message ?? 'Could not transcribe that file.');
+    }
+  }
+
+  @override
   Future<void> cancel() async {
     try {
       await _channel.invokeMethod<void>('cancel');

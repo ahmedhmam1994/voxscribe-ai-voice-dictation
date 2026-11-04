@@ -1,6 +1,16 @@
 /// What each version added. A version with no entry here shows no "what's
 /// new" sheet on first launch, so a quiet bug fix stays quiet.
 const whatsNewByVersion = <String, List<String>>{
+  '1.1.4': [
+    'Dictating into a draft no longer erases it: your words are added at the cursor and the text you already wrote stays.',
+    'Share a voice note to VoxScribe: in WhatsApp or any app, share an audio file to VoxScribe and the text comes back.',
+    'English fast model: an optional download in Settings that types English several times faster and more accurately. The standard model stays for Arabic and mixed speech.',
+    'Learns your words: fix a word VoxScribe got wrong and it makes that fix for you from then on.',
+    'Fill forms by voice: say "Name Sam Lee, phone 555 0100" and every box on the form fills at once.',
+    'Names shown on screen, like the person you are writing to, are spelled right.',
+    'Smart formatting reads "three forty five pm" as 3:45 PM and "order number four eight two nine" as 4829.',
+    'A privacy receipt in Settings lists every time VoxScribe went online and what it sent. Never your words.',
+  ],
   '1.1.3': [
     'Term packs: medical, law and business word lists fix how field words are written, like "metformin" or "MRI". Add your own list too. Find them under Settings, Words for your field.',
     'Teach your voice: read a few sentences aloud and VoxScribe finds the words it hears wrong, then adds the fixes for you.',

@@ -697,6 +697,11 @@ class BubbleService : Service() {
             Toast.makeText(this, R.string.bubble_no_speech, Toast.LENGTH_SHORT).show()
             return
         }
+        if (fillForm(heard)) return
+        typeDictation(heard)
+    }
+
+    private fun typeDictation(heard: String) {
         // An email, web address, number or phone box gets the text the way it expects.
         val inputType = VoxScribeAccessibilityService.instance?.focusedInputType() ?: 0
         val text = FieldShape.shape(heard, inputType)
@@ -740,6 +745,62 @@ class BubbleService : Service() {
             clipboard?.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
             Toast.makeText(this, R.string.bubble_insert_failed_clipboard_fallback, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    /**
+     * "Name Sam Lee, phone 0100 123 4567, email ...": fills each box on screen
+     * from one sentence (see [FormFill]). False when the sentence is not meant
+     * for a form here, so it is typed as usual.
+     */
+    private fun fillForm(heard: String): Boolean {
+        val service = VoxScribeAccessibilityService.instance ?: return false
+        if (!TextToolsStore.snapshot(this).formFill || service.focusedFieldIsSensitive()) return false
+        val fields = service.formFields()
+        val fills = FormFill.plan(heard, fields.map { it.first })
+        if (service.keyboardShown() && (fills != null || FormFill.startsLikeAForm(heard))) {
+            // Some apps (Google Contacts) only build the boxes the keyboard leaves room
+            // for, so look again with the keyboard out of the way.
+            service.hideKeyboard(true)
+            watchHandler.postDelayed({
+                val fresh = service.formFields()
+                val freshFills = FormFill.plan(heard, fresh.map { it.first })
+                service.hideKeyboard(false)
+                if (freshFills == null || !fill(heard, fresh, freshFills)) typeDictation(heard)
+            }, KEYBOARD_SETTLE_MS)
+            return true
+        }
+        return fills != null && fill(heard, fields, fills)
+    }
+
+    private fun fill(
+        heard: String,
+        fields: List<Pair<FormFill.Field, android.view.accessibility.AccessibilityNodeInfo>>,
+        fills: List<FormFill.Fill>,
+    ): Boolean {
+        val service = VoxScribeAccessibilityService.instance ?: return false
+        if (FormFillTries.left(this) == 0) {
+            Toast.makeText(this, R.string.form_fill_needs_pro, Toast.LENGTH_LONG).show()
+            return false
+        }
+        val filled = service.fillForm(fields, fills)
+        if (filled == 0) return false
+        FormFillTries.use(this)
+        lastInsertWorked = true
+        flash(success = true)
+        HistoryStore.add(
+            this,
+            HistoryEntry(
+                text = heard,
+                atMillis = System.currentTimeMillis(),
+                durationMillis = SystemClock.elapsedRealtime() - holdStartedAt,
+            ),
+        )
+        Toast.makeText(
+            this,
+            resources.getQuantityString(R.plurals.form_filled, filled, filled),
+            Toast.LENGTH_SHORT,
+        ).show()
+        return true
     }
 
     // -- notification ---------------------------------------------------------
@@ -859,6 +920,7 @@ class BubbleService : Service() {
         private const val ACTION_UNSNOOZE = "com.voxscribe.android.UNSNOOZE"
         private const val MAX_RECORDING_MS = 120_000L
         private const val SEND_DELAY_MS = 350L
+        private const val KEYBOARD_SETTLE_MS = 600L
         private const val FLASH_OK_MS = 700L
         private const val FLASH_ERROR_MS = 1_200L
         private const val SHAKE_MS = 360L

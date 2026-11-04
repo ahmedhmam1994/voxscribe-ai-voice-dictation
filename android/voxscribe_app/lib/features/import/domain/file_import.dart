@@ -104,5 +104,11 @@ abstract interface class FileImportRepository {
     required String mime,
   });
 
+  /// True when another app shared an audio or video file that is waiting.
+  Future<bool> hasShared();
+
+  /// Transcribes the shared file. Null when there is none or it was cancelled.
+  Future<FileImportResult?> transcribeShared();
+
   Future<void> cancel();
 }

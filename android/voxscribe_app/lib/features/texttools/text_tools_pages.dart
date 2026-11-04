@@ -197,6 +197,49 @@ class ReplacementsPage extends StatelessWidget {
           'dictation, pick the word that was wrong and type what it should '
           'be. It is added here for you.',
         ),
+        const SizedBox(height: 16),
+        _LearnedFixes(controller: controller),
+      ],
+    );
+  }
+}
+
+/// The fixes VoxScribe learned from the person's own edits, and the switch for it.
+class _LearnedFixes extends StatelessWidget {
+  const _LearnedFixes({required this.controller});
+
+  final TextToolsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = controller.settings;
+    final fixes = parseReplacementsText(settings.learned);
+    return SettingsGroup(
+      label: 'Learned from your fixes',
+      children: [
+        SettingsSwitchRow(
+          title: 'Learn from my fixes',
+          subtitle:
+              'Fix a word right after the floating button typed it, like '
+              'Shivon to Siobhan, and it is spelled your way from then on. '
+              'Kept on your phone.',
+          value: settings.learnFixes,
+          onChanged: (value) => controller.setLearnFixes(value: value),
+        ),
+        if (fixes.isEmpty)
+          const SettingsRow(
+            title: 'Nothing learned yet',
+            subtitle: 'Each fix shows here, and you can remove it.',
+          ),
+        for (final fix in fixes)
+          SettingsRow(
+            title: '${fix.heard} → ${fix.replacement}',
+            trailing: IconButton(
+              tooltip: 'Remove ${fix.heard}',
+              icon: const Icon(Icons.close),
+              onPressed: () => controller.forgetLearned(fix.heard),
+            ),
+          ),
       ],
     );
   }
@@ -288,8 +331,9 @@ const dictationModes = <(String, String, String)>[
   ('notes', 'Notes', 'Tidy text, nothing rewritten.'),
 ];
 
-String modeName(String mode) =>
-    dictationModes.firstWhere((m) => m.$1 == mode, orElse: () => dictationModes.first).$2;
+String modeName(String mode) => dictationModes
+    .firstWhere((m) => m.$1 == mode, orElse: () => dictationModes.first)
+    .$2;
 
 /// Pick the dictation mode, and (Pro) let it switch with the app in front.
 class ModesPage extends StatelessWidget {

@@ -60,9 +60,34 @@ class SetupController extends ChangeNotifier {
   }
 
   /// Opens the notification settings for this app.
-  Future<void> openNotificationSettings() async {
+  Future<void> openNotificationSettings() =>
+      _open(platform.openNotificationSettings);
+
+  /// Opens App info, where a restricted accessibility switch is allowed.
+  Future<void> openAppInfo() {
+    _triedSwitch = false;
+    return _open(platform.openAppInfo);
+  }
+
+  Future<void> openAccessibilitySettings() {
+    _triedSwitch = true;
+    return _open(platform.openAccessibilitySettings);
+  }
+
+  var _triedSwitch = false;
+
+  /// The accessibility switch may be a Restricted setting and the user came
+  /// back from it without turning VoxScribe on, so most likely Android
+  /// blocked it and the next step is allowing it in App info. Android shows
+  /// that choice in App info only after its warning.
+  bool get appInfoNext =>
+      _triedSwitch &&
+      _status.accessibilityRestricted &&
+      _status.nextStep == SetupStep.accessibility;
+
+  Future<void> _open(Future<void> Function() action) async {
     try {
-      await platform.openNotificationSettings();
+      await action();
     } on SetupException catch (error) {
       _errorMessage = error.message;
       notifyListeners();
@@ -86,8 +111,11 @@ class SetupController extends ChangeNotifier {
   }
 
   Future<void> _run(SetupStep? step) {
+    final appInfo = appInfoNext;
+    if (step == SetupStep.accessibility) _triedSwitch = !appInfo;
     return switch (step) {
       SetupStep.microphone => platform.requestMicrophone(),
+      SetupStep.accessibility when appInfo => platform.openAppInfo(),
       SetupStep.accessibility => platform.openAccessibilitySettings(),
       SetupStep.overlay => platform.openOverlaySettings(),
       null => platform.setBubbleRunning(running: !_status.bubbleRunning),

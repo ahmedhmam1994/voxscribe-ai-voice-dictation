@@ -41,6 +41,7 @@ class _SetupScreenState extends State<SetupScreen> {
       listenable: widget.controller,
       builder: (context, _) {
         final status = widget.controller.status;
+        final appInfo = widget.controller.appInfoNext;
         return Column(
           children: [
             _Header(status: status),
@@ -54,9 +55,15 @@ class _SetupScreenState extends State<SetupScreen> {
                       title: _title(step),
                       state: _state(status, step),
                       description: status.nextStep == step
-                          ? _description(step, status)
+                          ? _description(step, status, appInfo: appInfo)
                           : null,
                       highlighted: status.nextStep == step,
+                      actionLabel: status.nextStep == step
+                          ? _actionLabel(step, status, appInfo: appInfo)
+                          : null,
+                      onAction: appInfo
+                          ? widget.controller.openAccessibilitySettings
+                          : widget.controller.openAppInfo,
                     ),
                   if (status.permissionsComplete)
                     StepCard(
@@ -85,7 +92,7 @@ class _SetupScreenState extends State<SetupScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
               child: _PrimaryButton(
-                label: _primaryLabel(status),
+                label: _primaryLabel(status, appInfo: appInfo),
                 onPressed: widget.controller.busy
                     ? null
                     : widget.controller.performPrimaryAction,
@@ -105,8 +112,9 @@ class _SetupScreenState extends State<SetupScreen> {
 
   static String _description(
     SetupStep step,
-    SetupStatus status,
-  ) => switch (step) {
+    SetupStatus status, {
+    required bool appInfo,
+  }) => switch (step) {
     SetupStep.microphone =>
       'VoxScribe listens only while you hold the button. Your voice is '
           'transcribed on this phone.',
@@ -114,6 +122,15 @@ class _SetupScreenState extends State<SetupScreen> {
       'It is switched on, but Android disconnected it, which can happen '
           'after an update. In the list, tap VoxScribe, turn it off, then on '
           'again.',
+    SetupStep.accessibility when appInfo =>
+      'Did Android say Restricted setting? It does that for apps installed '
+          'from a file. Tap Open App info, tap the three dots at the top '
+          'right, then Allow restricted settings. Then come back here and '
+          'turn VoxScribe on.',
+    SetupStep.accessibility when status.accessibilityRestricted =>
+      'In the list, tap VoxScribe and turn it on. Android limits this for '
+          'apps installed from a file, so it may say Restricted setting. If '
+          'it does, tap OK and come back here for the fix.',
     SetupStep.accessibility =>
       'Android requires this to let an app type into other apps. VoxScribe '
           'only watches which text box is focused, so it can put your '
@@ -122,20 +139,37 @@ class _SetupScreenState extends State<SetupScreen> {
       'This lets the small button float above your keyboard and other apps.',
   };
 
+  /// The other half of the Restricted setting fix, whichever the primary
+  /// button is not doing.
+  static String? _actionLabel(
+    SetupStep step,
+    SetupStatus status, {
+    required bool appInfo,
+  }) {
+    if (step != SetupStep.accessibility || !status.accessibilityRestricted) {
+      return null;
+    }
+    return appInfo
+        ? 'Open accessibility settings'
+        : 'Already saw it? Open App info';
+  }
+
   static StepStatus _state(SetupStatus status, SetupStep step) {
     if (status.isDone(step)) return StepStatus.done;
     return status.nextStep == step ? StepStatus.todo : StepStatus.waiting;
   }
 
-  static String _primaryLabel(SetupStatus status) => switch (status.nextStep) {
-    SetupStep.microphone => 'Allow microphone',
-    SetupStep.accessibility => 'Open accessibility settings',
-    SetupStep.overlay => 'Allow display over other apps',
-    null =>
-      status.bubbleRunning
-          ? 'Turn off floating button'
-          : 'Show floating button',
-  };
+  static String _primaryLabel(SetupStatus status, {required bool appInfo}) =>
+      switch (status.nextStep) {
+        SetupStep.microphone => 'Allow microphone',
+        SetupStep.accessibility when appInfo => 'Open App info',
+        SetupStep.accessibility => 'Open accessibility settings',
+        SetupStep.overlay => 'Allow display over other apps',
+        null =>
+          status.bubbleRunning
+              ? 'Turn off floating button'
+              : 'Show floating button',
+      };
 }
 
 class _Header extends StatelessWidget {

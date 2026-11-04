@@ -56,6 +56,17 @@ class ImportChannel(private val activity: Activity) :
                 worker?.cancelled = true
                 result.success(null)
             }
+            "hasShared" -> result.success(sharedUri != null)
+            "transcribeShared" -> {
+                val uri = sharedUri
+                sharedUri = null
+                if (uri == null) {
+                    result.success(null)
+                } else {
+                    FirstRun.feature(activity, "share_import")
+                    runFile(uri, result)
+                }
+            }
             "transcribeFile" -> pick(call, result, REQUEST_FILE) {
                 Intent(Intent.ACTION_OPEN_DOCUMENT)
                     .addCategory(Intent.CATEGORY_OPENABLE)
@@ -246,6 +257,9 @@ class ImportChannel(private val activity: Activity) :
         private const val REQUEST_FOLDER = 4302
         private const val REQUEST_SAVE = 4303
         const val FREE_FOLDER_RUNS = 2
+
+        /** An audio or video file another app shared to VoxScribe, waiting to be transcribed. */
+        @Volatile var sharedUri: Uri? = null
         private const val PREFS = "voxscribe_import"
         private const val KEY_RUNS = "folder_runs_used"
 

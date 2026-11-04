@@ -9,10 +9,13 @@ import 'package:voxscribe_app/shared/widgets/vox_card.dart';
 
 /// Transcribe an audio or video file, or a whole folder, on the phone.
 class FileImportScreen extends StatefulWidget {
-  const FileImportScreen({this.repository, super.key});
+  const FileImportScreen({this.repository, this.shared = false, super.key});
 
   /// Replaced in tests.
   final FileImportRepository? repository;
+
+  /// Another app shared a file: start transcribing it straight away.
+  final bool shared;
 
   @override
   State<FileImportScreen> createState() => _FileImportScreenState();
@@ -22,6 +25,16 @@ class _FileImportScreenState extends State<FileImportScreen> {
   late final FileImportController _controller = FileImportController(
     repository: widget.repository ?? MethodChannelFileImportRepository(),
   )..load();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.shared) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _controller.transcribeShared(),
+      );
+    }
+  }
 
   @override
   void dispose() {

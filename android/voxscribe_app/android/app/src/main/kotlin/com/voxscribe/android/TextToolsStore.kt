@@ -21,6 +21,9 @@ object TextToolsStore {
     private const val KEY_TERM_PACKS = "term_packs"
     private const val KEY_SPOKEN_FORMATS = "spoken_formats"
     private const val KEY_READ_BACK = "read_back"
+    private const val KEY_FORM_FILL = "form_fill"
+    private const val KEY_SCREEN_SPELLING = "screen_spelling"
+    private const val KEY_LEARN_FIXES = "learn_fixes"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -42,6 +45,12 @@ object TextToolsStore {
         val spokenFormats: Boolean = false,
         /** Read each dictation from the floating button aloud. Off by default. */
         val readBack: Boolean = false,
+        /** Speak once, fill the whole form (see [FormFill]). On by default. */
+        val formFill: Boolean = true,
+        /** Names on screen fix how they are spelled (see [ScreenWords]). On by default. */
+        val screenSpelling: Boolean = true,
+        /** A word you fix after it is typed is spelled your way from then on (see [LearnedWords]). On by default. */
+        val learnFixes: Boolean = true,
     )
 
     fun snapshot(context: Context): Snapshot {
@@ -59,6 +68,9 @@ object TextToolsStore {
             termPacks = p.getString(KEY_TERM_PACKS, "").orEmpty(),
             spokenFormats = p.getBoolean(KEY_SPOKEN_FORMATS, false),
             readBack = p.getBoolean(KEY_READ_BACK, false),
+            formFill = p.getBoolean(KEY_FORM_FILL, true),
+            screenSpelling = p.getBoolean(KEY_SCREEN_SPELLING, true),
+            learnFixes = p.getBoolean(KEY_LEARN_FIXES, true),
         )
     }
 
@@ -76,6 +88,9 @@ object TextToolsStore {
             .putString(KEY_TERM_PACKS, snapshot.termPacks)
             .putBoolean(KEY_SPOKEN_FORMATS, snapshot.spokenFormats)
             .putBoolean(KEY_READ_BACK, snapshot.readBack)
+            .putBoolean(KEY_FORM_FILL, snapshot.formFill)
+            .putBoolean(KEY_SCREEN_SPELLING, snapshot.screenSpelling)
+            .putBoolean(KEY_LEARN_FIXES, snapshot.learnFixes)
             .apply()
     }
 }

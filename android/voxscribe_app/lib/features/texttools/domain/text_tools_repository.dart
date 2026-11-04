@@ -6,4 +6,7 @@ abstract interface class TextToolsRepository {
   Future<TextToolsSettings> load();
 
   Future<void> save(TextToolsSettings settings);
+
+  /// Removes the learned fix for [heard]. Returns the learned fixes left.
+  Future<String> forgetLearned(String heard);
 }

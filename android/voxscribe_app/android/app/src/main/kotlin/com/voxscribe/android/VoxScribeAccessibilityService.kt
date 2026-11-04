@@ -11,6 +11,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
+import android.widget.Toast
 
 /**
  * Powers floating-bubble mode (see BubblePermissions.kt): works with whichever
@@ -51,6 +52,15 @@ class VoxScribeAccessibilityService : AccessibilityService() {
     private var lastInsertedChunk: String? = null
     private val recentChunks = ArrayDeque<String>()
 
+    // Learns your words (see LearnedWords): the box as VoxScribe left it, where
+    // the dictation in it starts, and the box as the person last left it.
+    private var learnNode: AccessibilityNodeInfo? = null
+    private var learnBase: String? = null
+    private var learnFrom = 0
+    private var learnLatest: String? = null
+    private val learnHandler = Handler(Looper.getMainLooper())
+    private val learnCheck = Runnable { checkForFix() }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
@@ -64,7 +74,18 @@ class VoxScribeAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         event ?: return
         when (event.eventType) {
+            AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> {
+                onTextChanged(event)
+                return
+            }
+
             AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
+                // Chrome focuses the same box again right after VoxScribe types into it,
+                // and the system bars or the keyboard can take focus mid-fix: only another
+                // box in the same app ends it (leaving the app is a window change).
+                if (event.packageName == learnNode?.packageName && event.source != learnNode) {
+                    stopLearning()
+                }
                 focusedNode.recycleCompat()
                 focusedNode = event.source
                 lastWrittenText = null
@@ -74,6 +95,10 @@ class VoxScribeAccessibilityService : AccessibilityService() {
                 // The window/app changed -- the previously focused node is
                 // almost certainly stale now. Drop it rather than risk
                 // inserting into a field that's no longer visible.
+                // A toast or a menu in the same app, or VoxScribe's own toast, does not
+                // end a fix in progress.
+                val other = event.packageName != learnNode?.packageName && event.packageName != packageName
+                if (other) stopLearning()
                 focusedNode.recycleCompat()
                 focusedNode = null
                 lastWrittenText = null
@@ -165,11 +190,16 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         node.refresh()
         // Compare with what the field really holds now: our remembered text is
         // only trusted while the field still starts with it (see DictationText).
-        val newText = DictationText.compose(
+        // Real writing already in the field (an email draft) is kept and the
+        // dictation goes at the cursor; a 0,0 cursor is not trusted (see DictationText).
+        val result = DictationText.insertion(
             current = node.text?.toString().orEmpty(),
             lastWritten = lastWrittenText,
             dictated = text,
+            selStart = node.textSelectionStart,
+            selEnd = node.textSelectionEnd,
         )
+        val newText = result.text
 
         val setTextArgs = Bundle().apply {
             putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, newText)
@@ -180,7 +210,8 @@ class VoxScribeAccessibilityService : AccessibilityService() {
             recentChunks.addLast(text)
             while (recentChunks.size > 10) recentChunks.removeFirst()
             focusedNode = node
-            placeCursorAfterInsertedText(node, newText.length)
+            placeCursorAfterInsertedText(node, result.cursor)
+            startLearning(node, newText, text)
             return true
         }
 
@@ -355,6 +386,11 @@ class VoxScribeAccessibilityService : AccessibilityService() {
             return false
         }
         lastWrittenText = newText
+        // A spoken edit is VoxScribe's own change, not a fix to learn from.
+        if (learnBase != null) {
+            learnBase = newText
+            learnLatest = newText
+        }
         lastInsertedChunk = kept.ifEmpty { null }
         recentChunks.remove(chunk)
         if (kept.isNotEmpty()) recentChunks.addLast(kept)
@@ -362,6 +398,193 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         placeCursorAfterInsertedText(node, newText.length)
         debugLog("$label applied: ${current.length} to ${newText.length} chars")
         return true
+    }
+
+    /**
+     * The text boxes on screen for [FormFill], in screen order, with the label
+     * each one shows: its hint, the label tied to it, its description, the
+     * text just before it, or its view id. Password boxes are left out.
+     */
+    fun formFields(): List<Pair<FormFill.Field, AccessibilityNodeInfo>> {
+        val root = rootInActiveWindow ?: return emptyList()
+        val found = mutableListOf<Pair<FormFill.Field, AccessibilityNodeInfo>>()
+        // Text drawn just before a box is usually its label ("Phone" above the phone box).
+        var lastText: String? = null
+        val stack = ArrayDeque<AccessibilityNodeInfo>()
+        stack.addLast(root)
+        var visited = 0
+        while (stack.isNotEmpty() && visited < MAX_NODES_SEARCHED && found.size < MAX_FORM_FIELDS) {
+            val node = stack.removeLast()
+            visited++
+            // Visibility is not checked for boxes: Google Contacts wraps each name box in a
+            // holder that reports itself hidden, and the keyboard hides the boxes under it.
+            // A box only fills when its label was said, so a hidden one is never a surprise.
+            val visible = node.isVisibleToUser
+            if (node.isEditable) {
+                if (node.isEnabled && FieldSafety.allowsDictation(true, node.isPassword, node.inputType)) {
+                    val label = fieldLabel(node, lastText)
+                    found += FormFill.Field(found.size, label, node.inputType) to node
+                }
+                lastText = null
+                continue
+            }
+            if (visible) {
+                node.text?.toString()?.trim()?.takeIf { it.isNotEmpty() && it.length <= MAX_LABEL_LENGTH }?.let { lastText = it }
+            }
+            for (i in node.childCount - 1 downTo 0) node.getChild(i)?.let { stack.addLast(it) }
+        }
+        return found
+    }
+
+    /** Watches [node] after a dictation, so a fix the person makes to it can be learned. */
+    private fun startLearning(node: AccessibilityNodeInfo, newText: String, dictated: String) {
+        val base = learnBase
+        // A second dictation into the same box keeps the start of the first.
+        if (base == null || learnNode != node || !newText.startsWith(base)) {
+            learnFrom = (newText.length - dictated.length).coerceAtLeast(0)
+        }
+        learnNode = node
+        learnBase = newText
+        learnLatest = newText
+        learnHandler.removeCallbacks(learnCheck)
+    }
+
+    private fun stopLearning(check: Boolean = true) {
+        if (check) checkForFix()
+        learnHandler.removeCallbacks(learnCheck)
+        learnNode = null
+        learnBase = null
+        learnLatest = null
+    }
+
+    private fun onTextChanged(event: AccessibilityEvent) {
+        val node = learnNode ?: return
+        if (event.source?.let { it != node } == true) return
+        // The event carries the new text; Chrome can still report the old text when asked.
+        val now = if (event.text.isNotEmpty()) {
+            event.text.joinToString("")
+        } else if (node.refresh()) {
+            node.text?.toString().orEmpty()
+        } else {
+            ""
+        }
+        if (now.isBlank()) {
+            // Sent or cleared: learn from the box as it was just before.
+            stopLearning()
+            return
+        }
+        learnLatest = now
+        learnHandler.removeCallbacks(learnCheck)
+        learnHandler.postDelayed(learnCheck, LEARN_SETTLE_MS)
+    }
+
+    /** Learns the fix the person made since VoxScribe typed, if it is a clear spelling fix. */
+    private fun checkForFix() {
+        learnHandler.removeCallbacks(learnCheck)
+        val base = learnBase ?: return
+        val now = learnLatest ?: return
+        if (now == base || !TextToolsStore.snapshot(this).learnFixes) return
+        val fix = LearnedWords.fix(base, now, learnFrom, ScreenWords.common(this))
+        fix ?: return
+        learnBase = now
+        val learned = LearnedWords.remember(this, fix) ?: return
+        FirstRun.feature(this, "learned_word")
+        debugLog("learned a fix")
+        Toast.makeText(this, getString(R.string.learned_fix, learned.heard, learned.fixed), Toast.LENGTH_LONG).show()
+    }
+
+    /**
+     * The text shown by the app being dictated into, for [ScreenWords]: what
+     * its views say, including the box being typed in. Password boxes, the
+     * keyboard and VoxScribe's own windows are skipped, and nothing is kept.
+     */
+    fun screenTexts(): List<String> {
+        val roots = windows.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .mapNotNull { it.root }
+            .ifEmpty { listOfNotNull(rootInActiveWindow) }
+            .filter { it.packageName?.toString() != packageName }
+        val texts = mutableListOf<String>()
+        var chars = 0
+        var visited = 0
+        val stack = ArrayDeque(roots)
+        while (stack.isNotEmpty() && visited < MAX_NODES_SEARCHED && chars < MAX_SCREEN_CHARS) {
+            val node = stack.removeLast()
+            visited++
+            if (node.isPassword) continue
+            for (text in listOfNotNull(node.text, node.contentDescription)) {
+                val value = text.toString().trim()
+                if (value.isEmpty()) continue
+                texts += value
+                chars += value.length
+            }
+            for (i in node.childCount - 1 downTo 0) node.getChild(i)?.let { stack.addLast(it) }
+        }
+        return texts
+    }
+
+    private fun fieldLabel(node: AccessibilityNodeInfo, textBefore: String?): String {
+        val candidates = listOfNotNull(
+            node.hintText?.toString(),
+            node.labeledBy?.text?.toString(),
+            node.text?.toString()?.takeIf { node.isShowingHintText },
+            node.contentDescription?.toString(),
+            // Some apps (Google Contacts) draw the label inside the box itself.
+            innerLabel(node),
+            textBefore,
+            FormFill.labelFromViewId(node.viewIdResourceName),
+        )
+        return candidates.firstOrNull { FormFill.aliases(it).isNotEmpty() }.orEmpty()
+    }
+
+    /** The first short label-like text drawn inside [box] that is not what the box holds, or null. */
+    private fun innerLabel(box: AccessibilityNodeInfo): String? {
+        val value = box.text?.toString()?.trim()
+        val queue = ArrayDeque<AccessibilityNodeInfo>()
+        for (i in 0 until box.childCount) box.getChild(i)?.let { queue.addLast(it) }
+        var visited = 0
+        while (queue.isNotEmpty() && visited < MAX_INNER_NODES) {
+            val node = queue.removeFirst()
+            visited++
+            val text = node.text?.toString()?.trim()
+            // Skips a country flag before "Phone (Mobile)".
+            if (!text.isNullOrEmpty() && text != value && text.length <= MAX_LABEL_LENGTH &&
+                FormFill.aliases(text).isNotEmpty()
+            ) {
+                return text
+            }
+            for (i in 0 until node.childCount) node.getChild(i)?.let { queue.addLast(it) }
+        }
+        return null
+    }
+
+    /** Types each of [fills] into its box from [fields]. Returns how many boxes took their text. */
+    fun fillForm(fields: List<Pair<FormFill.Field, AccessibilityNodeInfo>>, fills: List<FormFill.Fill>): Int {
+        stopLearning(check = false)
+        var filled = 0
+        for (fill in fills) {
+            val node = fields.getOrNull(fill.index)?.second ?: continue
+            if (!node.refresh() || FieldSafety.isSensitive(node.isPassword, node.inputType)) continue
+            val args = Bundle().apply {
+                putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, fill.value)
+            }
+            if (node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
+                filled++
+                // A later dictation into the focused box adds to what is there instead of replacing it.
+                if (node == focusedNode) lastWrittenText = fill.value
+            }
+        }
+        debugLog("form fill: $filled of ${fills.size} boxes")
+        return filled
+    }
+
+    /** True while a keyboard is on screen. */
+    fun keyboardShown(): Boolean =
+        windows.any { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+
+    /** Keeps the keyboard down while [hidden], then lets apps show it again. */
+    fun hideKeyboard(hidden: Boolean) {
+        softKeyboardController.showMode =
+            if (hidden) SHOW_MODE_HIDDEN else SHOW_MODE_AUTO
     }
 
     /** True when the focused field is a password field, so nothing dictated may go near it. */
@@ -424,6 +647,13 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         val previousClip = clipboard.primaryClip
         clipboard.setPrimaryClip(ClipData.newPlainText("VoxScribe dictation", text))
         val pasted = node.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+        if (pasted) {
+            // The pasted text lands a moment later; watch the box from then.
+            learnHandler.postDelayed({
+                val now = if (node.refresh()) node.text?.toString().orEmpty() else ""
+                if (now.endsWith(text.trimEnd())) startLearning(node, now, text)
+            }, PASTE_SETTLE_MS)
+        }
         if (previousClip != null) {
             Handler(Looper.getMainLooper()).postDelayed({
                 clipboard.setPrimaryClip(previousClip)
@@ -448,6 +678,13 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         private const val TAG = "VoxScribeAccessibility"
         private const val CLIPBOARD_RESTORE_DELAY_MS = 500L
         private const val MAX_NODES_SEARCHED = 2500
+        private const val MAX_FORM_FIELDS = 30
+        private const val MAX_LABEL_LENGTH = 40
+        private const val MAX_INNER_NODES = 20
+        private const val MAX_SCREEN_CHARS = 20_000
+        // How long the box must stay unchanged before a fix counts, so a word half typed is not learned.
+        private const val LEARN_SETTLE_MS = 3_000L
+        private const val PASTE_SETTLE_MS = 300L
         private val SEND_LABELS = listOf("send", "send message")
         private val SEND_IDS = setOf("send", "send_button", "btn_send", "send_btn", "button_send")
 

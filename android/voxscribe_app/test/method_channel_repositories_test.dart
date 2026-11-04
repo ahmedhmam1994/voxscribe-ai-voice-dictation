@@ -4,6 +4,8 @@ import 'package:voxscribe_app/features/history/data/method_channel_history_repos
 import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 import 'package:voxscribe_app/features/settings/data/method_channel_settings_repository.dart';
 import 'package:voxscribe_app/features/settings/domain/app_settings.dart';
+import 'package:voxscribe_app/features/setup/data/method_channel_setup_platform.dart';
+import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -150,6 +152,38 @@ void main() {
       });
 
       expect(await repository.load(), AppSettings.defaults);
+    });
+  });
+
+  group('setup', () {
+    const channel = MethodChannel('com.voxscribe.android/setup');
+    final platform = MethodChannelSetupPlatform();
+
+    tearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    Future<SetupStatus> statusFor(Map<String, bool> map) {
+      messenger.setMockMethodCallHandler(channel, (call) async => map);
+      return platform.getStatus();
+    }
+
+    test('reads a file install as a possible Restricted setting', () async {
+      final status = await statusFor({
+        'accessibility': false,
+        'accessibilityRestricted': true,
+      });
+
+      expect(status.accessibilityRestricted, isTrue);
+    });
+
+    test('ignores it once the switch is on', () async {
+      final status = await statusFor({
+        'accessibility': true,
+        'accessibilityConnected': true,
+        'accessibilityRestricted': true,
+      });
+
+      expect(status.accessibility, isTrue);
+      expect(status.accessibilityRestricted, isFalse);
     });
   });
 }

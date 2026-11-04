@@ -74,6 +74,71 @@ void main() {
     expect(find.textContaining('tap VoxScribe and turn it on'), findsOneWidget);
   });
 
+  testWidgets('a restricted switch warns before the user tries it', (
+    tester,
+  ) async {
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: false,
+        accessibilityRestricted: true,
+        overlay: false,
+        bubbleRunning: false,
+      ),
+    );
+
+    expect(find.textContaining('may say Restricted setting'), findsOneWidget);
+    await tester.tap(find.text('Already saw it? Open App info'));
+    await tester.pumpAndSettle();
+
+    expect(platform.calls, ['openAppInfo']);
+    expect(find.text('Open accessibility settings'), findsOneWidget);
+  });
+
+  testWidgets('back from a restricted switch still off, it sends the user to '
+      'App info, then back to the switch', (tester) async {
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: false,
+        accessibilityRestricted: true,
+        overlay: false,
+        bubbleRunning: false,
+      ),
+    );
+
+    await tester.tap(find.text('Open accessibility settings'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Allow restricted settings'), findsOneWidget);
+
+    await tester.tap(find.text('Open App info'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('may say Restricted setting'), findsOneWidget);
+    expect(platform.calls, ['openAccessibilitySettings', 'openAppInfo']);
+  });
+
+  testWidgets('a phone installed from a store never mentions App info', (
+    tester,
+  ) async {
+    await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: false,
+        overlay: false,
+        bubbleRunning: false,
+      ),
+    );
+
+    await tester.tap(find.text('Open accessibility settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open accessibility settings'), findsOneWidget);
+    expect(find.textContaining('App info'), findsNothing);
+  });
+
   testWidgets('the button runs the next step', (tester) async {
     final platform = await _openSetup(tester, SetupStatus.none);
 
