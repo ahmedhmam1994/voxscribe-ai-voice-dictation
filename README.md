@@ -97,7 +97,21 @@ The installer does not require admin rights (per-user install). On first launch,
 
 VoxScribe also has an Android app. A small floating button appears above your keyboard whenever you tap a text box, in any app. Hold it, talk, release, and the text is typed into the box. It works with whichever keyboard your phone already uses, and your voice is transcribed on the phone, never uploaded.
 
-**Install:** download `VoxScribe-Android-1.1.3.apk` from the [Android 1.1.3 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.3) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store.
+**Current version: 1.1.4.** Download `VoxScribe-Android-1.1.4.apk` from the [Android 1.1.4 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.4) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store. Already have VoxScribe? Install the new APK over it: your settings and history are kept (add the Quick Settings tile again after updating).
+
+**New in 1.1.4:**
+
+- Dictating into a draft no longer erases it: your words are added at the cursor and the text you already wrote stays
+- An optional English fast model (about 131 MB, Settings, Dictation) that types English several times faster and more accurately. The standard model stays for Arabic and mixed speech
+- Share a voice note, recording or video from WhatsApp, Files or any app to VoxScribe and the text comes back
+- Fill forms by voice: say "Name Sam Lee, phone 555 0100" and every box fills at once
+- Learns your words: fix a word VoxScribe got wrong and it makes that fix from then on
+- Names shown on screen, like the person you are writing to, are spelled right
+- Better formatting: missing full stops, "three forty five pm" as 3:45 PM, "order number four eight two nine" as 4829
+- A privacy receipt in Settings that lists every time the app went online and what it sent
+- Settings reorganized into Setup, Dictation, Floating button, Voice and words, Pro, Appearance, and Privacy and data
+
+Known issue: Xiaomi Notes can place dictated text a few characters off, because of its own editor. Gmail, Messages and most other apps are fine.
 
 **Automatic updates:** add this repository to [Obtainium](https://obtainium.imranr.dev/) (Add App, paste the repo URL) and set "Filter release titles by regular expression" to `Android`, so it skips the Windows releases.
 
@@ -107,9 +121,12 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 - Tap the button to start and stop, or hold it. Drag it to the bottom of the screen to hide it for 10 minutes. It never appears in password or PIN boxes
 - Transcribe audio and video files on the phone and save the text or .srt captions. A whole folder at once has 2 free runs, then it is Pro
 - Dictation modes (Chat, Email, Code, Notes), switching by app with Pro
+- Term packs for medicine, law and business, "Teach your voice", spoken formats like "one twenty over eighty" becoming 120/80, and a read-it-back button that reads each dictation aloud with the offline voice on the phone
+- A Quick Settings tile to turn the floating button on and off from the notification shade
 - Email, web address and number boxes get the text the way they expect, for example "sam at gmail dot com" becomes sam@gmail.com
 - Spoken commands ("period", "new line", "scratch that", "capitalize that", "replace X with Y"), an optional "send it" that taps the Send button, "Fix a word", and word replacements with export and import are free, each with its own page in Settings. Smart formatting, code dictation, fill-in templates and per-app profiles unlock with the same Pro key as Windows, which also unlocks Snippets
 - When a newer Android release is published, the app shows an update banner with a download button
+- Every release lists its SHA-256 so you can check the APK is exactly the build in this repository
 
 <p align="center">
   <img src="docs/assets/android-chat.png" width="230" alt="The VoxScribe button floating over a chat app, with a dictated message typed in">
@@ -135,7 +152,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- Network use is limited to: the one-time Whisper model download on first run (plus any optional speech model or GPU files you choose to download), a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, once on each day you dictate, and on both apps a few first-run steps and failure codes such as the model loading, the microphone opening or a dictation coming back empty, with no messages, device names, audio or text; can be turned off in Settings), and a one-time activation request if you buy Pro. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
+- Network use is limited to: the one-time Whisper model download on first run (plus any optional speech model or GPU files you choose to download), a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, once on each day you dictate, and on both apps a few first-run steps and failure codes such as the model loading, the microphone opening or a dictation coming back empty, with no messages, device names, audio or text; can be turned off in Settings), and a one-time activation request if you buy Pro. On Android, Settings has a privacy receipt that lists every one of these connections and what it sent. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
 
 ## Building from source
 
