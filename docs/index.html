@@ -1,20 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-sky="dawn">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T"></script>
+<!-- Google tag (gtag.js), not loaded on local previews so test visits stay out of the numbers -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  if (!/^(localhost|127\.)/.test(location.hostname)) {
+    var g = document.createElement('script'); g.async = true; g.src = 'https://www.googletagmanager.com/gtag/js?id=G-J19HV65Q6T'; document.head.appendChild(g);
+  }
   gtag('js', new Date());
 
   gtag('config', 'G-J19HV65Q6T');
 </script>
 <meta name="google-site-verification" content="smSR5YQ-xXXxhAXEZAcA3EPUOY-xN0kxTL2z_FA7f4g" />
-<title>VoxScribe: Offline, Open Source Dictation for PC and Phone</title>
-<meta name="description" content="Offline, open source dictation for your PC and phone. Free voice typing for Windows and Android: hold a key, speak, and it types into any app.">
+<title>VoxScribe: Dictation That Spells Names Like Your Screen, Offline</title>
+<meta name="description" content="Voice typing that spells names the way your screen does. Offline, free, nothing uploaded. Windows and Android: hold a key, speak, and it types into any app.">
 
 <link rel="canonical" href="https://voxscribe-ai-voice-dictation.vercel.app/">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -26,677 +28,433 @@
 <meta property="og:site_name" content="VoxScribe">
 <meta property="og:locale" content="en_US">
 <meta property="og:title" content="VoxScribe: Offline, open source dictation for your PC and your phone">
-<meta property="og:description" content="Free voice typing for Windows and Android. Talk, and Whisper types your words into any app, on your own device. No subscription, nothing uploaded.">
-<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:description" content="Voice typing that spells names the way your screen does. Offline, free, nothing uploaded. For Windows and Android. Talk, and Whisper types your words into any app, on your own device. No subscription, nothing uploaded.">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="VoxScribe: offline, open source dictation for your PC and your phone">
 <meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="VoxScribe: Offline, open source dictation for your PC and your phone">
-<meta name="twitter:description" content="Free voice typing for Windows and Android. Talk, and Whisper types your words into any app, on your own device. No subscription, nothing uploaded.">
-<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta name="twitter:description" content="Voice typing that spells names the way your screen does. Offline, free, nothing uploaded. For Windows and Android. Talk, and Whisper types your words into any app, on your own device. No subscription, nothing uploaded.">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 <meta name="twitter:image:alt" content="VoxScribe: offline, open source dictation for your PC and your phone">
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "VoxScribe", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Windows 10, Windows 11", "description": "Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest", "softwareVersion": "1.8.3", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Windows"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Hold-to-talk dictation into any Windows app", "Speech recognition runs on your PC with Whisper, nothing is uploaded", "Types with keystrokes, so the clipboard is never touched", "Skips password fields", "Audio and video files to text and .srt captions", "Try harder key reruns the last dictation on a more careful model", "Dictation modes for chat, email, code and notes"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-transcript.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-ready.png"]}
+{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "VoxScribe", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Windows 10, Windows 11", "description": "Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest", "softwareVersion": "1.8.3", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Windows"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Hold-to-talk dictation into any Windows app", "Speech recognition runs on your PC with Whisper, nothing is uploaded", "Types with keystrokes, so the clipboard is never touched", "Skips password fields", "Audio and video files to text and .srt captions", "Try harder key reruns the last dictation on a more careful model", "Dictation modes for chat, email, code and notes"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-transcript.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-ready.png"]}
 </script>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}, {"@type": "Question", "name": "Which languages can I dictate in?", "acceptedAnswer": {"@type": "Answer", "text": "Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages."}}]}
 </script>
-<link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="assets/fonts/Nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
-@font-face{font-family:'Silkscreen';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Silkscreen-400.woff2) format('woff2')}
-@font-face{font-family:'Silkscreen';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Silkscreen-700.woff2) format('woff2')}
-@font-face{font-family:'VT323';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/VT323-400.woff2) format('woff2')}
+@font-face{font-family:'Nunito';font-weight:700 800;font-display:swap;src:url(assets/fonts/Nunito-latin.woff2) format('woff2')}
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
 
-  /* RETRO 90s DESKTOP. Bright green desktop, silver bevelled windows, pixel
-     headings, terminal details. Body copy stays in Inter so long text reads
-     easily; the pixel fonts are only for headings, labels and small UI. */
-  :root {
-    --g1: #14e095; --g2: #06a866; --ink: #06120c; --ink2: #0b1a12;
-    --lime: #d9ff5c; --paper: #f3fff8;
-    --silver: #c6cbc8; --hi: #ffffff; --lo: #6f7773; --dk: #1a1f1c;
-    --title1: #04502f; --title2: #11c483;
-    --on-ink: #e9fff4; --on-ink-muted: #9fe9c7; --on-light-muted: #33443b;
-    --amber: #f0a54a; --red: #e0455d;
-    --pix: "Silkscreen", "Courier New", monospace;
-    --term: "VT323", "Courier New", monospace;
-    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    /* the classic two-step bevel */
-    --raised: inset -2px -2px 0 var(--dk), inset 2px 2px 0 var(--hi), inset -4px -4px 0 var(--lo), inset 4px 4px 0 #e6ebe8;
-    --sunken: inset 2px 2px 0 var(--lo), inset -2px -2px 0 var(--hi), inset 4px 4px 0 var(--dk);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; overflow-x: hidden; }
-  html { scroll-behavior: smooth; }
-  body { background: var(--ink); color: var(--on-ink); font-family: var(--sans); }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; width: 100%; position: relative; }
-  .wrap.wide { max-width: 1280px; }
-  h1, h2, .subhead, .section-head p { overflow-wrap: break-word; }
-  img { max-width: 100%; }
-  a { color: inherit; text-decoration-thickness: 2px; text-underline-offset: 3px; }
-  code { font-family: var(--term); font-size: 1.15em; background: rgba(0,0,0,.25); padding: 0 5px; }
-  .scanlines { position: fixed; inset: 0; pointer-events: none; z-index: 60;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 3px); }
+/* One palette per time of day. The scroll position picks the sky. */
+:root{
+  --sky:#f7ecdd; --ink:#22342b; --soft:#4c5d52; --accent:#1a7d52; --on-accent:#fff; --line:#22342b26; --sun:#f5d9b2;
+  --far:#c3dcb8; --mid:#86bf97; --near:#3a9a6e; --cloud:#fdf6ec;
+  --paper:color-mix(in srgb,var(--sky) 90%,var(--ink));
+}
+[data-sky="morning"]{--sky:#eff4e4; --soft:#4a5d50; --sun:#f3e6b8; --cloud:#fbfdf6}
+[data-sky="noon"]{--sky:#f5f8f1; --soft:#4a5d50; --sun:#f6efcf; --cloud:#e4ecdf}
+[data-sky="golden"]{--sky:#f3e3c3; --ink:#2b3325; --soft:#544f36; --accent:#1a6f49; --line:#2b332526; --sun:#f0d3a3; --cloud:#f8edd6}
+[data-sky="dusk"]{--sky:#2b4339; --ink:#eaf2e6; --soft:#c0d0c3; --accent:#8fdcb1; --on-accent:#10211a; --line:#eaf2e626; --sun:#4d4f3f;
+  --far:#3a5a4b; --mid:#2f6a50; --near:#23503d; --cloud:#38544a}
+[data-sky="night"],[data-sky="late"]{--sky:#101a16; --ink:#e3efe6; --soft:#a8bcb0; --accent:#7dd3a4; --on-accent:#0d1712; --line:#e3efe622; --sun:#c4d0c4;
+  --far:#1c2e26; --mid:#25493a; --near:#2f6a50; --cloud:#16231e}
+[data-sky="late"]{--sun:#2a3932}
 
-  a:focus-visible, button:focus-visible, .btn:focus-visible, .nav-toggle:focus-visible, input:focus-visible {
-    outline: 3px dotted var(--lime); outline-offset: 3px;
-  }
+*{box-sizing:border-box}
+.vh{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
+html{scroll-behavior:smooth; scrollbar-color:var(--accent) var(--sky)}
+body{margin:0; background-color:var(--sky); color:var(--ink); font:400 18px/1.65 Inter,system-ui,sans-serif;
+  transition:background-color .9s ease,color .9s ease; overflow-x:hidden; -webkit-font-smoothing:antialiased}
+::selection{background:var(--accent); color:var(--on-accent)}
+a{color:inherit; text-underline-offset:3px; text-decoration-thickness:1px}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
+img,video{display:block; max-width:100%; height:auto}
+h1,h2,h3{font-family:Nunito,Inter,sans-serif; text-wrap:balance; margin:0}
 
-  /* desktops: green dither and dark grid */
-  .desk-green { position: relative; color: var(--ink);
-    background: radial-gradient(55% 60% at 88% 12%, #7dffcf 0, transparent 62%), linear-gradient(165deg, var(--g1), var(--g2)); }
-  .desk-green::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .16; mix-blend-mode: multiply;
-    background-image: linear-gradient(45deg, rgba(6,18,12,.35) 25%, transparent 25%, transparent 75%, rgba(6,18,12,.35) 75%),
-                      linear-gradient(45deg, rgba(6,18,12,.35) 25%, transparent 25%, transparent 75%, rgba(6,18,12,.35) 75%);
-    background-size: 4px 4px; background-position: 0 0, 2px 2px; }
-  .desk-green > * { position: relative; }
-  .desk-ink { position: relative; background: var(--ink); color: var(--on-ink); }
-  .desk-ink::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .07;
-    background-image: linear-gradient(var(--g1) 1px, transparent 1px), linear-gradient(90deg, var(--g1) 1px, transparent 1px);
-    background-size: 32px 32px; }
-  .desk-ink > * { position: relative; }
-  .desk-lime { background: var(--lime); color: var(--ink); }
+#sun{position:fixed; left:0; top:0; width:min(34vmin,300px); aspect-ratio:1; border-radius:50%; background:var(--sun);
+  transition:background-color .9s ease; z-index:0; will-change:transform; pointer-events:none}
+#skyc{position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none}
+.plane{position:fixed; left:0; top:0; z-index:8; width:44px; height:44px; color:var(--accent); pointer-events:none; opacity:0}
+.leaf{position:fixed; z-index:8; margin:0; white-space:pre; pointer-events:none; color:var(--accent); text-decoration:line-through; font:700 clamp(25px,3vw,38px)/1.32 Nunito,Inter,sans-serif}
+#snd{display:grid; place-items:center; width:30px; height:30px; padding:0; border:0; border-radius:50%; background:transparent; color:var(--soft); cursor:pointer; transition:background-color .25s ease,color .25s ease}
+#snd svg{width:18px; height:18px}
+#snd[aria-pressed="true"]{background:var(--accent); color:var(--on-accent)}
+#dayline label{display:flex; align-items:center}
+.switchrow{display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:26px}
+.switch{display:inline-flex; align-items:center; gap:12px; min-height:44px; padding:0 16px 0 8px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--ink); font:600 15px/1 Inter,sans-serif; cursor:pointer}
+.switch i{position:relative; width:44px; height:26px; border-radius:99px; background:var(--line); transition:background-color .3s ease}
+.switch i::after{content:""; position:absolute; left:3px; top:3px; width:20px; height:20px; border-radius:50%; background:var(--sky); transition:transform .4s cubic-bezier(.16,1,.3,1)}
+.switch[aria-pressed="true"] i{background:var(--accent)}
+.switch[aria-pressed="true"] i::after{transform:translateX(18px)}
+.airnote{font-size:15.5px; color:var(--soft)}
+#talk span{display:inline-block; will-change:transform}
+body.sun-hover{cursor:grab}
+body.sun-drag{cursor:grabbing; user-select:none}
+#dayline{position:fixed; right:16px; bottom:14px; z-index:9; display:flex; align-items:center; gap:10px; padding:6px 14px; border-radius:999px;
+  background:var(--sky); border:1px solid var(--line); box-shadow:0 8px 24px -12px #17352b55; transition:background-color .9s ease,border-color .9s ease}
+#clock{min-width:62px; text-align:right; font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--soft); transition:color .9s ease}
+#day{appearance:none; -webkit-appearance:none; width:170px; height:24px; margin:0; background:transparent; cursor:grab}
+#day:active{cursor:grabbing}
+#day::-webkit-slider-runnable-track{height:3px; border-radius:2px; background:var(--line)}
+#day::-moz-range-track{height:3px; border-radius:2px; background:var(--line)}
+#day::-webkit-slider-thumb{-webkit-appearance:none; width:18px; height:18px; margin-top:-7.5px; border-radius:50%; background:var(--accent); border:0}
+#day::-moz-range-thumb{width:18px; height:18px; border-radius:50%; background:var(--accent); border:0}
+#day:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
 
-  /* WINDOW CHROME, reused everywhere */
-  .raised { background: var(--silver); box-shadow: var(--raised); }
-  .sunken { box-shadow: var(--sunken); }
-  .rwin { background: var(--silver); box-shadow: var(--raised), 10px 10px 0 rgba(6,18,12,.45); padding: 4px; color: var(--ink); text-align: left; }
-  .tbar, .win-bar, .try-editor-bar, .proof-label, .card::before, .say-label, .install-card::before, .updates-card::before,
-  .review-card::before, .pro-banner::before, .table-scroll::before {
-    display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 6px 0 8px;
-    background: linear-gradient(90deg, var(--title1), var(--title2)); color: #fff;
-    font: 700 13px/1 var(--pix); letter-spacing: .02em; text-transform: uppercase; margin: 0;
-  }
-  .tbar .t { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tbar .ctl { display: flex; gap: 2px; }
-  .tbar .ctl b, .x-btn { width: 20px; height: 18px; display: grid; place-items: center; font: 700 11px var(--pix);
-    color: var(--ink); background: var(--silver); box-shadow: var(--raised); }
-  .win-body { margin-top: 4px; background: #0b0f0d; box-shadow: var(--sunken); padding: 2px; }
-  .win-body img, .win-body video { display: block; width: 100%; height: auto; }
+nav{position:sticky; top:0; z-index:7; background:var(--sky); border-bottom:1px solid transparent; transition:background-color .9s ease,border-color .3s ease}
+nav.scrolled{border-bottom-color:var(--line)}
+nav .inner{display:flex; align-items:center; justify-content:space-between; gap:20px; max-width:1240px; margin:0 auto; padding:14px 28px}
+.nav-end{display:flex; align-items:center; gap:10px}
+.nav-toggle{display:none; place-items:center; width:40px; height:40px; padding:0; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--ink); cursor:pointer}
+[id]{scroll-margin-top:84px}
+.brand{display:flex; align-items:center; gap:10px; font:800 21px/1 Nunito,sans-serif; text-decoration:none}
+.bars{display:inline-flex; align-items:center; gap:2px; height:21px}
+.bars i{width:3px; border-radius:2px; background:var(--accent); transition:background-color .9s ease}
+.links{display:flex; gap:22px; font-size:15px}
+.links a{text-decoration:none; color:var(--soft)}
+.links a:hover{color:var(--ink); text-decoration:underline}
 
-  /* BUTTONS */
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 22px;
-    font: 700 15px/1.1 var(--pix); text-transform: uppercase; letter-spacing: .02em; text-decoration: none; cursor: pointer;
-    color: var(--ink); background: var(--silver); border: 0; border-radius: 0; box-shadow: var(--raised); }
-  .btn:hover { filter: brightness(1.05); }
-  .btn:active { box-shadow: inset 2px 2px 0 var(--dk), inset -2px -2px 0 var(--hi), inset 4px 4px 0 var(--lo); transform: translate(1px,1px); }
-  .btn svg { width: 18px; height: 18px; flex: none; }
-  .btn-primary { background: var(--lime);
-    box-shadow: inset -2px -2px 0 var(--dk), inset 2px 2px 0 #f4ffc8, inset -4px -4px 0 #8aa23a, inset 4px 4px 0 #ecffa6; }
-  .btn-secondary { background: var(--silver); }
-  .fine-print { font: 400 20px/1.25 var(--term); color: inherit; opacity: .85; }
-  .fine-print a { color: inherit; }
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:48px; padding:0 22px; border-radius:999px; border:1px solid var(--line);
+  background:transparent; color:var(--ink); font:600 16px/1 Inter,sans-serif; text-decoration:none; cursor:pointer;
+  transition:background-color .25s ease,color .25s ease,border-color .25s ease,transform .25s cubic-bezier(.16,1,.3,1)}
+.btn:hover{border-color:var(--ink); transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn svg{width:18px; height:18px; flex:none}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.btn.small{min-height:40px; padding:0 16px; font-size:14px}
 
-  /* keycap: a beige old-keyboard key */
-  .keycap { display: inline-block; font: 700 .8em/1 var(--pix); color: var(--ink); background: #e9e3cf;
-    padding: 4px 9px 6px; margin: 0 2px; vertical-align: .05em;
-    box-shadow: inset -3px -4px 0 #b9b19a, inset 3px 2px 0 #fffaf0, 0 0 0 2px var(--ink), 0 4px 0 2px var(--ink); }
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes keypress { 0%, 68%, 100% { transform: none; } 74%, 88% { transform: translateY(3px); } }
-    header.hero .sub .keycap { animation: keypress 5s ease-in-out 1.4s infinite; }
-  }
+.hero,.end{position:relative; overflow:hidden; overflow:clip; min-height:100svh}
+.hero{min-height:calc(100svh - 68px)}
+.hero-in{display:grid; grid-template-columns:minmax(0,1.02fr) minmax(0,1fr); gap:48px; max-width:1240px; margin:0 auto; padding:5vh 28px 0}
+h1{font-weight:800; font-size:clamp(60px,8.4vw,96px); line-height:.98; letter-spacing:-.03em}
+.caret{display:inline-block; width:.07em; height:.74em; margin-left:.08em; border-radius:99px; background:var(--accent); vertical-align:-.02em}
+.sub{max-width:34em; margin:24px 0 26px; color:var(--soft)}
+kbd{font:600 .85em Inter,sans-serif; padding:1px 8px 2px; border:1px solid var(--line); border-radius:7px; color:var(--ink)}
+.cta{display:flex; flex-wrap:wrap; gap:12px}
+.facts{margin:20px 0 0; font-size:14.5px; color:var(--soft)}
+.listen{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:22px}
+.listen .btn[aria-pressed="true"]{background:var(--ink); border-color:var(--ink); color:var(--sky)}
+.status{font-size:14.5px; color:var(--soft); min-height:1.4em}
+.copy{position:relative; z-index:3}
+.shot{position:relative; z-index:3; align-self:start}
+.shot img{border-radius:14px; box-shadow:0 24px 60px -24px #17352b66}
+.hold{touch-action:none; user-select:none; -webkit-user-select:none}
+.hold[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); transform:translateY(1px)}
+.hold[aria-pressed="true"] kbd{color:var(--on-accent); border-color:currentColor}
+.typed{position:absolute; left:-5%; bottom:-14%; z-index:2; width:72%; padding:14px 18px 16px; border-radius:14px; background:var(--sky); box-shadow:0 18px 44px -18px #17352b73}
+.typed strong{display:block; font-size:13px; font-weight:600; color:var(--soft)}
+.typed p{margin:4px 0 0; font-size:16px; line-height:1.5; min-height:3em}
+.typed p.on::after{content:""; display:inline-block; width:2px; height:1em; margin-left:2px; vertical-align:-.12em; background:var(--accent)}
+.meadow{position:absolute; left:0; right:0; bottom:0; width:100%; height:46vh; z-index:2; pointer-events:none}
+.hero .meadow{height:72vh}
+.listen .status:not(:empty){padding:2px 10px; border-radius:8px; background:var(--sky)}
+#fx{position:fixed; inset:0; width:100%; height:100%; z-index:9; pointer-events:none}
+html.intro body>nav,html.intro .copy>*,html.intro .shot,html.intro #dayline,html.intro #sun{opacity:0}
+@keyframes rise{from{opacity:0; transform:translateY(26px)}}
+@keyframes fadein{from{opacity:0}}
+html.reveal .copy>*{animation:rise 1s cubic-bezier(.16,1,.3,1) both}
+html.reveal .copy>*:nth-child(2){animation-delay:.12s}
+html.reveal .copy>*:nth-child(3){animation-delay:.2s}
+html.reveal .copy>*:nth-child(4){animation-delay:.28s}
+html.reveal .copy>*:nth-child(5){animation-delay:.36s}
+html.reveal .shot{animation:rise 1.2s cubic-bezier(.16,1,.3,1) .3s both}
+html.reveal body>nav,html.reveal #dayline,html.reveal #sun{animation:fadein 1.1s ease .2s both}
 
-  /* EYEBROW: a terminal prompt */
-  .eyebrow { display: inline-block; font: 400 22px/1 var(--term); letter-spacing: .03em; text-transform: lowercase;
-    background: var(--ink); color: var(--lime); padding: 5px 12px 6px; margin-bottom: 18px; }
-  .eyebrow::before { content: "C:\\> "; }
-  .eyebrow svg { display: none; }
-  .desk-ink .eyebrow { background: var(--lime); color: var(--ink); }
+section{position:relative; z-index:1; padding:120px 0}
+.wrap{max-width:1160px; margin:0 auto; padding:0 28px}
+h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-spacing:-.025em}
+.lead{max-width:36em; margin:18px 0 0; color:var(--soft)}
+.pair{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:40px; margin-top:56px; align-items:start}
+.pair img,.pair video{width:100%; border-radius:14px}
+.cap{margin:14px 0 0; font-size:15.5px; color:var(--soft)}
+.capbar{display:flex; align-items:center; justify-content:space-between; gap:14px}
+.note{max-width:40em; margin:56px 0 0; font-size:20px; line-height:1.5}
 
-  /* REVEAL */
-  @media (prefers-reduced-motion: no-preference) {
-    .js-reveal [data-reveal] { opacity: 0; transform: translateY(14px); transition: opacity 500ms steps(5), transform 500ms steps(5); }
-    .js-reveal [data-reveal].revealed { opacity: 1; transform: none; }
-    @keyframes blink { 50% { opacity: 0; } }
-    .say-text .caret { display: inline-block; width: .5em; height: 1em; margin-left: 2px; vertical-align: text-bottom;
-      background: var(--ink); animation: blink 900ms steps(1) infinite; }
-  }
-  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+.said{max-width:26em; margin:44px 0 24px; font:700 clamp(25px,3vw,38px)/1.32 Nunito,Inter,sans-serif; letter-spacing:-.012em}
+.said .f{display:inline-block; max-width:7em; overflow:hidden; white-space:pre; vertical-align:bottom; color:var(--accent); text-decoration:line-through; text-decoration-thickness:2px;
+  transition:max-width .7s cubic-bezier(.16,1,.3,1),opacity .4s ease}
+.said .b{display:none}
+.said.clean .f{max-width:0; opacity:0}
+.said.clean .a{display:none}
+.said.clean .b{display:inline}
+.row{display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:64px; align-items:center; margin-top:96px}
+.row.flip{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr)}
+.row.flip .txt{order:2}
+.row h3{font-weight:800; font-size:clamp(25px,2.6vw,34px); line-height:1.14; letter-spacing:-.015em; margin:0 0 14px}
+.row p{margin:0; color:var(--soft)}
+.row img{border-radius:14px; box-shadow:0 20px 50px -26px #17352b59}
+.phones{display:flex; justify-content:center; gap:22px}
+.phones img{width:min(42%,250px); border-radius:22px}
 
-  /* NAV: a taskbar-like strip on top */
-  nav { position: sticky; top: 0; z-index: 30; background: var(--silver); box-shadow: inset 0 -2px 0 var(--lo), inset 0 2px 0 var(--hi), 0 2px 0 var(--dk); color: var(--ink); }
-  nav .inner { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 24px; max-width: 1280px; margin: 0 auto; }
-  .brand { display: flex; align-items: center; gap: 10px; font: 700 19px/1 var(--pix); letter-spacing: .02em; text-transform: uppercase; }
-  .brand-mark { display: flex; }
-  .brand-mark svg { width: 30px; height: 22px; }
-  .brand-mark rect { fill: var(--g2); rx: 0; }
-  nav .links { display: flex; align-items: center; gap: 4px; }
-  nav .links a { font: 700 13px/1 var(--pix); text-transform: uppercase; color: var(--ink); text-decoration: none; padding: 9px 10px; }
-  nav .links a:hover { background: var(--title1); color: #fff; }
-  nav .btn { padding: 10px 14px; font-size: 13px; }
-  .nav-toggle { display: none; width: 40px; height: 36px; align-items: center; justify-content: center; cursor: pointer;
-    background: var(--silver); border: 0; box-shadow: var(--raised); color: var(--ink); }
+.pro p.big{max-width:38em; margin:22px 0 28px; font-size:20px; line-height:1.55}
+.fine{margin:18px 0 0; font-size:15px; color:var(--soft)}
 
-  /* HERO */
-  header.hero { position: relative; overflow: hidden; padding: 0; }
-  .hero-inner { max-width: 1320px; margin: 0 auto; padding: 46px 32px 140px; display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 44px; align-items: center; }
-  h1 { font: 700 clamp(36px, 5vw, 80px)/.95 var(--pix); text-transform: uppercase; letter-spacing: -.02em; margin: 0; }
-  h1 .w { display: block; white-space: nowrap; color: var(--paper);
-    text-shadow: 6px 6px 0 var(--ink), -2px -2px 0 var(--ink), 2px -2px 0 var(--ink), -2px 2px 0 var(--ink); }
-  h1 .cur { display: inline-block; width: .5em; height: .12em; background: var(--ink); margin-left: .08em; }
-  @media (prefers-reduced-motion: no-preference) { h1 .cur { animation: blink 1s steps(1) infinite; } }
-  .subhead { font-size: 20px; line-height: 1.5; font-weight: 700; max-width: 540px; margin: 28px 0 28px; color: var(--ink); }
-  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-  .hero .fine-print a { color: var(--ink); }
-  .hero-art { position: relative; min-height: 600px; }
-  .hero-art .rwin { position: absolute; }
-  .art-app { right: 0; top: 30px; width: 100%; }
-  .art-phone { left: -4%; bottom: -30px; width: 31%; z-index: 3; }
-  .art-phone .win-body { background: #000; }
-  .art-note { left: 14%; top: 47%; width: 330px; z-index: 4; }
-  .art-note .menu { font: 13px var(--sans); padding: 4px 6px; display: flex; gap: 14px; }
-  .art-note .txt { background: #fff; padding: 12px 14px; font: 400 23px/1.15 var(--term); min-height: 90px; box-shadow: var(--sunken); }
-  .art-note s { color: #9aa39f; }
-  .art-note .cur { display: inline-block; width: .45em; height: .8em; background: var(--ink); vertical-align: -2px; }
-  @media (prefers-reduced-motion: no-preference) { .art-note .cur { animation: blink 1s steps(1) infinite; } }
-  .art-dialog { right: 3%; bottom: 4%; width: 300px; z-index: 4; }
-  .art-dialog .in { display: flex; gap: 14px; align-items: center; padding: 14px 14px 6px; font: 700 15px/1.35 var(--sans); }
-  .art-dialog .ico { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--g2); color: #fff;
-    display: grid; place-items: center; font: 700 22px var(--pix); box-shadow: inset -3px -3px 0 rgba(0,0,0,.3); }
-  .art-dialog .ok { display: block; margin: 6px auto 10px; width: 90px; text-align: center; font: 700 13px var(--pix); padding: 8px 0; }
-  .art-key { position: absolute; right: 34%; top: -14px; z-index: 5; width: 118px; height: 112px; background: #e9e3cf;
-    display: grid; place-items: center; font: 700 50px/1 var(--pix); color: var(--ink); transform: rotate(-7deg);
-    box-shadow: inset -6px -8px 0 #b9b19a, inset 6px 4px 0 #fffaf0, 0 0 0 3px var(--ink), 0 10px 0 3px var(--ink); }
-  .art-key small { position: absolute; bottom: 12px; font: 400 18px var(--term); letter-spacing: .1em; color: #6d6550; }
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes press { 0%, 30%, 100% { transform: rotate(-7deg) translateY(0); } 40%, 75% { transform: rotate(-7deg) translateY(8px); } }
-    .art-key { animation: press 2.6s ease-in-out infinite; }
-  }
+.end{display:flex; flex-direction:column}
+.end-in{position:relative; z-index:3; padding:16vh 28px 0; max-width:1160px; width:100%; margin:0 auto}
 
-  /* the stats live in a Windows-style taskbar at the bottom of the hero */
-  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; display: flex; align-items: center; gap: 8px;
-    padding: 6px 8px; background: var(--silver); box-shadow: inset 0 2px 0 var(--hi), inset 0 4px 0 #e6ebe8; color: var(--ink); }
-  .start { display: flex; align-items: center; gap: 8px; font: 700 15px var(--pix); padding: 8px 12px; flex: none; text-transform: uppercase; }
-  .start i { display: inline-flex; gap: 2px; align-items: flex-end; height: 16px; } .start i b { width: 4px; background: var(--g2); }
-  .tasks { flex: 1; display: flex; gap: 8px; min-width: 0; }
-  .task { flex: 1; min-width: 0; padding: 6px 12px; font: 400 20px/1.1 var(--term); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--silver); box-shadow: var(--sunken); }
-  .task .stat-num { display: inline; font: 700 15px var(--pix); color: var(--title1); margin-right: 8px; }
-  .task .stat-label { display: inline; }
-  .task .stat-label br { display: none; }
-  .clock { flex: none; padding: 8px 12px; font: 400 20px var(--term); box-shadow: var(--sunken); }
+.stats{display:flex; flex-wrap:wrap; gap:14px 56px; margin:0 0 72px; padding:0; list-style:none}
+.stats b{display:block; font:800 clamp(30px,3.4vw,42px)/1.1 Nunito,Inter,sans-serif; font-variant-numeric:tabular-nums}
+.stats span{font-size:15px; color:var(--soft)}
 
-  /* SECTIONS */
-  section { padding: 96px 0; }
-  .section-head { text-align: center; max-width: 760px; margin: 0 auto 52px; }
-  .section-head h2 { font: 700 clamp(28px, 3.8vw, 52px)/1.02 var(--pix); text-transform: uppercase; letter-spacing: -.01em; margin: 0 0 16px; }
-  .section-head p { font-size: 18px; line-height: 1.6; margin: 0; opacity: .9; }
-  .desk-ink .section-head h2 em, .desk-ink .accent { font-style: normal; color: var(--g1); }
-  .desk-green .section-head h2 em { font-style: normal; color: var(--paper); text-shadow: 4px 4px 0 var(--ink); }
-  .desk-ink .section-head p { color: var(--on-ink-muted); }
-  .desk-ink .section-head a, .desk-ink .faq-item a, .desk-ink .faq-guides a, .desk-ink .tray-note a { color: var(--lime); }
+#try{padding-bottom:170px}
+#try .wrap{position:relative; z-index:3}
+#try .meadow{height:380px}
+.try-magic{margin:0; max-width:21em; font-size:15px; line-height:1.45; font-weight:600; color:var(--accent)}
+.try{margin-top:44px}
+.try [hidden]{display:none !important}
+.try-main{display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:44px; align-items:stretch}
+.try-stage{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center}
+.try-talk{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; width:216px; height:216px; padding:18px; border:0; border-radius:50%; background:var(--accent); color:var(--on-accent); font:700 16px/1.3 Nunito,Inter,sans-serif; cursor:pointer; touch-action:none; user-select:none; -webkit-user-select:none;
+  transition:transform .35s cubic-bezier(.16,1,.3,1),background-color .25s ease}
+.try-talk:hover{transform:scale(1.03)}
+.try-talk:disabled{opacity:.72; cursor:progress; transform:none}
+.try-talk:focus-visible{outline:2px solid var(--ink); outline-offset:4px}
+.try[data-state="recording"] .try-talk{transform:scale(1.09); background:var(--ink); color:var(--sky)}
+.try-meter{display:flex; align-items:center; gap:6px; height:52px}
+.try-meter i{display:block; width:8px; height:100%; border-radius:99px; background:currentColor; transform:scaleY(.15); transition:transform 90ms linear}
+.try[data-state="working"] .try-meter i{animation:meter .9s ease-in-out infinite}
+.try-meter i:nth-child(2){animation-delay:.09s}.try-meter i:nth-child(3){animation-delay:.18s}.try-meter i:nth-child(4){animation-delay:.27s}.try-meter i:nth-child(5){animation-delay:.36s}
+@keyframes meter{0%,100%{transform:scaleY(.2)}50%{transform:scaleY(.95)}}
+.try-load-wrap{width:216px}
+.try-progress{height:6px; border-radius:99px; background:var(--line); overflow:hidden}
+.try-progress>div{height:100%; width:0; border-radius:99px; background:var(--accent); transition:width .25s ease}
+.try-hint,.try-status{margin:0; max-width:21em; font-size:15px; line-height:1.45; color:var(--soft)}
+.try-status{min-height:1.45em; color:var(--ink)}
+.try-sample:disabled{opacity:.5; cursor:not-allowed}
+.try-editor{display:flex; flex-direction:column; min-height:320px; border:1px solid var(--line); border-radius:16px; background:var(--paper); overflow:hidden}
+.try-editor-bar{padding:12px 20px; border-bottom:1px solid var(--line); font-size:14px; font-weight:600; color:var(--soft)}
+.try-editor-bar i{display:none}
+.try-text{flex:1; padding:20px; font:700 clamp(21px,2.3vw,28px)/1.35 Nunito,Inter,sans-serif; overflow-wrap:anywhere}
+.try-text:empty::before{content:"Your words will be typed here."; color:var(--soft); font-weight:700}
+.try-proof{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:28px; margin-top:36px; padding-top:24px; border-top:1px solid var(--line)}
+.try-key{font-size:14px; font-weight:600; color:var(--soft)}
+.try-val{margin-top:4px; font:800 26px/1.2 Nunito,Inter,sans-serif; overflow-wrap:anywhere}
+.try-val.small{font:600 15px/1.4 Inter,sans-serif}
+.try-val.is-off{color:var(--accent)}
+.try-tile.is-zero .try-val{color:var(--accent)}
+.try-sub{margin-top:2px; font-size:13.5px; color:var(--soft)}
+.try-note{margin:24px 0 0; max-width:62em; font-size:14.5px; line-height:1.6; color:var(--soft)}
 
-  /* PROOF: the real recording and the airplane video as two windows */
-  #proof { padding: 90px 0; }
-  .proof-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 34px; align-items: start; }
-  .proof-shell { padding: 4px; background: var(--silver); box-shadow: var(--raised), 10px 10px 0 rgba(20,224,149,.25); color: var(--ink); }
-  .proof-label .rec-dot { width: 10px; height: 10px; background: #ff5a6e; border-radius: 50%; box-shadow: 0 0 6px #ff5a6e; }
-  .proof-img { display: block; width: 100%; height: auto; background: #fff; margin-top: 4px; box-shadow: var(--sunken); }
-  .proof-caption { display: flex; gap: 8px; align-items: center; padding: 10px 8px 6px; font-size: 14px; font-weight: 600; }
-  .proof-caption svg { flex: none; color: var(--title1); }
-  .hero-demo video { display: block; width: 100%; height: auto; aspect-ratio: 16/9; background: #06060f; margin-top: 4px; box-shadow: var(--sunken); }
-  .demo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 8px 6px; font-size: 14px; font-weight: 600; }
-  .demo-bar a { color: var(--title1); }
-  .demo-pause { flex: none; font: 700 12px var(--pix); text-transform: uppercase; padding: 7px 12px; border: 0; cursor: pointer; background: var(--silver); box-shadow: var(--raised); color: var(--ink); }
-  .tray-note { margin: 34px auto 0; max-width: 700px; text-align: center; font: 400 24px/1.3 var(--term); color: var(--on-ink-muted); }
-  .tray-note::before { content: "> "; color: var(--lime); }
+.field{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:52px 44px; margin:56px 0 0; padding:0; list-style:none}
+.field h3{margin:14px 0 8px; font-weight:800; font-size:21px; line-height:1.22}
+.field p{margin:0; font-size:16px; line-height:1.6; color:var(--soft)}
+.print{display:flex; align-items:flex-end; gap:3px; height:34px}
+.print i{display:block; width:4px; border-radius:9px; background:var(--accent); transform-origin:bottom; transition:transform .5s cubic-bezier(.16,1,.3,1),background-color .9s ease}
+.field li:hover .print i{transform:scaleY(1.32)}
+.field li:hover .print i:nth-child(even){transform:scaleY(.72)}
 
-  /* SHOWCASE rows of real screenshots */
-  .show-row { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: 56px; align-items: center; padding: 34px 0; }
-  .show-row.reverse { grid-template-columns: minmax(0, 1.18fr) minmax(0, .82fr); }
-  .show-row.reverse .show-text { order: 2; }
-  .show-num { display: inline-block; font: 700 18px var(--pix); background: var(--ink); color: var(--lime); padding: 6px 12px; margin-bottom: 18px; }
-  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-  .desk-green .how-footnote { color: var(--ink); font-weight: 400; }
-  .desk-green .how-footnote::before { color: var(--ink); }
-  .desk-green .showcase-card { box-shadow: var(--raised), 8px 8px 0 rgba(6,18,12,.5); }
-  .show-text h3 { font: 700 clamp(22px, 2.4vw, 32px)/1.12 var(--pix); text-transform: uppercase; margin: 0 0 14px; }
-  .show-text p { margin: 0; font-size: 17px; line-height: 1.6; font-weight: 600; color: var(--on-light-muted); }
-  .show-text a { color: var(--ink); font-weight: 800; }
-  .win { padding: 4px; background: var(--silver); box-shadow: var(--raised), 12px 12px 0 rgba(6,18,12,.55); }
-  .win img { display: block; width: 100%; height: auto; margin-top: 4px; box-shadow: var(--sunken); }
-  .win-bar i { display: none; }
-  .win-bar::after { content: "_ \25A1 x"; margin-left: auto; font: 700 11px var(--pix); letter-spacing: 6px; opacity: .9; }
-  .show-media.phones { display: flex; justify-content: center; }
-  .phone { position: relative; width: 44%; height: auto; border: 6px solid var(--ink); box-shadow: 10px 10px 0 rgba(6,18,12,.55); }
-  .phone.p1 { transform: rotate(-3deg) translateX(8%); }
-  .phone.p2 { transform: rotate(3deg) translate(-8%, 6%); }
+.steps{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:44px; margin:52px 0 0; padding:0; list-style:none}
+.step-art{display:flex; align-items:flex-end; height:92px}
+.step-art kbd{padding:12px 24px 13px; border-width:2px; border-radius:14px; font-size:30px; font-weight:600}
+.step-art .say{display:flex; align-items:center; gap:6px; height:76px}
+.step-art .say i{display:block; width:8px; height:100%; border-radius:99px; background:var(--accent); animation:meter 1.5s ease-in-out infinite}
+.step-art .out{font:800 23px/1.25 Nunito,Inter,sans-serif; color:var(--accent)}
+.steps h3{margin:18px 0 8px; font-weight:800; font-size:27px; line-height:1.15}
+.steps p{margin:0; color:var(--soft)}
+.shots{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-top:56px}
+.shots img{border-radius:12px}
 
-  /* TRY IT: a program window */
-  .try-card [hidden] { display: none !important; }
-  .try-card { max-width: 1000px; margin: 0 auto; padding: 4px; background: var(--silver); color: var(--ink);
-    box-shadow: var(--raised), 12px 12px 0 rgba(20,224,149,.25); text-align: left; }
-  .try-card::before { content: "TRY_VOXSCRIBE.EXE"; display: flex; align-items: center; min-height: 28px; padding: 0 8px;
-    background: linear-gradient(90deg, var(--title1), var(--title2)); color: #fff; font: 700 13px var(--pix); }
-  .try-main { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.2fr); gap: 12px; padding: 12px; }
-  .try-stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 14px;
-    background: var(--silver); box-shadow: var(--sunken); text-align: center; min-height: 260px; }
-  .try-talk { position: relative; width: 160px; height: 150px; cursor: pointer; border: 0; color: var(--ink);
-    background: var(--lime); font: 700 13px/1.2 var(--pix); text-transform: uppercase;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-    box-shadow: inset -5px -6px 0 #8aa23a, inset 5px 4px 0 #f4ffc8, 0 0 0 3px var(--ink), 0 8px 0 3px var(--ink);
-    touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
-  .try-talk:disabled { filter: grayscale(1) brightness(.85); cursor: not-allowed; }
-  .try-card[data-state="recording"] .try-talk { transform: translateY(6px); box-shadow: inset -5px -6px 0 #8aa23a, inset 5px 4px 0 #f4ffc8, 0 0 0 3px var(--ink), 0 2px 0 3px var(--ink); background: #ff8a9a; }
-  .try-meter { display: flex; align-items: center; gap: 4px; height: 38px; }
-  .try-meter i { display: block; width: 7px; height: 100%; background: var(--ink); transform: scaleY(.15); transition: transform 70ms linear; }
-  .try-card[data-state="working"] .try-meter i { animation: tryWave 900ms steps(4) infinite; }
-  .try-meter i:nth-child(2) { animation-delay: 90ms; } .try-meter i:nth-child(3) { animation-delay: 180ms; }
-  .try-meter i:nth-child(4) { animation-delay: 270ms; } .try-meter i:nth-child(5) { animation-delay: 360ms; }
-  @keyframes tryWave { 0%, 100% { transform: scaleY(.2); } 50% { transform: scaleY(.8); } }
-  .try-hint, .try-status { margin: 0; font-size: 14px; font-weight: 600; max-width: 300px; }
-  .try-status { min-height: 20px; }
-  .try-load-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  .try-progress { width: 220px; height: 18px; background: #fff; box-shadow: var(--sunken); padding: 3px; }
-  .try-progress > div { height: 100%; width: 0; transition: width 200ms steps(8);
-    background: repeating-linear-gradient(90deg, var(--title1) 0 10px, transparent 10px 13px); }
-  .try-sample { font-size: 12px; padding: 10px 12px; }
-  .try-sample:disabled { opacity: .5; cursor: not-allowed; }
-  .try-editor { background: #fff; box-shadow: var(--sunken); display: flex; flex-direction: column; min-height: 260px; padding: 2px; }
-  .try-editor-bar i { display: none; }
-  .try-editor-bar span { margin: 0; }
-  .try-text { flex: 1; padding: 16px 18px; font: 400 26px/1.25 var(--term); color: var(--ink); min-height: 150px; overflow-wrap: anywhere; }
-  .try-text:empty::before { content: "Your words will be typed here."; color: #8a958f; }
-  .try-proof { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 0 12px 12px; }
-  .try-tile { padding: 10px 12px; background: var(--silver); box-shadow: var(--sunken); }
-  .try-key { font: 700 11px var(--pix); text-transform: uppercase; }
-  .try-val { margin-top: 6px; font: 400 26px/1 var(--term); color: var(--title1); }
-  .try-val.is-off { color: #b0620e; }
-  .try-tile.is-zero { background: var(--lime); }
-  .try-sub { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--on-light-muted); }
-  .try-note { margin: 0; padding: 0 14px 14px; font-size: 12.5px; line-height: 1.55; color: var(--on-light-muted); }
-  @media (prefers-reduced-motion: reduce) { .try-card[data-state="working"] .try-meter i { animation: none; transform: scaleY(.5); } }
+.table-scroll{margin-top:44px; overflow-x:auto}
+table{width:100%; min-width:540px; border-collapse:collapse; font-size:17px}
+th,td{padding:18px 20px 18px 0; text-align:left; vertical-align:top; border-bottom:1px solid var(--line)}
+th{font:800 20px/1.25 Nunito,Inter,sans-serif}
+td.first{color:var(--soft)}
+td.yes,th.us{color:var(--accent); font-weight:600}
+th.us{font-weight:800}
+td.no{color:var(--soft)}
 
-  /* WHAT YOU SAY: two Notepad windows */
-  .say-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 18px; align-items: stretch; max-width: 1000px; margin: 0 auto; }
-  .say-card { padding: 4px; background: var(--silver); box-shadow: var(--raised), 10px 10px 0 rgba(6,18,12,.45); color: var(--ink); text-align: left; display: flex; flex-direction: column; }
-  .say-label .dot { display: none; }
-  .say-card.out .say-label { background: linear-gradient(90deg, #4f6a00, #9cc400); }
-  .say-text { flex: 1; margin: 4px 0 0; padding: 16px 18px; background: #fff; box-shadow: var(--sunken); font: 400 25px/1.25 var(--term); color: var(--ink); }
-  .say-text .f { text-decoration: line-through; text-decoration-color: var(--red); text-decoration-thickness: 3px; color: #8a958f;
-    transition: text-decoration-color 600ms steps(3) 400ms; }
-  .js-reveal .say-card:not(.revealed) .f { text-decoration-color: transparent; }
-  .say-arrow { align-self: center; display: flex; color: var(--ink); }
-  .say-arrow svg { width: 40px; height: 40px; stroke-width: 3; }
-  .say-facts { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 1000px; margin: 34px auto 0; }
-  .say-fact { padding: 9px 14px; font-size: 14px; font-weight: 700; background: var(--silver); box-shadow: var(--raised); color: var(--ink); }
-  .say-fact b { font-weight: 900; color: var(--title1); }
-  .say-note { max-width: 680px; margin: 18px auto 0; text-align: center; font-size: 13px; font-weight: 600; opacity: .8; }
+.voices{display:grid; gap:64px; margin-top:52px}
+.voices blockquote{margin:0; max-width:27em; font:700 clamp(25px,3vw,38px)/1.32 Nunito,Inter,sans-serif; letter-spacing:-.012em}
+.voices blockquote mark{background:none; color:var(--accent)}
+.voices .who{margin:18px 0 0; font-size:15.5px; color:var(--soft)}
+.voices .who strong{color:var(--ink); font-weight:600}
 
-  /* FEATURES: every card is a little window */
-  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px; }
-  .card { padding: 4px; background: var(--silver); color: var(--ink); box-shadow: var(--raised), 8px 8px 0 rgba(6,18,12,.5);
-    display: flex; flex-direction: column; transition: transform 120ms steps(2); }
-  .card::before { content: "FEATURE.EXE"; }
-  .card .icon { width: 44px; height: 44px; margin: 14px 14px 10px; display: grid; place-items: center; background: var(--ink); color: var(--lime); }
-  .card .icon svg { width: 22px; height: 22px; }
-  .card h3 { font: 700 15px/1.25 var(--pix); text-transform: uppercase; margin: 0 14px 8px; }
-  .card p { font-size: 14px; line-height: 1.55; margin: 0 14px 16px; color: var(--on-light-muted); font-weight: 500; }
-  .card a { color: var(--title1); font-weight: 800; }
-  .card:hover { transform: translate(-2px, -2px); box-shadow: var(--raised), 12px 12px 0 rgba(6,18,12,.55); }
-  .grid .card:nth-child(4n+2) .icon { background: var(--title1); color: #fff; }
-  .grid .card:nth-child(4n+3) .icon { background: var(--lime); color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
-  .grid .card:nth-child(4n+4) .icon { background: #fff; color: var(--ink); box-shadow: 0 0 0 2px var(--ink); }
+.tiers{margin:40px 0 18px}
+.deadline{margin:34px 0 14px; font:800 clamp(22px,2.4vw,28px)/1.2 Nunito,Inter,sans-serif; color:var(--accent)}
+.deadline+.btn{margin-top:0}
+.deadline[hidden]+.btn{margin-top:30px}
 
-  /* HOW IT WORKS: three STEP_N.EXE windows */
-  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
-  .step-win .win-body { background: var(--paper); padding: 24px 22px 26px; min-height: 240px; color: var(--ink); }
-  .step-win:nth-child(2) .win-body { background: var(--lime); }
-  .step-win:nth-child(3) .win-body { background: #fff; }
-  .step-win h3 { font: 700 22px/1.1 var(--pix); text-transform: uppercase; margin: 18px 0 10px; }
-  .step-win p { font-size: 16px; line-height: 1.55; font-weight: 600; margin: 0; }
-  .step-win .keycap { font-size: 28px; }
-  .meter { display: flex; gap: 4px; align-items: flex-end; height: 46px; padding: 4px; background: #000; width: max-content; }
-  .meter i { width: 12px; height: 20px; background: var(--g1); }
-  .meter i:nth-child(n+6) { background: var(--lime); }
-  @media (prefers-reduced-motion: no-preference) {
-    @keyframes vu { 0%, 100% { height: 8px; } 50% { height: 38px; } }
-    .meter i { animation: vu 1s steps(4) infinite; }
-  }
-  .typed { font: 400 25px var(--term); background: #fff; padding: 8px 12px; display: inline-block; box-shadow: var(--sunken); }
-  .how-footnote { max-width: 720px; margin: 40px auto 0; text-align: center; font: 400 23px/1.3 var(--term); color: var(--on-ink-muted); }
-  .how-footnote::before { content: "> "; color: var(--lime); }
-  .showcase-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
-  .showcase-card { padding: 4px; background: var(--silver); box-shadow: var(--raised), 8px 8px 0 rgba(20,224,149,.2); color: var(--ink); }
-  .showcase-card img { display: block; width: 100%; height: auto; box-shadow: var(--sunken); }
-  .showcase-caption { padding: 10px 6px 6px; font: 700 12px var(--pix); text-transform: uppercase; }
+.typed-float{position:fixed; left:12px; right:12px; bottom:72px; z-index:8; padding:12px 16px 14px; border:1px solid var(--line); border-radius:14px; background:var(--sky); box-shadow:0 18px 44px -18px #17352b73; opacity:0; visibility:hidden; transform:translateY(14px); transition:opacity .3s ease,transform .4s cubic-bezier(.16,1,.3,1),visibility .3s}
+.typed-float.on{opacity:1; visibility:visible; transform:none}
+.typed-float strong{display:block; font-size:13px; font-weight:600; color:var(--soft)}
+.typed-float p{margin:3px 0 0; font-size:16px; line-height:1.45}
 
-  /* COMPARE: a sunken table in a window */
-  .table-scroll { overflow-x: auto; padding: 4px; background: var(--silver); box-shadow: var(--raised), 10px 10px 0 rgba(6,18,12,.45); color: var(--ink); max-width: 900px; margin: 0 auto; }
-  .table-scroll::before { content: "COMPARE.TXT"; }
-  table { width: 100%; min-width: 440px; border-collapse: collapse; background: #fff; margin-top: 4px; box-shadow: var(--sunken); }
-  th, td { padding: 14px 18px; text-align: left; font-size: 15px; border-bottom: 2px solid #dfe5e1; }
-  th { font: 700 12px var(--pix); text-transform: uppercase; background: #eef2ef; }
-  tr:last-child td { border-bottom: 0; }
-  td.first { font-weight: 800; }
-  td.yes { font-weight: 800; color: var(--title1); }
-  td.yes::before { content: "[x] "; font-family: var(--term); font-size: 1.2em; }
-  td.no { color: #6b766f; }
-  td.no::before { content: "[ ] "; font-family: var(--term); font-size: 1.2em; }
+.updates-form{display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; max-width:560px}
+.updates-form input[type=email]{flex:1 1 240px; min-height:48px; padding:0 20px; border:1px solid var(--soft); border-radius:999px; background:transparent; color:var(--ink); font:400 16px Inter,sans-serif}
+.updates-form input[type=email]::placeholder{color:var(--soft); opacity:1}
+.updates-form input[type=email]:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.updates-form button:disabled{opacity:.6; cursor:progress}
+.updates-hp{position:absolute; left:-9999px}
+.updates-status{min-height:1.5em; margin:12px 0 0; font-size:15.5px}
+.updates-status[data-state="error"]{font-weight:600}
+.updates-status[data-state="ok"]{color:var(--accent); font-weight:600}
 
-  /* REVIEWS: message boxes */
-  .reviews-wrap { max-width: 760px; margin: 0 auto; }
-  .review-card { padding: 4px; background: var(--silver); box-shadow: var(--raised), 12px 12px 0 rgba(6,18,12,.5); color: var(--ink); }
-  .review-card::before { content: "MESSAGE"; }
-  .review-card .quote-mark { font: 900 72px/1 var(--sans); color: var(--title1); padding: 18px 26px 0; }
-  .review-card blockquote { font-size: 23px; line-height: 1.45; font-weight: 800; letter-spacing: -.01em; margin: 6px 26px 22px; }
-  .review-card blockquote .highlight { background: var(--lime); box-shadow: 0 0 0 3px var(--lime); }
-  .review-card-next { margin-top: 36px; }
-  .review-attribution { display: flex; align-items: center; gap: 12px; margin: 0 26px; padding: 16px 0 20px; border-top: 2px solid var(--lo); font-size: 15px; }
-  .review-attribution .avatar { width: 36px; height: 36px; flex: none; background: var(--ink); color: var(--lime); display: grid; place-items: center; }
-  .review-attribution .avatar svg { width: 18px; height: 18px; }
-  .review-attribution span { opacity: .8; }
-  .review-source { text-align: center; margin: 14px 0 0; font: 400 21px var(--term); }
+.install-list{counter-reset:s; display:grid; gap:20px; max-width:44em; margin:44px 0 0; padding:0; list-style:none}
+.install-list li{counter-increment:s; display:grid; grid-template-columns:44px minmax(0,1fr); gap:10px; align-items:baseline}
+.install-list li::before{content:counter(s); font:800 28px/1 Nunito,Inter,sans-serif; color:var(--accent)}
+code{padding:2px 7px; border-radius:6px; background:var(--paper); font:500 .9em ui-monospace,Consolas,monospace; overflow-wrap:anywhere}
+.pm{max-width:44em; margin:28px 0 0; font-size:15.5px; line-height:1.9; color:var(--soft); overflow-wrap:anywhere}
+.smartscreen{max-width:44em; margin:32px 0 0; padding:20px 24px; border-radius:14px; background:var(--paper); font-size:16px; line-height:1.6}
 
-  /* PRO: lime desktop with one big window */
-  #pro-waitlist { padding: 110px 0; }
-  .pro-banner { padding: 4px; background: var(--silver); box-shadow: var(--raised), 14px 14px 0 var(--ink); color: var(--ink);
-    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 28px; align-items: center; }
-  .pro-banner::before { content: "VOXSCRIBE_PRO.EXE"; grid-column: 1 / -1; }
-  .pro-banner p { margin: 0; padding: 24px 26px; font-size: 16px; line-height: 1.65; font-weight: 600; }
-  .pro-banner .btn { margin-right: 26px; white-space: nowrap; font-size: 16px; padding: 18px 24px; }
-  .pro-fine-print { text-align: center; margin-top: 22px; }
+.faq{margin-top:40px; max-width:50em}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{display:flex; align-items:center; justify-content:space-between; gap:20px; min-height:48px; padding:18px 0; cursor:pointer; list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
+.faq h3{font-weight:700; font-size:21px; line-height:1.28}
+.faq summary::after{content:""; flex:none; width:12px; height:12px; margin-right:4px; border-right:2.5px solid var(--accent); border-bottom:2.5px solid var(--accent); border-radius:1px; transform:translateY(-3px) rotate(45deg); transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.faq details[open] summary::after{transform:translateY(3px) rotate(225deg)}
+.faq p{margin:0 0 22px; color:var(--soft)}
+.guides{margin:32px 0 0; font-size:16px; color:var(--soft)}
 
-  /* UPDATES */
-  #updates { padding: 80px 0; }
-  .updates-card { max-width: 680px; margin: 0 auto; padding: 4px; background: var(--silver); box-shadow: var(--raised), 10px 10px 0 rgba(20,224,149,.25); color: var(--ink); text-align: center; }
-  .updates-card::before { content: "NEWSLETTER.EXE"; }
-  .updates-card h2 { font: 700 22px/1.15 var(--pix); text-transform: uppercase; margin: 22px 22px 10px; }
-  .updates-card p { font-size: 15px; line-height: 1.6; margin: 0 22px 18px; font-weight: 500; }
-  .updates-form { display: flex; gap: 10px; margin: 0 22px; }
-  .updates-form input[type="email"] { flex: 1; min-width: 0; padding: 12px; font: 400 22px var(--term); background: #fff; color: var(--ink); border: 0; box-shadow: var(--sunken); }
-  .updates-form .btn[disabled] { opacity: .6; cursor: default; }
-  .updates-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-  .updates-status { min-height: 20px; margin: 12px 22px 0; font-size: 14px; font-weight: 700; }
-  .updates-status[data-state="ok"] { color: var(--title1); }
-  .updates-status[data-state="error"] { color: #b3243a; }
-  .updates-fine { margin: 8px 22px 20px !important; font-size: 18px !important; }
-  .updates-fine a { color: var(--title1); }
+.site-foot{position:relative; z-index:3; padding:56px 0 96px; background:#0a120f; font-size:15px; color:var(--soft)}
+.foot-links{display:flex; flex-wrap:wrap; gap:10px 24px; margin-bottom:22px}
+.site-foot p{margin:30px 0 0}
+.site-foot img{margin-top:18px}
 
-  /* INSTALL */
-  .install-card { padding: 4px; background: var(--silver); box-shadow: var(--raised), 12px 12px 0 rgba(6,18,12,.5); color: var(--ink); max-width: 900px; margin: 0 auto; }
-  .install-card::before { content: "SETUP.EXE"; }
-  .install-card ol { margin: 0; padding: 22px 26px 6px 52px; font-size: 16px; line-height: 2; font-weight: 500; }
-  .install-card > p { padding: 0 26px; }
-  .install-card a { color: var(--title1); font-weight: 800; }
-  .smartscreen-note { margin: 18px 26px 24px; padding: 16px; background: #fff7d6; box-shadow: var(--sunken); font-size: 14px; line-height: 1.6; }
-  .smartscreen-note strong { color: #8a4b00; }
+.sticky-dl{display:none}
 
-  /* FAQ */
-  .faq-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 22px; }
-  .faq-item { padding: 18px 20px; background: var(--ink2); box-shadow: inset 0 0 0 2px #1f3a2d; }
-  .faq-item h3 { font: 700 15px/1.3 var(--pix); text-transform: uppercase; color: var(--g1); margin: 0 0 10px; }
-  .faq-item h3::before { content: "? "; color: var(--lime); }
-  .faq-item p { font-size: 15px; line-height: 1.65; margin: 0; color: var(--on-ink); opacity: .9; }
-  .faq-guides { margin-top: 30px; color: var(--on-ink-muted); }
-
-  /* FOOTER */
-  footer { padding: 56px 0 40px; text-align: center; background: var(--silver); color: var(--ink); box-shadow: inset 0 2px 0 var(--hi), inset 0 4px 0 #e6ebe8; }
-  footer p { font-size: 14px; margin: 6px 0; font-weight: 500; }
-  footer .foot-links { display: flex; gap: 8px 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; font-size: 14px; }
-  footer .foot-links:first-child a { font: 700 13px var(--pix); text-transform: uppercase; }
-  footer .foot-links a { color: var(--ink); text-decoration: none; font-weight: 600; }
-  footer .foot-links a:hover { background: var(--title1); color: #fff; }
-  footer p a { color: var(--title1); }
-
-  /* STICKY DOWNLOAD BAR (phones only) */
-  .sticky-dl { display: none; }
-  @media (max-width: 760px) {
-    .sticky-dl { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-      padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: var(--silver);
-      box-shadow: inset 0 2px 0 var(--hi), 0 -2px 0 var(--dk);
-      transform: translateY(110%); visibility: hidden; transition: transform 200ms steps(4), visibility 0s linear 200ms; }
-    .sticky-dl.show { transform: none; visibility: visible; transition: transform 200ms steps(4), visibility 0s; }
-    .sticky-dl .btn { width: 100%; }
-    body { padding-bottom: 72px; }
-  }
-  @media (prefers-reduced-motion: reduce) { .sticky-dl, .sticky-dl.show { transition: none; } }
-
-  /* RESPONSIVE */
-  @media (max-width: 1080px) {
-    .hero-inner { grid-template-columns: minmax(0, 1fr); padding: 26px 20px 130px; gap: 30px; }
-    .hero-art { min-height: 0; aspect-ratio: 1 / .82; }
-    .proof-grid { grid-template-columns: minmax(0, 1fr); }
-    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 860px) {
-    .show-row, .show-row.reverse { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 22px 0; }
-    .show-row.reverse .show-text { order: 0; }
-    .steps { grid-template-columns: minmax(0, 1fr); }
-    .showcase-grid { grid-template-columns: minmax(0, 1fr); }
-    .try-main { grid-template-columns: minmax(0, 1fr); }
-    .try-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .say-grid { grid-template-columns: minmax(0, 1fr); }
-    .say-arrow { justify-content: center; transform: rotate(90deg); }
-    .pro-banner { grid-template-columns: minmax(0, 1fr); }
-    .pro-banner .btn { margin: 0 20px 22px; white-space: normal; }
-    .faq-grid { grid-template-columns: minmax(0, 1fr); }
-    .tasks .task:nth-child(n+3), .clock { display: none; }
-  }
-  @media (max-width: 760px) {
-    section { padding: 70px 0; }
-    .nav-toggle { display: flex; }
-    nav .links { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0;
-      background: var(--silver); box-shadow: var(--raised); padding: 6px; }
-    nav .links.open { display: flex; }
-    nav .links a { padding: 12px 10px; }
-    .grid { grid-template-columns: minmax(0, 1fr); }
-    .subhead { font-size: 17px; }
-    .art-note { left: 3%; top: 48%; width: 62%; }
-    .art-note .txt { font-size: 18px; min-height: 0; }
-    .art-note .menu { display: none; }
-    .art-dialog { display: none; }
-    .art-key { width: 78px; height: 74px; font-size: 32px; right: 6%; top: -10px; }
-    .art-key small { font-size: 13px; bottom: 7px; }
-    .art-phone { width: 34%; left: -2%; }
-    .start span { display: none; }
-    th, td { padding: 10px 12px; }
-    .review-card blockquote { font-size: 19px; }
-  }
-  @media (max-width: 480px) {
-    nav .inner { padding: 8px 12px; }
-    nav .inner > div:last-child .btn { display: none; }
-  }
-  @media (max-width: 420px) {
-    h1 .w { white-space: normal; }
-    .cta-row .btn { width: 100%; }
-  }
+@media (max-width:900px){
+  body{font-size:17px}
+  .nav-toggle{display:grid}
+  table{min-width:0; table-layout:fixed; font-size:15px}
+  th,td{padding:14px 12px 14px 0; overflow-wrap:break-word}
+  th{font-size:16px}
+  tr>:first-child{width:38%}
+  tr>:last-child{padding-right:0}
+  .links{display:none; position:absolute; left:0; right:0; top:100%; flex-direction:column; gap:0; padding:6px 28px 14px; background:var(--sky); border-bottom:1px solid var(--line)}
+  .links.open{display:flex}
+  .links a{display:flex; align-items:center; min-height:46px; font-size:17px}
+  nav .inner{padding:12px 20px}
+  .try-main{grid-template-columns:minmax(0,1fr); gap:32px}
+  .try-editor{min-height:230px}
+  .try-proof{grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px}
+  .field{grid-template-columns:minmax(0,1fr); gap:38px}
+  .steps{grid-template-columns:minmax(0,1fr); gap:38px}
+  .shots{grid-template-columns:minmax(0,1fr)}
+  .stats{gap:18px 40px; margin-bottom:56px}
+  .sticky-dl{position:fixed; left:12px; right:12px; bottom:12px; z-index:8; display:block; opacity:0; visibility:hidden; transform:translateY(16px); transition:opacity .3s ease,transform .3s ease,visibility .3s}
+  .sticky-dl.show{opacity:1; visibility:visible; transform:none}
+  .sticky-dl .btn{width:100%; box-shadow:0 12px 30px -12px #17352b88}
+  body.sticky-on #dayline{display:none}
+  .site-foot{padding-bottom:110px}
+  .hero-in{grid-template-columns:minmax(0,1fr); gap:36px; padding-top:3vh}
+  .pair,.row,.row.flip{grid-template-columns:minmax(0,1fr); gap:28px}
+  .row.flip .txt{order:0}
+  .row{margin-top:72px}
+  section{padding:84px 0}
+  .meadow{height:30vh}
+  /* The hero is taller than a phone screen, so the field stays on screen while it scrolls past. */
+  .hero .meadow{display:block; position:sticky; left:auto; right:auto; height:47vh; margin-top:-47vh}
+  .hero .btn:not(.primary):not([aria-pressed="true"]){background:var(--sky)}
+  .hero-in{padding-bottom:17vh}
+  .typed{left:4%; width:92%; bottom:-11%}
+  #day{width:104px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  body,#sun,#clock,#dayline,.bars i,.said .f,.switch i,.switch i::after,nav,.print i,.try-talk,.sticky-dl{transition:none}
+  .step-art .say i,.try[data-state="working"] .try-meter i{animation:none; transform:scaleY(.55)}
+}
 </style>
+<script>
+var vsSeen = false;
+try { vsSeen = !!sessionStorage.getItem('vs-opening'); } catch (e) {}
+if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.documentElement.classList.add('intro');
+  setTimeout(function(){ document.documentElement.classList.remove('intro'); }, 5000);
+}
+</script>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.3", "softwareVersion": "1.1.3", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-image.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Android"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Floating button dictates into any app", "Speech model is bundled, works in airplane mode", "Transcribes audio and video files to text and .srt captions", "Spoken commands such as period, new line and scratch that", "Never appears in password or PIN fields"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/android-chat.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/android-dictation.png"]}
+{"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.4", "softwareVersion": "1.1.4", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Android"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Floating button dictates into any app", "Speech model is bundled, works in airplane mode", "Transcribes audio and video files to text and .srt captions", "Spoken commands such as period, new line and scratch that", "Never appears in password or PIN fields"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/android-chat.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/android-dictation.png"]}
 </script>
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
 </head>
 <body>
-<div class="scanlines" aria-hidden="true"></div>
+<div id="sun" aria-hidden="true"></div>
+<canvas id="skyc" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<svg class="plane" id="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 3 10.5l6.8 2.7L12.5 20 21 3Z"/><path d="M21 3 9.8 13.2"/></svg>
+<div id="dayline"><button id="snd" type="button" aria-pressed="false" aria-label="Meadow sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9.5a4 4 0 0 1 0 5M19 7a8 8 0 0 1 0 10"/></svg></button><label><span class="vh">Move through the day and the page</span><input id="day" type="range" min="0" max="1000" value="0"></label><span id="clock" aria-hidden="true">6:10 am</span></div>
 
 <nav>
   <div class="inner">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 34 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="voxMark" x1="0" y1="0" x2="34" y2="24" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#10b981"/>
-              <stop offset="55%" stop-color="#34d399"/>
-              <stop offset="100%" stop-color="#5eead4"/>
-            </linearGradient>
-          </defs>
-          <rect x="0.9" y="2" width="2.2" height="20" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="4.65" y="6" width="2.2" height="16" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="8.4" y="9" width="2.2" height="13" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="12.15" y="12" width="2.2" height="10" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="15.9" y="15" width="2.2" height="7" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="19.65" y="12" width="2.2" height="10" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="23.4" y="9" width="2.2" height="13" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="27.15" y="6" width="2.2" height="16" rx="1.1" fill="url(#voxMark)"/>
-          <rect x="30.9" y="2" width="2.2" height="20" rx="1.1" fill="url(#voxMark)"/>
-        </svg>
-      </div>
-      VoxScribe
-    </div>
+    <a class="brand" href="#top"><span class="bars" aria-hidden="true"><i style="height:4px"></i><i style="height:8px"></i><i style="height:13px"></i><i style="height:17px"></i><i style="height:21px"></i><i style="height:17px"></i><i style="height:13px"></i><i style="height:8px"></i><i style="height:4px"></i></span>VoxScribe</a>
     <div class="links" id="nav-links">
-      <a href="#features">Features</a>
-      <a href="tutorial.html">Tutorial</a>
-      <a href="#how">How it works</a>
-      <a href="#compare">Compare</a>
-      <a href="#reviews">Reviews</a>
-      <a href="#pro-waitlist">Pro</a>
-      <a href="#faq">FAQ</a>
-      <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
+      <a href="#features">Features</a><a href="tutorial.html">Tutorial</a><a href="#how">How it works</a><a href="#compare">Compare</a><a href="#reviews">Reviews</a><a href="#pro-waitlist">Pro</a><a href="#faq">FAQ</a><a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
     </div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest" style="padding:8px 16px; font-size:13px;">Download</a>
-      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </button>
+    <div class="nav-end">
+      <a class="btn small" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download</a>
+      <button class="nav-toggle" id="nav-toggle" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     </div>
   </div>
 </nav>
 
-<header class="hero desk-green">
-  <div class="hero-inner">
-    <div class="hero-copy">
-      <span class="eyebrow">free, open source, offline</span>
-      <h1><span class="sr-only">Offline, open source dictation for your PC and your phone. </span>Talk.<span class="w">It types.<span class="cur" aria-hidden="true"></span></span></h1>
-      <p class="subhead">Offline, open source dictation for your PC and your phone. On Windows, hold <kbd class="keycap">F9</kbd>, speak, release. On Android, tap the floating button. Your words are transcribed on your own device and typed into any app. No cloud upload, no subscription.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" id="dl-primary" data-label="Download for Windows" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">
-          <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M7 1h2v8h2v-2h2v2h-1v1h-1v1h-1v1h-1v1H7v-1H6v-1H5v-1H4V9H3V7h2v2h2zM2 13h12v2H2z"/></svg>
-          <span class="dl-label">Download for Windows</span>
-        </a>
-        <a class="btn btn-secondary" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
-        <a class="btn btn-secondary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
+<header class="hero" data-time="dawn">
+  <div class="hero-in" id="top">
+    <div class="copy">
+      <h1><span class="vh">Offline, open source dictation for your PC and your phone. </span><span id="talk">Talk.</span><br>It types.<span class="caret" aria-hidden="true"></span></h1>
+      <p class="sub">On Android, names are spelled the way your screen spells them, fully offline. Open source dictation for your PC and your phone. On Windows, hold <kbd>F9</kbd>, speak, release. On Android, tap the floating button. Your words are transcribed on your own device and typed into any app. No cloud upload, no subscription.</p>
+      <div class="cta">
+        <a class="btn primary" id="dl-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg><span class="dl-label">Download for Windows</span></a>
+        <a class="btn" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
+        <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
       </div>
-      <p class="fine-print">[x] Free and open source (MIT) &nbsp;[x] Runs 100% locally &nbsp;[x] Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a> &nbsp;[x] <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.3">v1.8.3</a></p>
-    </div>
-    <div class="hero-art" aria-hidden="true">
-      <div class="rwin art-app">
-        <div class="tbar"><span class="t">VoxScribe.exe</span><span class="ctl"><b>_</b><b>&#9633;</b><b>x</b></span></div>
-        <div class="win-body"><img src="assets/showcase-main.webp" width="1100" height="814" alt="" fetchpriority="high"></div>
-      </div>
-      <div class="rwin art-phone">
-        <div class="tbar"><span class="t">Android</span><span class="ctl"><b>x</b></span></div>
-        <div class="win-body"><img src="assets/showcase-android-dictation.webp" width="420" height="933" alt=""></div>
-      </div>
-      <div class="art-key">F9<small>HOLD</small></div>
-      <div class="rwin art-note">
-        <div class="tbar"><span class="t">Untitled - Notepad</span><span class="ctl"><b>x</b></span></div>
-        <div class="menu">File Edit Format Help</div>
-        <div class="txt"><s>um, so,</s> move the meeting to three thirty. <s>you know,</s> the client is late.<span class="cur"></span></div>
-      </div>
-      <div class="rwin art-dialog">
-        <div class="tbar"><span class="t">Network monitor</span><span class="ctl"><b>x</b></span></div>
-        <div class="in"><span class="ico">i</span><span>0 network requests while transcribing. Your voice stayed on this PC.</span></div>
-        <span class="ok raised">OK</span>
+      <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.3">v1.8.3</a></p>
+      <div class="listen">
+        <button class="btn small hold" id="hold" type="button" aria-pressed="false">Hold <kbd>F9</kbd> to try</button>
+        <button class="btn small" id="mic" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="mic-label">Talk to the meadow</span></button>
+        <span class="status" id="mic-status" role="status">Your voice moves the grass. Nothing is recorded or sent.</span>
       </div>
     </div>
+    <div class="shot"><img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." fetchpriority="high">
+      <div class="typed"><strong>What VoxScribe types</strong><p id="typed-text">Hold F9, then let go.</p></div></div>
   </div>
-  <div class="taskbar">
-    <span class="start raised"><i><b style="height:6px"></b><b style="height:15px"></b><b style="height:10px"></b></i><span>Start</span></span>
-    <div class="tasks stats-bar">
-      <div class="task"><span class="stat-num">$0</span><span class="stat-label">cost, forever</span></div>
-      <div class="task"><span class="stat-num" id="stat-downloads">100%</span><span class="stat-label" id="stat-downloads-label">Local transcription</span></div>
-      <div class="task"><span class="stat-num">MIT</span><span class="stat-label">open source license</span></div>
-      <div class="task"><span class="stat-num">v1.8.3</span><span class="stat-label">Windows, Android v1.1.3</span></div>
-    </div>
-    <span class="clock" id="clock" aria-hidden="true">12:00 PM</span>
-  </div>
+  <canvas class="meadow" aria-hidden="true"></canvas>
 </header>
 
-<section id="proof" class="desk-ink">
-  <div class="wrap wide">
-    <div class="section-head">
-      <span class="eyebrow">real recording, not a mockup</span>
-      <h2>It works with the <em>internet off.</em></h2>
-    </div>
-    <div class="proof-grid">
-      <div class="proof-shell" data-reveal>
-        <div class="proof-label"><span class="rec-dot"></span> Real recording, not a mockup</div>
-        <img class="proof-img" src="demo-real.webp" width="680" height="345" alt="Screen recording of VoxScribe's real transcribed text being typed into Notepad, character by character" loading="lazy">
-        <div class="proof-caption">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
-          Typed directly by VoxScribe, straight from a real F9 recording. No clipboard, no editing.
-        </div>
-      </div>
-      <div class="proof-shell hero-demo" data-reveal style="transition-delay:120ms">
-        <div class="proof-label">Airplane_mode.avi</div>
-        <video id="demo-video" autoplay muted loop playsinline preload="metadata" poster="assets/airplane-demo.jpg" width="960" height="540" aria-label="Illustration: with airplane mode on, VoxScribe still turns speech into text on the device, while typical cloud dictation needs a connection.">
-          <source src="assets/airplane-demo.mp4" type="video/mp4">
-        </video>
-        <div class="demo-bar">
-          <span>Airplane mode on, still dictating. <a href="https://youtu.be/lLCGvhdJKjA">Watch with sound</a></span>
-          <button type="button" class="demo-pause" id="demo-pause" aria-pressed="false">Pause</button>
-        </div>
-      </div>
-    </div>
-    <p class="tray-note">The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
-  </div>
-</section>
-
-<section id="showcase" class="desk-green">
-  <div class="wrap wide">
-    <div class="section-head">
-      <span class="eyebrow">See it</span>
-      <h2>The real app, not a mockup.</h2>
-      <p>Every screenshot on this page is VoxScribe running on a normal PC and phone.</p>
-    </div>
-
-    <div class="show-row" data-reveal>
-      <div class="show-text">
-        <span class="show-num">01</span>
-        <h3>Hold a key. Talk. It is typed where your cursor is.</h3>
-        <p>Works in any app on Windows. It types with keystrokes, not paste, so your clipboard stays yours. Say "scratch that" to take back what you just typed.</p>
-      </div>
-      <div class="show-media"><div class="win"><div class="win-bar"><i></i><i></i><i></i><span>Dictation</span></div><img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." loading="lazy"></div></div>
-    </div>
-
-    <div class="show-row reverse" data-reveal>
-      <div class="show-text">
-        <span class="show-num">02</span>
-        <h3>Medicine, law and business words, spelled right.</h3>
-        <p>Term packs (333 medical, 212 law and 178 business terms) fix words like metformin and habeas corpus with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p>
-      </div>
-      <div class="show-media"><div class="win"><div class="win-bar"><i></i><i></i><i></i><span>Settings, Text</span></div><img src="assets/showcase-text-packs.webp" width="1100" height="814" alt="VoxScribe text settings showing medical, law and business term packs and word replacements." loading="lazy"></div></div>
-    </div>
-
-    <div class="show-row" data-reveal>
-      <div class="show-text">
-        <span class="show-num">03</span>
-        <h3>Pick the speech engine that fits your language.</h3>
-        <p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast accurate English, Moonshine Arabic, and an optional NVIDIA GPU. Each model is downloaded only if you pick it.</p>
-      </div>
-      <div class="show-media"><div class="win"><div class="win-bar"><i></i><i></i><i></i><span>Settings, Speech</span></div><img src="assets/showcase-speech-engine.webp" width="1100" height="814" alt="VoxScribe speech settings listing Whisper and extra downloadable speech models." loading="lazy"></div></div>
-    </div>
-
-    <div class="show-row reverse" data-reveal>
-      <div class="show-text">
-        <span class="show-num">04</span>
-        <h3>The same offline dictation on your phone.</h3>
-        <p>A floating button in any Android app. Tap, talk, and the words are typed in, transcribed on the phone with nothing uploaded. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p>
-      </div>
-      <div class="show-media phones">
-        <img class="phone p1" src="assets/showcase-android-dictation.webp" width="420" height="933" alt="The VoxScribe Android app with a transcript and a Hold to dictate button." loading="lazy">
-        <img class="phone p2" src="assets/showcase-android-chat.webp" width="420" height="933" alt="Dictated text typed into a chat box on Android with the keyboard open." loading="lazy">
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="try" class="desk-ink">
+<section id="proof" data-time="morning">
   <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Try it now, in this page</span>
-      <h2>Hold a key, talk, then turn on airplane mode.</h2>
-      <p>This runs a small Whisper model inside your browser. Load it once, then disconnect and keep talking. The counter below shows every network request made while it transcribes.</p>
+    <ul class="stats">
+      <li><b>$0</b><span>cost, forever</span></li>
+      <li><b id="stat-downloads">100%</b><span id="stat-downloads-label">Local transcription</span></li>
+      <li><b>MIT</b><span>open source license</span></li>
+      <li><b>v1.8.3</b><span>Windows, Android v1.1.4</span></li>
+    </ul>
+    <h2>It works with the internet off.</h2>
+    <div class="switchrow">
+      <button class="switch" id="air" type="button" aria-pressed="false"><i aria-hidden="true"></i>Airplane mode</button>
+      <span class="airnote" id="air-note" role="status">Switch it on. The words keep coming.</span>
     </div>
-    <div class="try-card" id="try-card" data-state="idle">
+    <div class="pair">
+      <div>
+        <img src="demo-real.webp" width="680" height="345" alt="Screen recording of VoxScribe's real transcribed text being typed into Notepad, character by character" loading="lazy">
+        <p class="cap">Real recording, not a mockup. Typed directly by VoxScribe, straight from a real F9 recording. No clipboard, no editing.</p>
+      </div>
+      <div>
+        <video id="demo" autoplay muted loop playsinline preload="metadata" poster="assets/airplane-demo.jpg" width="960" height="540" aria-label="Illustration: with airplane mode on, VoxScribe still turns speech into text on the device, while typical cloud dictation needs a connection."><source src="assets/airplane-demo.mp4" type="video/mp4"></video>
+        <div class="capbar">
+          <p class="cap">Airplane mode on, still dictating. <a href="https://youtu.be/lLCGvhdJKjA">Watch with sound</a></p>
+          <button class="btn small" id="pause" type="button" aria-pressed="false" style="margin-top:14px">Pause</button>
+        </div>
+      </div>
+    </div>
+    <p class="note">The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
+  </div>
+</section>
+
+<section id="try" data-time="morning">
+  <div class="wrap">
+    <h2>Hold a key, talk, then turn on airplane mode.</h2>
+    <p class="lead">Try it now, in this page. This runs a small Whisper model inside your browser. Load it once, then disconnect and keep talking. The counter below shows every network request made while it transcribes.</p>
+    <div class="try" id="try-card" data-state="idle">
       <div class="try-main">
         <div class="try-stage" id="try-stage">
           <div class="try-load-wrap" id="try-load-wrap"><div class="try-progress" id="try-progress" hidden><div id="try-progress-bar"></div></div></div>
@@ -704,9 +462,10 @@
             <span class="try-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
             <span id="try-talk-label">Tap to load<br>the model (40 MB)</span>
           </button>
-          <p class="try-hint" id="try-hint" hidden>Hold it, or tap once to start and again to stop. On a computer you can also hold <kbd class="keycap">F9</kbd>.</p>
-          <button type="button" class="btn btn-secondary try-sample" id="try-sample" disabled>No microphone? Use a sample voice</button>
+          <p class="try-hint" id="try-hint" hidden>Hold it, or tap once to start and again to stop. On a computer you can also hold <kbd>F9</kbd>.</p>
+          <button type="button" class="btn small try-sample" id="try-sample" disabled>No microphone? Use a sample voice</button>
           <p class="try-status" id="try-status" role="status" aria-live="polite">Nothing is downloaded until you click.</p>
+          <p class="try-magic">Say "rain", "snow", "night", "sunset", "rainbow" or "flowers" and the sky answers.</p>
         </div>
         <div class="try-editor">
           <div class="try-editor-bar"><i></i><i></i><i></i><span>Any text box</span></div>
@@ -716,375 +475,221 @@
       <div class="try-proof">
         <div class="try-tile"><div class="try-key">Connection</div><div class="try-val" id="try-conn">Online</div><div class="try-sub" id="try-conn-note"></div></div>
         <div class="try-tile"><div class="try-key">Requests while transcribing</div><div class="try-val" id="try-reqs">-</div><div class="try-sub">Counted by your browser</div></div>
-        <div class="try-tile"><div class="try-key">Speed</div><div class="try-val" id="try-speed" style="font-size:15px;line-height:1.35;">-</div><div class="try-sub">On your hardware</div></div>
-        <div class="try-tile"><div class="try-key">Model</div><div class="try-val" id="try-model" style="font-size:15px;line-height:1.35;">Not loaded</div><div class="try-sub">The apps use larger ones</div></div>
+        <div class="try-tile"><div class="try-key">Speed</div><div class="try-val small" id="try-speed">-</div><div class="try-sub">On your hardware</div></div>
+        <div class="try-tile"><div class="try-key">Model</div><div class="try-val small" id="try-model">Not loaded</div><div class="try-sub">The apps use larger ones</div></div>
       </div>
       <p class="try-note">Clicking Load downloads the speech engine from jsDelivr and a small English Whisper model (about 40 MB) from Hugging Face, once, with your browser's normal cache. Your voice is never sent anywhere: it is processed in this page and the audio is discarded afterward. This demo uses a small model and English only. The Windows and Android apps use larger models and about 28 languages.</p>
     </div>
-    <noscript><p class="how-footnote">The live demo needs JavaScript.</p></noscript>
+    <noscript><p class="fine">The live demo needs JavaScript.</p></noscript>
   </div>
+  <canvas class="meadow" aria-hidden="true"></canvas>
 </section>
 
-<section id="cleanup" class="desk-green">
+<section id="cleanup" data-time="morning">
   <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">What you say, what you get</span>
-      <h2>Talk the way you think. It types the clean version.</h2>
-      <p>Filler words and stutters are removed on your own PC by simple rules. No AI rewriting, and nothing is sent to any service.</p>
-    </div>
-    <div class="say-grid">
-      <div class="say-card" data-reveal>
-        <p class="say-label"><span class="dot"></span>What you said</p>
-        <p class="say-text"><s class="f">Um,</s> so I think we should move the meeting to three thirty tomorrow. <s class="f">You know,</s> the client is running late, <s class="f">uh,</s> and <s class="f">the</s> the room is booked.</p>
-      </div>
-      <div class="say-arrow" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="say-card out" data-reveal style="transition-delay: 120ms;">
-        <p class="say-label"><span class="dot"></span>What VoxScribe types</p>
-        <p class="say-text">So I think we should move the meeting to three thirty tomorrow. The client is running late, and the room is booked.</p>
-      </div>
-    </div>
-    <div class="say-facts">
-      <span class="say-fact"><b>About 3.5 s</b> to transcribe a 15 s clip*</span>
-      <span class="say-fact"><b>No internet</b> needed after the first model download</span>
-      <span class="say-fact"><b>Keystrokes</b>, not paste: your clipboard stays yours</span>
-    </div>
-    <p class="say-note">*Small model, older laptop CPU, no GPU. Larger models are slower. The example is the real output of VoxScribe's cleanup step.</p>
+    <h2>Talk the way you think. It types the clean version.</h2>
+    <p class="lead">Filler words and stutters are removed on your own PC by simple rules. No AI rewriting, and nothing is sent to any service.</p>
+    <p class="said" id="said"><span class="f">Um, </span><span class="a">so</span><span class="b">So</span> I think we should move the meeting to three thirty tomorrow. <span class="f">You know, </span><span class="a">the</span><span class="b">The</span> client is running late, <span class="f">uh, </span>and <span class="f">the </span>the room is booked.</p>
+    <button class="btn primary" id="clean" type="button" aria-pressed="false">Clean it up</button>
+    <p class="fine">About 3.5 s to transcribe a 15 s clip*. No internet needed after the first model download. Keystrokes, not paste: your clipboard stays yours.</p>
+    <p class="fine">*Small model, older laptop CPU, no GPU. Larger models are slower. The example is the real output of VoxScribe's cleanup step.</p>
   </div>
 </section>
 
-<section id="features" class="desk-ink">
-  <div class="wrap wide">
-    <div class="section-head">
-      <span class="eyebrow">Features</span>
-      <h2>Everything you need, nothing you don't</h2>
-      <p>Built to feel invisible: it stays out of your way until you need it. <a href="tutorial.html">Read the full tutorial</a> for every feature, step by step.</p>
-    </div>
-    <div class="grid">
-      <div class="card" data-reveal style="transition-delay: 0ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12.5" r="2.4" fill="currentColor"/></svg>
-        </div>
-        <h3>Hold-to-talk hotkey</h3>
-        <p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 80ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6h9M4 11h13M4 16h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14l3.5 2.5L17 19" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Types directly, not clipboard</h3>
-        <p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 160ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="10.5" width="14" height="9.5" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" stroke="currentColor" stroke-width="1.8"/></svg>
-        </div>
-        <h3>100% local transcription</h3>
-        <p>Speech-to-text runs on your own PC, on the CPU or an NVIDIA graphics card. Your voice audio never leaves your computer.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 240ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Free filler-word cleanup</h3>
-        <p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 320ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 6h14M5 12h9M5 18h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <h3>Spoken commands and undo</h3>
-        <p>Say "period" or "new line" for symbols, "scratch that" to take back what you just typed, and "capitalize that" or "replace X with Y" to change it.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 400ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="14" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M7 10.5h6M7 14h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <h3>Audio and video to captions</h3>
-        <p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 480ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="7" y="2.5" width="10" height="19" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.5 18.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </div>
-        <h3>Android app</h3>
-        <p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 0ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Meeting notes</h3>
-        <p>Start meeting records your microphone and what the PC plays, removes the echo, and writes a markdown note with action items, decisions and questions into a folder you choose, such as your Obsidian vault.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 80ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Term packs for medicine, law and business</h3>
-        <p>Words like MRI, metformin, habeas corpus and EBITDA are written correctly with any speech model. Import your own list as a plain text file.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 160ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Teach VoxScribe your voice</h3>
-        <p>Read a short script and VoxScribe finds the words it mishears in your voice or accent, then fixes them from then on. Recordings stay on your PC.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 240ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Spoken formats</h3>
-        <p>"One twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b).</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 0ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>More speech models, your choice</h3>
-        <p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast, accurate English, Moonshine Arabic, and optional NVIDIA GPU. Each is downloaded only if you pick it.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 80ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Notes inbox key</h3>
-        <p>Hold a key and speak, and the words are saved as a timestamped line in a markdown file instead of being typed.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 160ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Read it back, and unsure words</h3>
-        <p>Hear each dictation in Windows' own voice, and see the words the model was unsure about underlined. Both are off until you turn them on.</p>
-      </div>
-      <div class="card" data-reveal style="transition-delay: 240ms;">
-        <div class="icon">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3l1.8 5.6L19.5 10l-5.7 1.4L12 17l-1.8-5.6L4.5 10l5.7-1.4L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-        </div>
-        <h3>Try harder, modes and snippets</h3>
-        <p>Press F8 to rerun a recording through a bigger model, switch between Chat, Email, Code and Notes, and expand short phrases into full text with Pro.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="how" class="desk-green">
-  <div class="wrap wide">
-    <div class="section-head">
-      <span class="eyebrow">simple by design</span>
-      <h2>Three steps. <em>Zero setup.</em></h2>
-      <p>Nothing to configure first.</p>
-    </div>
-    <div class="steps">
-      <div class="rwin step-win" data-reveal>
-        <div class="tbar"><span class="t">Step_1.exe</span><span class="ctl"><b>x</b></span></div>
-        <div class="win-body"><kbd class="keycap">F9</kbd><h3>Hold F9</h3><p>Anywhere on Windows: a text editor, a browser, a chat app.</p></div>
-      </div>
-      <div class="rwin step-win" data-reveal style="transition-delay:100ms">
-        <div class="tbar"><span class="t">Step_2.exe</span><span class="ctl"><b>x</b></span></div>
-        <div class="win-body"><div class="meter" aria-hidden="true"><i style="animation-delay:-.1s"></i><i style="animation-delay:-.45s"></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.7s"></i><i style="animation-delay:-.3s"></i><i style="animation-delay:-.6s"></i><i style="animation-delay:-.15s"></i><i style="animation-delay:-.5s"></i></div><h3>Speak</h3><p>Talk naturally. VoxScribe captures your mic in the background.</p></div>
-      </div>
-      <div class="rwin step-win" data-reveal style="transition-delay:200ms">
-        <div class="tbar"><span class="t">Step_3.exe</span><span class="ctl"><b>x</b></span></div>
-        <div class="win-body"><span class="typed">Move the meeting to three thirty.</span><h3>Release</h3><p>Cleaned-up text is typed directly where your cursor is.</p></div>
-      </div>
-    </div>
-    <p class="how-footnote">VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
-
-    <div class="showcase-grid" style="margin-top: 48px;" data-reveal>
-      <div class="showcase-card">
-        <img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" width="1375" height="900" loading="lazy">
-        <div class="showcase-caption">Idle, waiting for F9</div>
-      </div>
-      <div class="showcase-card">
-        <img src="assets/screenshot-recording.png" alt="VoxScribe recording" width="1375" height="900" loading="lazy">
-        <div class="showcase-caption">Recording your voice</div>
-      </div>
-      <div class="showcase-card">
-        <img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" width="1375" height="900" loading="lazy">
-        <div class="showcase-caption">Typed straight into the app</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="compare" class="desk-ink">
+<section id="showcase" data-time="noon">
   <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Compare</span>
-      <h2>Free vs. cloud dictation tools</h2>
-      <p>Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe runs everything locally, for free.</p>
+    <h2>The real app, not a mockup.</h2>
+    <p class="lead">Every screenshot on this page is VoxScribe running on a normal PC and phone.</p>
+    <div class="row">
+      <div class="txt"><h3>Hold a key. Talk. It is typed where your cursor is.</h3><p>Works in any app on Windows. It types with keystrokes, not paste, so your clipboard stays yours. Say "scratch that" to take back what you just typed.</p></div>
+      <img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." loading="lazy">
     </div>
+    <div class="row flip">
+      <div class="txt"><h3>Medicine, law and business words, spelled right.</h3><p>Term packs (333 medical, 212 law and 178 business terms) fix words like metformin and habeas corpus with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p></div>
+      <img src="assets/showcase-text-packs.webp" width="1100" height="814" alt="VoxScribe text settings showing medical, law and business term packs and word replacements." loading="lazy">
+    </div>
+    <div class="row">
+      <div class="txt"><h3>Pick the speech engine that fits your language.</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast accurate English, Moonshine Arabic, and an optional NVIDIA GPU. Each model is downloaded only if you pick it.</p></div>
+      <img src="assets/showcase-speech-engine.webp" width="1100" height="814" alt="VoxScribe speech settings listing Whisper and extra downloadable speech models." loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="phone" data-time="golden">
+  <div class="wrap">
+    <div class="row flip" style="margin-top:0">
+      <div class="txt"><h3>The same offline dictation on your phone.</h3><p>A floating button in any Android app. Tap, talk, and the words are typed in, transcribed on the phone with nothing uploaded. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></div>
+      <div class="phones">
+        <img src="assets/showcase-android-dictation.webp" width="420" height="933" alt="The VoxScribe Android app with a transcript and a Hold to dictate button." loading="lazy">
+        <img src="assets/showcase-android-chat.webp" width="420" height="933" alt="Dictated text typed into a chat box on Android with the keyboard open." loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features" data-time="noon">
+  <div class="wrap">
+    <h2>Everything you need, nothing you don't</h2>
+    <p class="lead">Built to feel invisible: it stays out of your way until you need it. <a href="tutorial.html">Read the full tutorial</a> for every feature, step by step.</p>
+    <ul class="field">
+      <li><span class="print" aria-hidden="true"></span><h3>Hold-to-talk hotkey</h3><p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Types directly, not clipboard</h3><p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>100% local transcription</h3><p>Speech-to-text runs on your own PC, on the CPU or an NVIDIA graphics card. Your voice audio never leaves your computer.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Free filler-word cleanup</h3><p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Spoken commands and undo</h3><p>Say "period" or "new line" for symbols, "scratch that" to take back what you just typed, and "capitalize that" or "replace X with Y" to change it.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Audio and video to captions</h3><p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Android app</h3><p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Meeting notes</h3><p>Start meeting records your microphone and what the PC plays, removes the echo, and writes a markdown note with action items, decisions and questions into a folder you choose, such as your Obsidian vault.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Term packs for medicine, law and business</h3><p>Words like MRI, metformin, habeas corpus and EBITDA are written correctly with any speech model. Import your own list as a plain text file.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Teach VoxScribe your voice</h3><p>Read a short script and VoxScribe finds the words it mishears in your voice or accent, then fixes them from then on. Recordings stay on your PC.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Spoken formats</h3><p>"One twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b).</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>More speech models, your choice</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast, accurate English, Moonshine Arabic, and optional NVIDIA GPU. Each is downloaded only if you pick it.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Notes inbox key</h3><p>Hold a key and speak, and the words are saved as a timestamped line in a markdown file instead of being typed.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Read it back, and unsure words</h3><p>Hear each dictation in Windows' own voice, and see the words the model was unsure about underlined. Both are off until you turn them on.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Try harder, modes and snippets</h3><p>Press F8 to rerun a recording through a bigger model, switch between Chat, Email, Code and Notes, and expand short phrases into full text with Pro.</p></li>
+    </ul>
+  </div>
+</section>
+
+<section id="how" data-time="golden">
+  <div class="wrap">
+    <h2>Three steps. Zero setup.</h2>
+    <p class="lead">Nothing to configure first.</p>
+    <ol class="steps">
+      <li><div class="step-art"><kbd>F9</kbd></div><h3>Hold F9</h3><p>Anywhere on Windows: a text editor, a browser, a chat app.</p></li>
+      <li><div class="step-art"><span class="say" aria-hidden="true"><i style="animation-delay:-.1s"></i><i style="animation-delay:-.45s"></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.7s"></i><i style="animation-delay:-.3s"></i><i style="animation-delay:-.6s"></i><i style="animation-delay:-.15s"></i><i style="animation-delay:-.5s"></i></span></div><h3>Speak</h3><p>Talk naturally. VoxScribe captures your mic in the background.</p></li>
+      <li><div class="step-art"><span class="out">Move the meeting to three thirty.</span></div><h3>Release</h3><p>Cleaned-up text is typed directly where your cursor is.</p></li>
+    </ol>
+    <p class="note">VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
+    <div class="shots">
+      <figure style="margin:0"><img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" width="1375" height="900" loading="lazy"><figcaption class="cap">Idle, waiting for F9</figcaption></figure>
+      <figure style="margin:0"><img src="assets/screenshot-recording.png" alt="VoxScribe recording" width="1375" height="900" loading="lazy"><figcaption class="cap">Recording your voice</figcaption></figure>
+      <figure style="margin:0"><img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" width="1375" height="900" loading="lazy"><figcaption class="cap">Typed straight into the app</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="compare" data-time="golden">
+  <div class="wrap">
+    <h2>Free vs. cloud dictation tools</h2>
+    <p class="lead">Most dictation apps run your voice through a cloud API and charge a subscription. VoxScribe runs everything locally, for free.</p>
     <div class="table-scroll">
       <table>
-        <tr>
-          <th></th>
-          <th>VoxScribe</th>
-          <th>Typical cloud dictation tools</th>
-        </tr>
-        <tr>
-          <td class="first">Cost</td>
-          <td class="yes">Free</td>
-          <td class="no">Monthly subscription</td>
-        </tr>
-        <tr>
-          <td class="first">Where transcription runs</td>
-          <td class="yes">Locally on your PC</td>
-          <td class="no">Uploaded to a cloud server</td>
-        </tr>
-        <tr>
-          <td class="first">Works offline (after setup)</td>
-          <td class="yes">Yes</td>
-          <td class="no">No, requires internet every time</td>
-        </tr>
-        <tr>
-          <td class="first">Open source</td>
-          <td class="yes">Yes (MIT)</td>
-          <td class="no">No</td>
-        </tr>
+        <tr><th></th><th class="us">VoxScribe</th><th>Typical cloud dictation tools</th></tr>
+        <tr><td class="first">Cost</td><td class="yes">Free</td><td class="no">Monthly subscription</td></tr>
+        <tr><td class="first">Where transcription runs</td><td class="yes">Locally on your PC</td><td class="no">Uploaded to a cloud server</td></tr>
+        <tr><td class="first">Works offline (after setup)</td><td class="yes">Yes</td><td class="no">No, requires internet every time</td></tr>
+        <tr><td class="first">Open source</td><td class="yes">Yes (MIT)</td><td class="no">No</td></tr>
       </table>
     </div>
   </div>
 </section>
 
-<section id="reviews" class="desk-green">
+<section id="reviews" data-time="golden">
   <div class="wrap">
-    <div class="section-head reviews-head">
-      <span class="eyebrow">Reviews</span>
-      <h2>What people are saying</h2>
-      <p>Real feedback from people who've actually tried it.</p>
-    </div>
-    <div class="reviews-wrap" data-reveal>
-      <div class="review-card">
-        <div class="quote-mark">&ldquo;</div>
-        <blockquote>I&rsquo;ve used [other dictation tools]&hellip; I&rsquo;m <span class="highlight">proud to say I&rsquo;ve tried yours and I do like it.</span></blockquote>
-        <div class="review-attribution">
-          <span class="avatar">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M4.5 20c0-4.14 3.36-7 7.5-7s7.5 2.86 7.5 7" fill="currentColor"/></svg>
-          </span>
-          <strong>Nurse</strong>
-          <span>&middot; 10+ years dictating</span>
-        </div>
-      </div>
-      <p class="review-source">Shared in a Reddit comment</p>
-      <div class="review-card review-card-next">
-        <div class="quote-mark">&ldquo;</div>
-        <blockquote>I thought it was the best of the ones I had tried. I liked the single purchase model and as a person who has had a stroke many years ago <span class="highlight">it was very useful.</span></blockquote>
-        <div class="review-attribution">
-          <span class="avatar">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="3.5" fill="currentColor"/><path d="M4.5 20c0-4.14 3.36-7 7.5-7s7.5 2.86 7.5 7" fill="currentColor"/></svg>
-          </span>
-          <strong>VoxScribe Pro customer</strong>
-        </div>
-      </div>
-      <p class="review-source">Shared by email</p>
+    <h2>What people are saying</h2>
+    <p class="lead">Real feedback from people who've actually tried it.</p>
+    <div class="voices">
+      <figure style="margin:0">
+        <blockquote>I&rsquo;ve used [other dictation tools]&hellip; I&rsquo;m <mark>proud to say I&rsquo;ve tried yours and I do like it.</mark></blockquote>
+        <figcaption class="who"><strong>Nurse</strong> &middot; 10+ years dictating. Shared in a Reddit comment</figcaption>
+      </figure>
+      <figure style="margin:0">
+        <blockquote>I thought it was the best of the ones I had tried. I liked the single purchase model and as a person who has had a stroke many years ago <mark>it was very useful.</mark></blockquote>
+        <figcaption class="who"><strong>VoxScribe Pro customer</strong>. Shared by email</figcaption>
+      </figure>
     </div>
   </div>
 </section>
 
-<section id="pro-waitlist" class="desk-lime">
+<section id="pro-waitlist" class="pro" data-time="dusk">
   <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">VoxScribe Pro</span>
-      <h2>Unlock Snippets &amp; higher accuracy</h2>
+    <h2>Unlock Snippets &amp; higher accuracy</h2>
+    <p class="big">Snippets (say a trigger phrase, get an expansion typed, with live {date}/{time}/{clipboard} variables), Medium and Large Whisper models for higher accuracy (also for Try harder), dictation modes that switch by app, and whole-folder caption import. One key covers two PCs and two phones. One-time purchase, offline license key, no account, no subscription.</p>
+    <div class="table-scroll tiers">
+      <table>
+        <tr><th></th><th>Free</th><th class="us">Pro</th></tr>
+        <tr><td class="first">Dictation into any app, offline</td><td>Included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Filler cleanup, spoken commands, word replacements</td><td>Included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Term packs and Teach your voice</td><td>Included</td><td class="yes">Also pick packs per app</td></tr>
+        <tr><td class="first">Whisper models</td><td>Tiny, Base and Small</td><td class="yes">Also Medium, Large turbo and Large</td></tr>
+        <tr><td class="first">Try harder (F8)</td><td>Up to Small</td><td class="yes">Up to Medium or Large</td></tr>
+        <tr><td class="first">Dictation modes</td><td>Chat, Email and Notes</td><td class="yes">Also Code, and switching by app</td></tr>
+        <tr><td class="first">Snippets and fill-in templates</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Smart formatting and code dictation</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Per-app profiles and a second language key</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Whole folders of files</td><td>2 free runs</td><td class="yes">No limit</td></tr>
+        <tr><td class="first">Export formats</td><td>.txt and .srt</td><td class="yes">Also .vtt, .md and .docx, with speaker labels</td></tr>
+      </table>
     </div>
-    <div class="pro-banner">
-      <p>Snippets (say a trigger phrase, get an expansion typed, with live {date}/{time}/{clipboard} variables), Medium and Large Whisper models for higher accuracy (also for Try harder), dictation modes that switch by app, and whole-folder caption import. One key covers two PCs and two phones. One-time purchase, offline license key, no account, no subscription.</p>
-      <a class="btn btn-primary" href="https://hmamster3.gumroad.com/l/tbsfom">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v13M12 16l-5-5M12 16l5-5M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Get VoxScribe Pro: $14
-      </a>
-    </div>
-    <p class="fine-print pro-fine-print">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
+    <p class="fine">This table describes Windows. On Android the same key unlocks Snippets, smart formatting, code dictation, fill-in templates and per-app profiles.</p>
+    <p class="deadline" id="deadline" hidden></p>
+    <a class="btn primary" href="https://hmamster3.gumroad.com/l/tbsfom">Get VoxScribe Pro: $14</a>
+    <p class="fine"><strong>Launch price: $14 until 15 November 2026.</strong> From 15 November, Pro becomes $59 a year. Anyone who buys at $14 keeps their key for good.</p>
+    <p class="fine">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
   </div>
 </section>
 
-<section id="updates" class="desk-ink">
+<section id="updates" data-time="dusk">
   <div class="wrap">
-    <div class="updates-card">
-      <h2>Get one email when a big update ships</h2>
-      <p>Optional. Add your email if you would like a short note about major releases, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
-      <form class="updates-form" id="updates-form" novalidate>
-        <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-        <input type="email" name="email" id="updates-email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" required>
-        <button class="btn btn-primary" type="submit" id="updates-button">Notify me</button>
-      </form>
-      <p class="updates-status" id="updates-status" role="status" aria-live="polite"></p>
-      <p class="fine-print updates-fine">Used only for these emails, never shared or sold. You can be removed at any time: type your address and press <a href="#" id="updates-remove">remove me</a>. See the <a href="privacy.html">privacy policy</a>.</p>
+    <h2>Get one email when a big update ships</h2>
+    <p class="lead">Optional. Add your email if you would like a short note about major releases, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
+    <form class="updates-form" id="updates-form" novalidate>
+      <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      <input type="email" name="email" id="updates-email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" required>
+      <button class="btn primary" type="submit" id="updates-button">Notify me</button>
+    </form>
+    <p class="updates-status" id="updates-status" role="status" aria-live="polite"></p>
+    <p class="fine">Used only for these emails, never shared or sold. You can be removed at any time: type your address and press <a href="#" id="updates-remove">remove me</a>. See the <a href="privacy.html">privacy policy</a>.</p>
+  </div>
+</section>
+
+<section id="install" data-time="dusk">
+  <div class="wrap">
+    <h2>Install in under a minute</h2>
+    <p class="lead">No admin rights required.</p>
+    <ol class="install-list">
+      <li><span><strong>Download</strong> the installer from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Releases page</a></span></li>
+      <li><span><strong>Run</strong> VoxScribe-Setup.exe and follow the prompts</span></li>
+      <li><span>On first launch, VoxScribe <strong>downloads the speech model</strong> (a few hundred MB). This needs internet once; after that, transcription is fully offline</span></li>
+      <li><span><strong>Hold F9</strong> anywhere and start talking</span></li>
+    </ol>
+    <p class="pm">Prefer a package manager? With winget: <code>winget install ahmedhmam1994.VoxScribe</code>. Or with <a href="https://scoop.sh">Scoop</a>: <code>scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe</code> then <code>scoop install voxscribe</code></p>
+    <div class="smartscreen" id="smartscreen">
+      <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info &rarr; Run anyway</strong> to proceed. This is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself. <a href="windows-security-warning.html">How to check the file, skip the warning, and what the installer changes</a>.
     </div>
   </div>
 </section>
 
-<section id="install" class="desk-green">
+<section id="faq" data-time="late">
   <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Get started</span>
-      <h2>Install in under a minute</h2>
-      <p>No admin rights required.</p>
+    <h2>Frequently asked questions</h2>
+    <div class="faq">
+      <details open><summary><h3>Is it really free?</h3></summary><p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free.</p></details>
+      <details><summary><h3>Does it need an internet connection?</h3></summary><p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p></details>
+      <details><summary><h3>Which languages can I dictate in?</h3></summary><p>Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages.</p></details>
+      <details><summary><h3>What platforms does it support?</h3></summary><p>Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet.</p></details>
+      <details><summary><h3>Does it work with any microphone?</h3></summary><p>Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate.</p></details>
+      <details><summary><h3>Why does Windows show a security warning when I install it?</h3></summary><p>VoxScribe is free and not yet code-signed, so Windows asks you to confirm once: click More info, then Run anyway. Installing with winget or Scoop usually skips it. The <a href="windows-security-warning.html">install warning guide</a> shows how to check the file first and exactly what the installer changes.</p></details>
+      <details><summary><h3>How accurate is the transcription?</h3></summary><p>It uses faster-whisper's "small" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation.</p></details>
+      <details><summary><h3>I lost my Pro license key. Can I get it back?</h3></summary><p>Yes. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">Open a GitHub issue</a> with the name or email you used to buy it, and I'll look it up and send it back to you.</p></details>
     </div>
-    <div class="install-card">
-      <ol>
-        <li><strong>Download</strong> the installer from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Releases page</a></li>
-        <li><strong>Run</strong> VoxScribe-Setup.exe and follow the prompts</li>
-        <li>On first launch, VoxScribe <strong>downloads the speech model</strong> (a few hundred MB). This needs internet once; after that, transcription is fully offline</li>
-        <li><strong>Hold F9</strong> anywhere and start talking</li>
-      </ol>
-      <p style="margin:14px 0 0; font-size:14px; color:var(--text-muted); overflow-wrap:anywhere;">Prefer a package manager? With winget: <code>winget install ahmedhmam1994.VoxScribe</code>. Or with <a href="https://scoop.sh">Scoop</a>: <code>scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe</code> then <code>scoop install voxscribe</code></p>
-      <div class="smartscreen-note" id="smartscreen">
-        <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info → Run anyway</strong> to proceed. This is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself. <a href="windows-security-warning.html">How to check the file, skip the warning, and what the installer changes</a>.
-      </div>
-    </div>
+    <p class="guides">Guides: <a href="free-voice-dictation-windows.html">free offline voice dictation</a>, <a href="dictate-into-any-app-windows.html">dictating into any app</a>, and <a href="free-srt-subtitle-generator-windows.html">making .srt subtitles offline</a>.</p>
   </div>
 </section>
 
-<section id="faq" class="desk-ink">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">FAQ</span>
-      <h2>Frequently asked questions</h2>
+<section class="end" id="end" data-time="night" style="padding:0">
+  <div class="end-in">
+    <h2>Talk. It types.</h2>
+    <div class="cta" style="margin-top:26px">
+      <a class="btn primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download for Windows</a>
+      <a class="btn" href="free-offline-voice-typing-android.html">Android app</a>
     </div>
-    <div class="faq-grid">
-      <div class="faq-item">
-        <h3>Is it really free?</h3>
-        <p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Does it need an internet connection?</h3>
-        <p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Which languages can I dictate in?</h3>
-        <p>Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages.</p>
-      </div>
-      <div class="faq-item">
-        <h3>What platforms does it support?</h3>
-        <p>Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Does it work with any microphone?</h3>
-        <p>Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate.</p>
-      </div>
-      <div class="faq-item">
-        <h3>Why does Windows show a security warning when I install it?</h3>
-        <p>VoxScribe is free and not yet code-signed, so Windows asks you to confirm once: click More info, then Run anyway. Installing with winget or Scoop usually skips it. The <a href="windows-security-warning.html">install warning guide</a> shows how to check the file first and exactly what the installer changes.</p>
-      </div>
-      <div class="faq-item">
-        <h3>How accurate is the transcription?</h3>
-        <p>It uses faster-whisper's "small" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation.</p>
-      </div>
-      <div class="faq-item">
-        <h3>I lost my Pro license key. Can I get it back?</h3>
-        <p>Yes. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues">Open a GitHub issue</a> with the name or email you used to buy it, and I'll look it up and send it back to you.</p>
-      </div>
-    </div>
-    <p class="faq-guides">Guides: <a href="free-voice-dictation-windows.html">free offline voice dictation</a>, <a href="dictate-into-any-app-windows.html">dictating into any app</a>, and <a href="free-srt-subtitle-generator-windows.html">making .srt subtitles offline</a>.</p>
   </div>
+  <canvas class="meadow" aria-hidden="true"></canvas>
 </section>
 
-<footer>
+<footer class="site-foot" data-time="night">
   <div class="wrap">
     <div class="foot-links">
       <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
@@ -1116,10 +721,693 @@
   </div>
 </footer>
 
+<div class="typed-float" id="typed-float" aria-hidden="true"><strong>What VoxScribe types</strong><p></p></div>
+
 <div class="sticky-dl" id="sticky-dl">
-  <a class="btn btn-primary" id="dl-sticky" data-label="Download for Windows" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><span class="dl-label">Download for Windows</span></a>
+  <a class="btn primary" id="dl-sticky" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><span class="dl-label">Download for Windows</span></a>
 </div>
 
+<script>
+(function(){
+  var root = document.documentElement;
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cs = function(n){ return getComputedStyle(root).getPropertyValue(n).trim(); };
+  var hex = function(c){ var n = parseInt(c.slice(1),16); return [n>>16&255, n>>8&255, n&255]; };
+
+  /* Colours ease toward the current sky so the grass changes with the page. */
+  var names = ['--far','--mid','--near','--cloud','--ink'];
+  var cur = names.map(function(n){ return hex(cs(n)); }), goal = cur.map(function(c){ return c.slice(); }), last = 0;
+  function readGoal(){ goal = names.map(function(n){ return hex(cs(n)); }); }
+  function easeColours(ms){
+    var k = still ? 1 : 1 - Math.exp(-Math.max(0,ms-last)/450); last = ms;
+    for (var i=0;i<names.length;i++) for (var c=0;c<3;c++) cur[i][c] += (goal[i][c]-cur[i][c])*k;
+  }
+  function colour(i){ return 'rgb('+cur[i].map(Math.round).join(',')+')'; }
+
+  /* Every blade is one bar of the logo: a straight, round-capped stroke. */
+  var level = 0, target = 0, px = -9999, py = -9999, holding = false;
+  var meadows = [].map.call(document.querySelectorAll('.meadow'), function(c){
+    return { c:c, x:c.getContext('2d'), on:true, blades:[], waves:[], flowers:[], night:c.parentElement.dataset.time === 'night', strip:c.parentElement.id === 'try' };
+  });
+  /* 0 is full detail. A weak device starts lower, and any device steps down if frames run slow. It never steps back up, so nothing flickers. */
+  var fxLevel = ((navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2)) ? 1 : 0;
+  root.dataset.fx = fxLevel;
+  function pixelRatio(){ return fxLevel ? 1 : Math.min(devicePixelRatio||1, 2); }
+  function restFor(m,h){ return m.night ? h : m.strip ? h*.5 : h*(innerWidth <= 900 ? .4 : .64); }
+  function seed(m){
+    var r = pixelRatio(), w = m.c.clientWidth, h = m.c.clientHeight;
+    m.c.width = w*r; m.c.height = h*r; m.x.setTransform(r,0,0,r,0,0); m.w = w; m.h = h; m.rest = restFor(m,h);
+    var scale = Math.min(1, Math.max(.62, w/1100));
+    var rest = restFor(m,h);
+    var layers = [{gap:17,lw:8,base:.46},{gap:21,lw:11,base:.34},{gap:27,lw:15,base:.21}];
+    m.blades = layers.map(function(l,li){
+      var a = [], gap = l.gap*scale*(fxLevel ? 1.6 : 1);
+      for (var x = -gap; x < w+gap; x += gap){
+        var wave = .38 + .62*Math.abs(Math.sin(x*.0065+li*1.7)*Math.sin(x*.019+li));
+        a.push({ x:x, h:rest*l.base*wave*(.72+Math.random()*.5), p:Math.random()*6.28 });
+      }
+      return { lw:l.lw*scale*(fxLevel ? 1.35 : 1), list:a };
+    });
+    m.flies = [];
+    for (var i=0;i<16;i++) m.flies.push({ x:Math.random()*w, y:h*(.25+Math.random()*.7), p:Math.random()*6.28, s:.2+Math.random()*.4 });
+    /* Flowers stay planted on the nearest new blade. */
+    var mid = m.blades[1].list;
+    m.flowers.forEach(function(f){
+      var best = mid[0], x = f.blade.x;
+      for (var j=0;j<mid.length;j++) if (Math.abs(mid[j].x-x) < Math.abs(best.x-x)) best = mid[j];
+      f.blade = best;
+    });
+  }
+  function draw(m,t){
+    var ctx = m.x, H = m.h;
+    ctx.clearRect(0,0,m.w,H);
+    var rect = m.c.getBoundingClientRect(), lx = px - rect.left, ly = py - rect.top, near = ly > -60 && ly < H+60;
+    if (m.born === undefined) m.born = t;
+    ctx.lineCap = 'round';
+    m.waves = m.waves.filter(function(w){ return t-w.born < 3.2; });
+    m.blades.forEach(function(layer,i){
+      ctx.beginPath(); ctx.lineWidth = layer.lw; ctx.strokeStyle = colour(i);
+      layer.list.forEach(function(b){
+        var breath = 1 + .045*Math.sin(t*.63 + b.p);                     /* one slow breath every ten seconds */
+        var bell = 1-Math.pow(Math.abs(2*b.x/m.w-1),1.5);
+        var voice = 1 + level*(.5+1.5*bell)*(.45 + .55*Math.abs(Math.sin(b.x*.012 + t*3 + b.p*.3)));
+        var ripple = 0;
+        for (var w=0;w<m.waves.length;w++){
+          var age = t-m.waves[w].born, off = Math.abs(b.x-m.waves[w].x)-age*430;
+          ripple += Math.exp(-(off*off)/5200)*Math.exp(-age*1.05);
+        }
+        var grow = still ? 1 : Math.min(1, Math.max(0, (t-m.born-Math.abs(2*b.x/m.w-1)*.85)/1.25));
+        grow = 1+2.3*Math.pow(grow-1,3)+1.3*Math.pow(grow-1,2);
+        var h = b.h*breath*voice*(1+ripple*.9)*grow;
+        var bend = h*(.11*Math.sin(t*.5 + b.x*.004) + .025*Math.sin(t*1.3 + b.p));
+        if (near){ var d = b.x-lx, ad = Math.abs(d); if (ad < 130){ var f = 1-ad/130; bend += (d<0?-1:1)*f*f*52; } }
+        ctx.moveTo(b.x,H+10);
+        ctx.quadraticCurveTo(b.x,H-h*.55,b.x+bend,H-h);
+        b.tx = b.x+bend; b.ty = H-h;
+      });
+      ctx.stroke();
+    });
+    /* Flowers sit on a blade tip, so they sway with it. */
+    ctx.globalAlpha = 1-.5*starA;
+    m.flowers.forEach(function(f){
+      var age = still ? 1 : Math.min(1,(t-f.born)/.9), k = 1-Math.pow(1-age,3), r = f.size*k*(1-.25*starA);
+      if (f.blade.tx === undefined || r <= 0) return;
+      ctx.fillStyle = f.colour;
+      for (var a=0;a<5;a++){ var an = a*1.2566+f.spin+t*.05; ctx.beginPath(); ctx.arc(f.blade.tx+Math.cos(an)*r*.72, f.blade.ty+Math.sin(an)*r*.72, r*.55, 0, 6.29); ctx.fill(); }
+      ctx.fillStyle = '#f6c453'; ctx.beginPath(); ctx.arc(f.blade.tx, f.blade.ty, r*.42, 0, 6.29); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (m.night && root.dataset.sky === 'night'){
+      ctx.fillStyle = '#e9e7a8';
+      m.flies.forEach(function(f){
+        var a = Math.pow(Math.max(0,Math.sin(t*f.s+f.p)),3);
+        if (!a) return;
+        ctx.globalAlpha = a;
+        ctx.beginPath();
+        var fx = f.x+Math.sin(t*.2+f.p)*26, fy = f.y+Math.cos(t*.17+f.p)*16, dx = lx-fx, dy = ly-fy, dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist < 300){ var pull = (1-dist/300)*.75; fx += dx*pull + Math.sin(t*1.4+f.p)*14; fy += dy*pull + Math.cos(t*1.1+f.p)*14; }
+        ctx.arc(fx, fy, 2.4, 0, 6.29);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+  }
+  meadows.forEach(seed);
+  addEventListener('resize', function(){ meadows.forEach(function(m){ if (m.c.clientWidth !== m.w || m.c.clientHeight !== m.h) seed(m); }); if (still) frame(0); });
+  addEventListener('pointermove', function(e){ px = e.clientX; py = e.clientY; }, {passive:true});
+  addEventListener('pointerleave', function(){ px = py = -9999; });
+  if ('IntersectionObserver' in window){
+    var seen = new IntersectionObserver(function(es){ es.forEach(function(e){ meadows.forEach(function(m){ if (m.c===e.target) m.on = e.isIntersecting; }); }); });
+    meadows.forEach(function(m){ seen.observe(m.c); });
+  }
+  var now = 0, starA = 0, joined = 0;
+  var petals = ['#fbf3e4','#f4a9a0','#c9b6e8','#ffd9a0','#f7c6d6'];
+  function plant(m,x){
+    if (!m.blades.length) return;
+    var list = m.blades[1].list, best = list[0];
+    for (var i=0;i<list.length;i++) if (Math.abs(list[i].x-x) < Math.abs(best.x-x)) best = list[i];
+    m.flowers.push({ blade:best, born:now, size:7+Math.random()*5, spin:Math.random()*6.28, colour:petals[Math.floor(Math.random()*petals.length)] });
+    if (m.flowers.length > 70) m.flowers.shift();
+  }
+
+  /* A second sky over the sun: clouds built from logo bars, birds, stars, and the logo as a constellation. */
+  var skyc = document.getElementById('skyc'), sx = skyc.getContext('2d'), SW = 0, SH = 0;
+  var clouds = [], stars = [], logo = [6,14,24,34,46,34,24,14,6];
+  for (var ci=0;ci<6;ci++) clouds.push({ x:Math.random(), y:.06+Math.random()*.34, s:.65+Math.random()*.8, v:5+Math.random()*7, d:.4+Math.random() });
+  for (var si=0;si<90;si++) stars.push({ x:Math.random(), y:Math.random()*.62, r:.7+Math.random()*1.1, p:Math.random()*6.28 });
+  function sizeSky(){
+    var r = pixelRatio(); SW = innerWidth; SH = innerHeight;
+    skyc.width = SW*r; skyc.height = SH*r; sx.setTransform(r,0,0,r,0,0);
+  }
+  sizeSky(); addEventListener('resize', sizeSky);
+  var endIn = false;
+  if ('IntersectionObserver' in window) new IntersectionObserver(function(es){ endIn = es[0].isIntersecting; if (still) frame(0); }, {threshold:.55}).observe(document.getElementById('end'));
+  function drawSky(t,dtSec){
+    var kind = root.dataset.sky;
+    var aim = (kind==='night'||kind==='late') ? 1 : kind==='dusk' ? .4 : 0;
+    starA += still ? aim-starA : (aim-starA)*Math.min(1,dtSec*1.6);
+    joined = endIn ? (still ? 1 : Math.min(1,joined+dtSec/3.2)) : (still ? 0 : Math.max(0,joined-dtSec*1.5));
+    sx.clearRect(0,0,SW,SH);
+    var max = document.documentElement.scrollHeight-SH, prog = max>0 ? scrollY/max : 0;
+    sx.fillStyle = 'rgb('+cur[3].map(Math.round).join(',')+')';
+    if (starA < .95) clouds.forEach(function(c,ci){
+      if (fxLevel && ci%2) return;
+      var x = ((c.x*(SW+500) + t*c.v) % (SW+500)) - 250, y = c.y*SH - prog*80*c.d, u = c.s;
+      [[0,0,120],[34,22,190],[-18,44,104]].forEach(function(b){
+        sx.beginPath(); sx.roundRect(x+b[0]*u, y+b[1]*u, b[2]*u, 16*u, 8*u); sx.fill();
+      });
+    });
+    var bowAim = now < bowUntil ? 1 : 0;
+    bow += still ? bowAim-bow : (bowAim-bow)*Math.min(1,dtSec*1.2);
+    if (bow > .01){
+      var bowR = Math.min(SW,SH)*.62, bowX = SW*.68, bowY = SH*.92;
+      ['#e98f86','#f0b27a','#f3d98b','#9fd3a4','#8fc3dc','#b4a5da'].forEach(function(col,i){
+        sx.strokeStyle = col; sx.globalAlpha = bow*.7; sx.lineWidth = Math.max(8,bowR*.035); sx.lineCap = 'round';
+        sx.beginPath(); sx.arc(bowX,bowY,bowR-i*sx.lineWidth,Math.PI*1.04,Math.PI*1.96); sx.stroke();
+      });
+      sx.globalAlpha = 1;
+    }
+    if (kind==='dawn' || kind==='morning' || kind==='golden'){
+      var cyc = 30, ph = (t%cyc)/cyc;
+      sx.strokeStyle = 'rgb('+cur[4].map(Math.round).join(',')+')'; sx.globalAlpha = .55; sx.lineWidth = 2; sx.lineCap = 'round'; sx.lineJoin = 'round';
+      [[0,0],[-34,-16],[-34,16],[-68,-30],[-68,28]].forEach(function(o,i){
+        var bx = -120+(SW+240)*ph+o[0], by = SH*.17+o[1]+Math.sin(t*.4+i)*5, flap = Math.sin(t*5+i*.8)*6;
+        sx.beginPath(); sx.moveTo(bx-10,by-flap); sx.quadraticCurveTo(bx-4,by-2,bx,by); sx.quadraticCurveTo(bx+4,by-2,bx+10,by-flap); sx.stroke();
+      });
+      sx.globalAlpha = 1;
+    }
+    if (starA > .01){
+      sx.fillStyle = '#e8efe2';
+      stars.forEach(function(st,si){
+        if (fxLevel && si%2) return;
+        sx.globalAlpha = starA*(.35+.65*Math.abs(Math.sin(t*.35+st.p)));
+        sx.beginPath(); sx.arc(st.x*SW, st.y*SH, st.r, 0, 6.29); sx.fill();
+      });
+      sx.globalAlpha = 1;
+    }
+    if (joined > .01){
+      var unit = Math.min(1.7, SW/560), wide = SW<900, cx = (wide ? .5 : .57)*SW, cy = (wide ? .63 : .47)*SH;
+      logo.forEach(function(len,i){
+        var bx = cx+(i-4)*11*unit*1.5, half = len*unit*1.1, stage = Math.min(1,Math.max(0,joined*1.8-i*.09));
+        if (stage <= 0) return;
+        sx.strokeStyle = '#8fdcb1'; sx.globalAlpha = .55; sx.lineWidth = 1.3;
+        sx.beginPath(); sx.moveTo(bx,cy-half); sx.lineTo(bx,cy-half+half*2*stage); sx.stroke();
+        sx.globalAlpha = stage; sx.fillStyle = '#f2f7ec';
+        sx.beginPath(); sx.arc(bx,cy-half,2.6,0,6.29); sx.arc(bx,cy+half,2.6,0,6.29); sx.fill();
+      });
+      sx.globalAlpha = 1;
+    }
+  }
+  /* Tap the grass and a wave runs out from your finger. */
+  addEventListener('pointerdown', function(e){
+    if (still || (e.target.closest && e.target.closest('a,button,input,label,video'))) return;
+    meadows.forEach(function(m){
+      var r = m.c.getBoundingClientRect();
+      if (e.clientY >= r.bottom-m.rest && e.clientY <= r.bottom){ m.waves.push({ x:e.clientX-r.left, born:now }); plant(m, e.clientX-r.left); sound.pop(); }
+    });
+  });
+  var talk = document.getElementById('talk'), letters = [], bobbing = false;
+  talk.textContent.split('').forEach(function(ch){ var sp = document.createElement('span'); sp.textContent = ch; letters.push(sp); });
+  talk.textContent = ''; letters.forEach(function(sp){ talk.appendChild(sp); });
+  /* A top layer for what floats over the page: the opening logo, petals, a butterfly, shooting stars. */
+  var fx = document.getElementById('fx'), fc = fx.getContext('2d'), FW = 0, FH = 0;
+  function sizeFx(){ var r = pixelRatio(); FW = innerWidth; FH = innerHeight; fx.width = FW*r; fx.height = FH*r; fc.setTransform(r,0,0,r,0,0); }
+  sizeFx(); addEventListener('resize', sizeFx);
+
+  var petalsUp = [];
+  function burst(from){
+    if (still) return;
+    var m = from || meadows[0], r = m.c.getBoundingClientRect(), list = m.blades[2].list.concat(m.blades[1].list);
+    if (r.bottom < 0 || r.top > FH) return;
+    for (var i=0;i<(fxLevel > 1 ? 20 : fxLevel ? 45 : 90);i++){
+      var b = list[Math.floor(Math.random()*list.length)];
+      if (b.tx === undefined) continue;
+      petalsUp.push({ x:r.left+b.tx, y:r.top+b.ty, vx:(Math.random()-.5)*70+26, vy:-150-Math.random()*240, r:3+Math.random()*4.5, a:Math.random()*6.28, va:(Math.random()-.5)*5, p:Math.random()*6.28, born:now, life:3.2+Math.random()*2.6, colour:petals[Math.floor(Math.random()*petals.length)] });
+    }
+    m.waves.push({ x:m.w/2, born:now });
+  }
+
+  var bf = { x:-60, y:innerHeight*.5, tx:0, ty:0, seen:-99 };
+  addEventListener('pointermove', function(){ bf.seen = now; }, {passive:true});
+  function butterfly(t,dt){
+    var kind = root.dataset.sky;
+    if (kind === 'night' || kind === 'late' || kind === 'dusk' || still || fxLevel > 1) return;
+    var m = meadows[0], r = m.c.getBoundingClientRect(), f = m.flowers[m.flowers.length-1];
+    if (t-bf.seen < 2.5 && px > -999){ bf.tx = px+34; bf.ty = py-26; }
+    else if (f && f.blade.tx !== undefined && r.bottom > 0){ bf.tx = r.left+f.blade.tx; bf.ty = r.top+f.blade.ty-12; }
+    else { bf.tx = FW*(.5+.42*Math.sin(t*.11)); bf.ty = FH*(.52+.16*Math.sin(t*.23)); }
+    var k = Math.min(1,dt*1.5);
+    bf.x += (bf.tx-bf.x)*k + Math.sin(t*2.3)*.8;
+    bf.y += (bf.ty-bf.y)*k + Math.cos(t*3.1)*.9;
+    var flap = .25+.75*Math.abs(Math.sin(t*(Math.hypot(bf.tx-bf.x,bf.ty-bf.y) < 8 ? 2 : 11)));
+    fc.save(); fc.translate(bf.x,bf.y); fc.rotate(.28);
+    fc.fillStyle = '#f0935f';
+    [-1,1].forEach(function(side){
+      fc.beginPath(); fc.ellipse(side*7*flap,-3,7.5*flap,8.5,side*.5,0,6.29); fc.fill();
+      fc.beginPath(); fc.ellipse(side*5*flap,6,5*flap,5.5,-side*.5,0,6.29); fc.fill();
+    });
+    fc.strokeStyle = '#22342b'; fc.lineWidth = 2; fc.lineCap = 'round';
+    fc.beginPath(); fc.moveTo(0,-7); fc.lineTo(0,8); fc.stroke();
+    fc.restore();
+  }
+
+  var shoot = null, nextShoot = 0;
+  function shootingStar(t){
+    if ((root.dataset.sky !== 'night' && root.dataset.sky !== 'late') || still) return;
+    if (!shoot && t > nextShoot){ shoot = { x:FW*(.25+Math.random()*.6), y:FH*(.05+Math.random()*.25), born:t }; nextShoot = t+6+Math.random()*7; }
+    if (!shoot) return;
+    var a = (t-shoot.born)/.85;
+    if (a >= 1){ shoot = null; return; }
+    var hx = shoot.x-a*340, hy = shoot.y+a*150, g = fc.createLinearGradient(hx,hy,hx+130,hy-57);
+    g.addColorStop(0,'rgba(240,246,232,'+(1-a)+')'); g.addColorStop(1,'rgba(240,246,232,0)');
+    fc.strokeStyle = g; fc.lineWidth = 2; fc.lineCap = 'round';
+    fc.beginPath(); fc.moveTo(hx,hy); fc.lineTo(hx+130,hy-57); fc.stroke();
+  }
+
+  /* The opening: the logo says something, then opens up and plants itself as the whole field. */
+  var intro = !still && scrollY < 80 && !location.hash && !window.vsSeen, introStart = null, revealed = false, touched = false;
+  function reveal(){
+    if (revealed) return; revealed = true;
+    root.classList.remove('intro'); root.classList.add('reveal');
+    setTimeout(function(){ root.classList.remove('reveal'); }, 2600);
+  }
+  if (!intro) reveal();
+  ['pointerdown','keydown','wheel','touchmove','scroll'].forEach(function(n){
+    addEventListener(n, function(){
+      if (n === 'scroll' && scrollY < 40) return;
+      touched = true;
+      if (intro && introStart !== null && now-introStart < 2.25){ introStart = now-2.3; meadows[0].born = now-1.2; }
+    }, {passive:true});
+  });
+  var bars = [6,14,24,34,46,34,24,14,6];
+  function drawIntro(t){
+    var T = t-introStart;
+    if (T >= 2.3){ intro = false; reveal(); return; }
+    if (T >= 1.3) reveal();
+    var unit = Math.min(FW,FH*1.2)/250, lw = Math.max(10,unit*5.2), gap = lw*1.72, cx = FW/2, cy = FH*.46;
+    var open = Math.max(0,Math.min(1,(T-1.25)/1.05)), e = open*open*(3-2*open);
+    var ac = hex(cs('--accent')), near = cur[2];
+    fc.lineCap = 'round'; fc.lineWidth = lw*(1+e*.6);
+    fc.strokeStyle = 'rgb('+ac.map(function(v,i){ return Math.round(v+(near[i]-v)*e); }).join(',')+')';
+    fc.beginPath();
+    bars.forEach(function(len,i){
+      var off = Math.abs(i-4), k = Math.max(0,Math.min(1,(T-off*.05)/.5));
+      k = 1+2.4*Math.pow(k-1,3)+1.4*Math.pow(k-1,2);
+      var talkAmp = T > .45 && T < 1.5 ? (1+.34*Math.sin(T*13+i*1.15)*Math.sin(T*7.3+i*.4)*(1-e)) : 1;
+      var half = len*unit*k*talkAmp;
+      var x = cx+(i-4)*gap*(1+e*e*(off ? 58/off : 0));
+      var top = cy-half, bottom = cy+half;
+      top += (FH-half*1.15-top)*e; bottom += (FH+30-bottom)*e;
+      fc.moveTo(x,top); fc.lineTo(x,bottom);
+    });
+    fc.stroke();
+  }
+
+  var weather = null;
+  function startWeather(kind,secs){
+    weather = null;
+    if (still) return;
+    var n = Math.round((kind === 'rain' ? 140 : 100)*(fxLevel ? .5 : 1)), drops = [];
+    for (var i=0;i<n;i++) drops.push({ x:Math.random()*FW, y:Math.random()*FH, v:kind === 'rain' ? 620+Math.random()*320 : 34+Math.random()*50, r:1.6+Math.random()*2.4, p:Math.random()*6.28 });
+    weather = { kind:kind, from:now, until:now+secs, drops:drops };
+  }
+  function drawWeather(t,dt){
+    if (!weather) return;
+    if (t > weather.until){ weather = null; return; }
+    var w = weather, a = Math.min(1,(t-w.from)/1.2,(w.until-t)/1.5), rain = w.kind === 'rain';
+    fc.globalAlpha = a*(rain ? .42 : .9);
+    fc.strokeStyle = fc.fillStyle = rain ? '#dcebe0' : '#9fc0b4';
+    fc.lineWidth = 1.5; fc.lineCap = 'round';
+    if (rain) fc.beginPath();
+    w.drops.forEach(function(d){
+      d.y += d.v*dt;
+      if (!rain) d.x += Math.sin(t*.8+d.p)*18*dt;
+      if (d.y > FH+20){ d.y = -20; d.x = Math.random()*FW; }
+      if (rain){ fc.moveTo(d.x,d.y); fc.lineTo(d.x-3,d.y+17); }
+      else { fc.moveTo(d.x+d.r,d.y); fc.arc(d.x,d.y,d.r,0,6.29); }
+    });
+    if (rain) fc.stroke();
+    else { fc.beginPath(); w.drops.forEach(function(d){ fc.moveTo(d.x+d.r,d.y); fc.arc(d.x,d.y,d.r,0,6.29); }); fc.fill(); }
+    fc.globalAlpha = 1;
+  }
+
+  /* Say a word in the real demo and the sky answers. Only the page's own transcript is read. */
+  var skySection = 'dawn', skyTimer = 0, skyOverride = false, bow = 0, bowUntil = 0;
+  function setSky(kind){ root.dataset.sky = kind; readGoal(); if (still) frame(0); }
+  function borrowSky(kind,secs){
+    clearTimeout(skyTimer); skyOverride = true; setSky(kind);
+    skyTimer = setTimeout(function(){ skyOverride = false; setSky(skySection); }, secs*1000);
+  }
+  function skyAnswers(word){
+    var strip = meadows.filter(function(m){ return m.strip; })[0];
+    word = word.toLowerCase();
+    if (word !== 'flowers'){
+      weather = null; bowUntil = 0;
+      if (skyOverride){ clearTimeout(skyTimer); skyOverride = false; setSky(skySection); }
+    }
+    if (word === 'rain'){ borrowSky('dusk',12); startWeather('rain',12); sound.wind(); }
+    else if (word === 'snow'){ borrowSky('noon',12); startWeather('snow',12); }
+    else if (word === 'night'){ borrowSky('night',12); }
+    else if (word === 'sunset'){ borrowSky('golden',12); }
+    else if (word === 'sunrise' || word === 'morning'){ borrowSky('dawn',12); }
+    else if (word === 'rainbow'){ bowUntil = now+12; }
+    else { for (var i=0;i<Math.min(36,strip.w/25);i++) plant(strip, Math.random()*strip.w); burst(strip); sound.pop(); }
+  }
+  (function(){
+    var box = document.getElementById('try-text'), strip = meadows.filter(function(m){ return m.strip; })[0], was = '', settle = 0;
+    if (!box) return;
+    new MutationObserver(function(){
+      var text = box.textContent;
+      if (text.length > was.length && text.indexOf(was) === 0){
+        if (!was) burst(strip);
+        var added = text.slice(was.length);
+        for (var i=0;i<added.length;i++) if (added[i] === ' ') plant(strip, Math.random()*strip.w);
+      }
+      was = text;
+      clearTimeout(settle);
+      if (!text) return;
+      settle = setTimeout(function(){
+        var words = text.match(/\b(rainbow|rain|snow|night|sunset|sunrise|morning|flowers?)\b/ig);
+        if (words) skyAnswers(words[words.length-1].replace(/^flowers?$/i,'flowers'));
+      }, 400);
+    }).observe(box, {childList:true, characterData:true, subtree:true});
+  })();
+
+  function drawFx(t,dt){
+    fc.clearRect(0,0,FW,FH);
+    shootingStar(t);
+    drawWeather(t,dt);
+    petalsUp = petalsUp.filter(function(q){ return t-q.born < q.life; });
+    petalsUp.forEach(function(q){
+      q.vy += 26*dt; q.vy *= 1-.55*dt; q.vx *= 1-.3*dt;
+      q.x += (q.vx+Math.sin(t*1.6+q.p)*26)*dt; q.y += q.vy*dt; q.a += q.va*dt;
+      var age = (t-q.born)/q.life;
+      fc.globalAlpha = age > .7 ? (1-age)/.3 : 1;
+      fc.fillStyle = q.colour;
+      fc.beginPath(); fc.ellipse(q.x,q.y,q.r,q.r*.56,q.a,0,6.29); fc.fill();
+    });
+    fc.globalAlpha = 1;
+    if (!intro) butterfly(t,dt);
+    if (intro && introStart !== null) drawIntro(t);
+  }
+
+  var realCard = document.getElementById('try-card'), realBar = document.querySelector('.try-meter i:nth-child(3)');
+  var frames = 0, slowTime = 0, slowCount = 0;
+  function frame(ms){
+    var t = ms/1000, raw = t-now, dtSec = Math.min(.1, Math.max(0, raw)); now = t;
+    frames++;
+    if (!still && fxLevel < 2 && raw > 0 && raw < .25){
+      slowTime += raw; slowCount++;
+      if (slowCount >= 45){
+        if (slowTime/slowCount > .03){
+          fxLevel++; root.dataset.fx = fxLevel;
+          meadows.forEach(seed); sizeSky(); sizeFx();
+        }
+        slowTime = 0; slowCount = 0;
+      }
+    }
+    if (intro && introStart === null){
+      introStart = t; meadows[0].born = t+1.25;
+      try { sessionStorage.setItem('vs-opening','1'); } catch (e) {}
+      /* It demonstrates itself once, so nobody has to find the button to see the point. */
+      setTimeout(function(){ if (!touched && !holding){ press(); setTimeout(release, 1500); } }, 2900);
+    }
+    easeColours(ms);
+    if (fxLevel < 2 || frames%3 === 0 || still) drawSky(still ? 0 : t, still ? 1 : dtSec*(fxLevel > 1 ? 3 : 1));
+    if (holding) target = .72;
+    else if (realCard && realCard.dataset.state === 'recording'){
+      var sc = /scaleY\(([\d.]+)/.exec(realBar.style.transform);
+      target = sc ? Math.min(1,(parseFloat(sc[1])-.15)/.85*1.3) : .15;
+    }
+    else if (analyser){
+      analyser.getByteTimeDomainData(buf);
+      var sum = 0; for (var i=0;i<buf.length;i++){ var v=(buf[i]-128)/128; sum += v*v; }
+      target = Math.min(1, Math.sqrt(sum/buf.length)*6);
+    } else target = 0;
+    level += still ? target-level : (target-level) * (target>level ? .2 : .05);
+    if (fxLevel < 2 || frames%2 === 0 || still) meadows.forEach(function(m){ if (m.on) draw(m,still ? 0 : t); });
+    drawFx(t,dtSec);
+    if (level > .004 || bobbing){
+      bobbing = level > .004;
+      letters.forEach(function(el,i){ el.style.transform = bobbing && !still ? 'translateY('+(-Math.abs(Math.sin(t*6+i*.9))*level*18).toFixed(1)+'px)' : ''; });
+    }
+    if (!still || analyser) requestAnimationFrame(frame);
+  }
+
+  /* Scrolling is a day: the sky follows the section, the sun follows the page. */
+  var sun = document.getElementById('sun'), clock = document.getElementById('clock'), day = document.getElementById('day'), dragging = false, sunAt = { x:0, y:0, r:0 }, sunDrag = null;
+  var overText = 'a,button,input,label,video,img,p,h1,h2,h3,.typed,summary,td,th,li,blockquote,code,.try-editor';
+  function onSun(e){ var dx = e.clientX-sunAt.x, dy = e.clientY-sunAt.y; return dx*dx+dy*dy < sunAt.r*sunAt.r && !(e.target.closest && e.target.closest(overText)); }
+  addEventListener('pointerdown', function(e){
+    if (e.pointerType !== 'mouse' || !onSun(e)) return;
+    sunDrag = { x:e.clientX, top:scrollY }; document.body.classList.add('sun-drag');
+    e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  addEventListener('pointermove', function(e){
+    if (!sunDrag){ if (e.pointerType === 'mouse') document.body.classList.toggle('sun-hover', onSun(e)); return; }
+    var max = document.documentElement.scrollHeight-innerHeight;
+    window.scrollTo({ top:sunDrag.top+(sunDrag.x-e.clientX)/(innerWidth*.36)*.82*max, behavior:'instant' });
+  });
+  addEventListener('pointerup', function(){ sunDrag = null; document.body.classList.remove('sun-drag'); });
+  day.addEventListener('input', function(){
+    var max = document.documentElement.scrollHeight - innerHeight;
+    dragging = true;
+    window.scrollTo({ top:day.value/1000*max, behavior:'instant' });
+    dragging = false;
+  });
+  function place(){
+    var max = document.documentElement.scrollHeight - innerHeight, p = max>0 ? scrollY/max : 0;
+    var vw = innerWidth, vh = innerHeight, size = sun.offsetWidth, x, y, moon = false;
+    if (p < .82){ var q = p/.82; x = .5 - .36*q; y = .58 - 1.0*Math.sin(Math.min(1,q*1.15)*Math.PI*.5)*.48 + q*q*q*1.0; }
+    else { var n = (p-.82)/.18; x = .76; y = 1.1 - .86*n; moon = true; }
+    sun.style.transform = 'translate('+(x*vw - size/2)+'px,'+(y*vh - size/2)+'px) scale('+(moon ? .42 : 1)+')';
+    sunAt = { x:x*vw, y:y*vh, r:size*(moon ? .42 : 1)/2 };
+    if (!dragging) day.value = Math.round(p*1000);
+    var mins = 370 + p*(1420-370), hr = Math.floor(mins/60), mm = Math.floor(mins%60);
+    clock.textContent = (hr>12?hr-12:hr)+':'+(mm<10?'0':'')+mm+(hr>=12?' pm':' am');
+  }
+  addEventListener('scroll', place, {passive:true}); addEventListener('resize', place); place();
+  var parts = document.querySelectorAll('[data-time]');
+  if ('IntersectionObserver' in window){
+    var sky = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ skySection = e.target.dataset.time; if (!skyOverride) setSky(skySection); } }); }, {rootMargin:'-50% 0px -50% 0px'});
+    parts.forEach(function(s){ sky.observe(s); });
+  }
+
+  /* Every sound is synthesized here, so the page loads no audio files. Off until asked for. */
+  var sound = (function(){
+    var ac = null, master = null, timers = [], windGain = null, noise = null;
+    function env(g,peak,at,len){ g.gain.setValueAtTime(0,at); g.gain.linearRampToValueAtTime(peak,at+len*.2); g.gain.exponentialRampToValueAtTime(.0001,at+len); }
+    function burst(freq,len,peak,type,bendTo){
+      if (!ac) return;
+      var at = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+      o.type = type||'sine'; o.frequency.setValueAtTime(freq,at);
+      if (bendTo) o.frequency.exponentialRampToValueAtTime(bendTo,at+len);
+      env(g,peak,at,len); o.connect(g); g.connect(master); o.start(at); o.stop(at+len+.05);
+    }
+    function bird(){
+      var n = 2+Math.floor(Math.random()*3), base = 2600+Math.random()*1800;
+      for (var i=0;i<n;i++) (function(i){ setTimeout(function(){ burst(base*(1+i*.06),.11,.022,'sine',base*(1.25+i*.05)); }, i*140); })(i);
+    }
+    function cricket(){
+      for (var i=0;i<4;i++) (function(i){ setTimeout(function(){ burst(4700,.035,.012,'sine'); }, i*62); })(i);
+    }
+    function loop(){
+      if (!ac) return;
+      var k = root.dataset.sky, night = k==='night' || k==='late' || k==='dusk';
+      if (night) cricket(); else bird();
+      timers.push(setTimeout(loop, night ? 700+Math.random()*900 : 3200+Math.random()*6000));
+    }
+    function start(){
+      ac = new (window.AudioContext||window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = .9; master.connect(ac.destination);
+      var len = ac.sampleRate*4, buf = ac.createBuffer(1,len,ac.sampleRate), d = buf.getChannelData(0), l = 0;
+      for (var i=0;i<len;i++){ l = .985*l + .015*(Math.random()*2-1); d[i] = l*3.2; }
+      noise = ac.createBufferSource(); noise.buffer = buf; noise.loop = true;
+      var f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 620;
+      windGain = ac.createGain(); windGain.gain.value = .14;
+      var lfo = ac.createOscillator(), depth = ac.createGain(); lfo.frequency.value = .1; depth.gain.value = .05;
+      lfo.connect(depth); depth.connect(windGain.gain); lfo.start();
+      noise.connect(f); f.connect(windGain); windGain.connect(master); noise.start();
+      timers.push(setTimeout(loop, 900));
+    }
+    document.addEventListener('visibilitychange', function(){ if (ac){ if (document.hidden) ac.suspend(); else ac.resume(); } });
+    return {
+      toggle:function(){
+        if (ac){ timers.forEach(clearTimeout); timers = []; ac.close(); ac = null; return false; }
+        start(); return true;
+      },
+      tick:function(){ burst(1500+Math.random()*500,.018,.012,'triangle'); },
+      key:function(){ burst(220,.07,.05,'triangle',120); },
+      pop:function(){ burst(620+Math.random()*260,.14,.035,'sine',980); },
+      wind:function(){ if (ac && windGain){ var at = ac.currentTime; windGain.gain.cancelScheduledValues(at); windGain.gain.setValueAtTime(windGain.gain.value,at); windGain.gain.linearRampToValueAtTime(.38,at+.5); windGain.gain.linearRampToValueAtTime(.14,at+2.4); } }
+    };
+  })();
+
+  /* The microphone only ever produces a loudness number. */
+  var analyser = null, buf = null, stream = null, audio = null;
+  var mic = document.getElementById('mic'), label = document.getElementById('mic-label'), status = document.getElementById('mic-status');
+  var idle = status.textContent;
+  function stop(){
+    if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    if (audio) audio.close();
+    stream = audio = analyser = null;
+    mic.setAttribute('aria-pressed','false'); label.textContent = 'Talk to the meadow'; status.textContent = idle;
+  }
+  mic.addEventListener('click', function(){
+    if (stream){ stop(); return; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ status.textContent = 'This browser cannot use the microphone here. The meadow still sways on its own.'; return; }
+    status.textContent = 'Waiting for microphone permission.';
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+      stream = s; audio = new (window.AudioContext||window.webkitAudioContext)();
+      analyser = audio.createAnalyser(); analyser.fftSize = 1024; buf = new Uint8Array(analyser.fftSize);
+      audio.createMediaStreamSource(s).connect(analyser);
+      mic.setAttribute('aria-pressed','true'); label.textContent = 'Stop'; status.textContent = 'Listening. Nothing is recorded or sent.';
+      if (still) requestAnimationFrame(frame);
+    }).catch(function(){ status.textContent = 'Microphone blocked. The meadow still sways on its own.'; });
+  });
+
+  /* The product's own gesture: hold, talk, let go, and the words get typed. */
+  var hold = document.getElementById('hold'), typed = document.getElementById('typed-text'), typer = null;
+  var lines = ['So I think we should move the meeting to three thirty tomorrow. The client is running late, and the room is booked.',
+    'The patient takes metformin 5 mg BID blood pressure 120/80',
+    'Per section 12(b) the buyer pays $50,000'], lineAt = 0;
+  /* No F9 on a touch screen. And when the card is off screen on a phone, the words float into view. */
+  if (matchMedia('(pointer:coarse)').matches){
+    hold.textContent = 'Hold to try';
+    typed.textContent = 'Hold the button, then let go.';
+  }
+  var floatCard = document.getElementById('typed-float'), floatText = floatCard.querySelector('p'), floatOff = 0, shot = document.querySelector('.shot');
+  new MutationObserver(function(){ floatText.textContent = typed.textContent; }).observe(typed, {childList:true, characterData:true, subtree:true});
+  function showFloat(){
+    clearTimeout(floatOff);
+    var r = shot.getBoundingClientRect();
+    if (innerWidth <= 900 && (r.top > innerHeight-150 || r.bottom < 150)) floatCard.classList.add('on');
+  }
+  function hideFloat(ms){ clearTimeout(floatOff); floatOff = setTimeout(function(){ floatCard.classList.remove('on'); }, ms); }
+  function press(){
+    if (holding) return;
+    showFloat();
+    holding = true; clearInterval(typer); typed.classList.remove('on'); typed.textContent = 'Listening.'; sound.key();
+    hold.setAttribute('aria-pressed','true');
+    if (still) frame(0);
+  }
+  function release(){
+    if (!holding) return;
+    holding = false; hold.setAttribute('aria-pressed','false');
+    burst();
+    var line = lines[lineAt++ % lines.length];
+    status.textContent = 'Every word plants a flower. Tap the grass to plant your own.';
+    if (still){ typed.textContent = line; frame(0); return; }
+    var i = 0; typed.textContent = ''; typed.classList.add('on');
+    typer = setInterval(function(){
+      typed.textContent = line.slice(0, ++i);
+      sound.tick();
+      if (line[i] === ' ' || i >= line.length) plant(meadows[0], Math.random()*meadows[0].w);
+      if (i >= line.length){ clearInterval(typer); typed.classList.remove('on'); hideFloat(2600); }
+    }, 26);
+  }
+  hold.addEventListener('pointerdown', function(e){ e.preventDefault(); hold.setPointerCapture(e.pointerId); press(); });
+  hold.addEventListener('pointerup', release);
+  hold.addEventListener('pointercancel', release);
+  hold.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  hold.addEventListener('keydown', function(e){ if ((e.key===' '||e.key==='Enter') && !e.repeat){ e.preventDefault(); press(); } });
+  hold.addEventListener('keyup', function(e){ if (e.key===' '||e.key==='Enter') release(); });
+  var tryCard = document.getElementById('try-card');
+  function realDemoOwnsF9(){ return tryCard && tryCard.dataset.state !== 'idle' && tryCard.dataset.state !== 'unsupported'; }
+  addEventListener('keydown', function(e){ if (e.key==='F9' && !realDemoOwnsF9()){ e.preventDefault(); if (!e.repeat) press(); } });
+  addEventListener('keyup', function(e){ if (e.key==='F9') release(); });
+  addEventListener('blur', release);
+
+  [].forEach.call(document.querySelectorAll('.print'), function(el,n){
+    for (var i=0;i<9;i++){
+      var b = document.createElement('i'), shape = 1-Math.abs(i-4)/5;
+      b.style.height = Math.round(6+28*shape*(.45+.55*Math.abs(Math.sin(n*1.7+i*(1.1+n*.13)))))+'px';
+      b.style.transitionDelay = (i*22)+'ms';
+      el.appendChild(b);
+    }
+  });
+
+  var said = document.getElementById('said'), clean = document.getElementById('clean');
+  clean.addEventListener('click', function(){
+    if (!still && !said.classList.contains('clean')){
+      [].forEach.call(said.querySelectorAll('.f'), function(f,i){
+        var r = f.getBoundingClientRect(), leaf = document.createElement('span');
+        leaf.className = 'leaf'; leaf.textContent = f.textContent; leaf.style.left = r.left+'px'; leaf.style.top = r.top+'px';
+        document.body.appendChild(leaf);
+        var dx = 180+Math.random()*320, dy = 200+Math.random()*220, spin = (Math.random()*90-45);
+        leaf.animate([
+          { transform:'translate(0,0) rotate(0deg)', opacity:1 },
+          { transform:'translate('+dx*.45+'px,'+dy*.2+'px) rotate('+spin*.5+'deg)', opacity:.9, offset:.4 },
+          { transform:'translate('+dx+'px,'+dy+'px) rotate('+spin+'deg)', opacity:0 }
+        ], { duration:1900+i*180, delay:i*90, easing:'cubic-bezier(.3,.1,.5,1)', fill:'both' }).onfinish = function(){ leaf.remove(); };
+      });
+      sound.wind();
+    }
+    var on = said.classList.toggle('clean');
+    clean.textContent = on ? 'Show what I said' : 'Clean it up';
+    clean.setAttribute('aria-pressed', String(on));
+  });
+
+  /* The price date is real. After it passes this line disappears; the price text itself changes by hand, with Gumroad. */
+  (function(){
+    var el = document.getElementById('deadline');
+    var left = Math.ceil((new Date(2026,10,15) - new Date())/864e5);
+    if (left <= 0) return;
+    el.textContent = left === 1 ? 'Last day at $14.' : '$14 for ' + left + ' more days.';
+    el.hidden = false;
+  })();
+
+  /* The looping demo video only plays while it is on screen. */
+  (function(){
+    var v = document.getElementById('demo'), b = document.getElementById('pause'), userPaused = still;
+    if (!v || !b || !('IntersectionObserver' in window)) return;
+    b.addEventListener('click', function(){ userPaused = !userPaused; });
+    new IntersectionObserver(function(es){
+      if (userPaused) return;
+      if (es[0].isIntersecting){ var pl = v.play(); if (pl && pl.catch) pl.catch(function(){}); } else v.pause();
+    }).observe(v);
+  })();
+
+  var plane = document.getElementById('plane'), air = document.getElementById('air'), airNote = document.getElementById('air-note');
+  function fly(){
+    if (still) return;
+    var W = innerWidth, H = innerHeight;
+    plane.animate([
+      { transform:'translate(-60px,'+H*.42+'px) rotate(8deg)', opacity:1 },
+      { transform:'translate('+W*.5+'px,'+H*.2+'px) rotate(-2deg)', opacity:1, offset:.55 },
+      { transform:'translate('+(W+60)+'px,'+H*.08+'px) rotate(-8deg)', opacity:1 }
+    ], { duration:6200, easing:'ease-in-out' });
+  }
+  air.addEventListener('click', function(){
+    var on = air.getAttribute('aria-pressed') !== 'true';
+    air.setAttribute('aria-pressed', String(on));
+    airNote.textContent = on ? 'Airplane mode on, still dictating.' : 'Switch it on. The words keep coming.';
+    if (on) fly();
+  });
+  addEventListener('offline', function(){ air.setAttribute('aria-pressed','true'); airNote.textContent = 'You are offline right now. VoxScribe keeps working.'; fly(); });
+  addEventListener('online', function(){ air.setAttribute('aria-pressed','false'); airNote.textContent = 'Switch it on. The words keep coming.'; });
+  if ('IntersectionObserver' in window){
+    var once = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ fly(); once.disconnect(); } }); }, {threshold:.25});
+    once.observe(document.getElementById('proof'));
+  }
+
+  var snd = document.getElementById('snd');
+  snd.addEventListener('click', function(){
+    var on = sound.toggle();
+    snd.setAttribute('aria-pressed', String(on));
+  });
+
+  var video = document.getElementById('demo'), pause = document.getElementById('pause');
+  if (still) video.removeAttribute('autoplay'), video.pause();
+  pause.addEventListener('click', function(){
+    if (video.paused){ video.play(); pause.textContent='Pause'; pause.setAttribute('aria-pressed','false'); }
+    else { video.pause(); pause.textContent='Play'; pause.setAttribute('aria-pressed','true'); }
+  });
+  if (still) pause.textContent = 'Play';
+
+  requestAnimationFrame(frame);
+})();
+</script>
 <script>
   var navToggle = document.getElementById('nav-toggle');
   var navLinks = document.getElementById('nav-links');
@@ -1153,14 +1441,25 @@
     }
   })();
 
+  // Which download buttons get used: a Google Analytics event with the placement only.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href*="/releases"], a[href*="android.html"]');
+    if (!a || typeof gtag !== 'function') return;
+    var place = a.id || (a.closest('nav') ? 'nav' : a.closest('footer') ? 'footer' : 'page');
+    gtag('event', 'download_click', {
+      platform: /releases\/tag\/android|android\.html/.test(a.href) ? 'android' : 'windows',
+      placement: place
+    });
+  });
+
   // Sticky download bar on phones: shown once the hero buttons are above the screen, hidden at the footer.
   (function () {
     var bar = document.getElementById('sticky-dl');
-    var row = document.querySelector('header.hero .cta-row');
-    var foot = document.querySelector('footer');
+    var row = document.querySelector('header.hero .cta');
+    var foot = document.querySelector('.site-foot');
     if (!bar || !row || !foot || !('IntersectionObserver' in window)) return;
     var pastHero = false, atFooter = false;
-    function update() { bar.classList.toggle('show', pastHero && !atFooter); }
+    function update() { var on = pastHero && !atFooter; bar.classList.toggle('show', on); document.body.classList.toggle('sticky-on', on); }
     new IntersectionObserver(function (e) {
       pastHero = !e[0].isIntersecting && e[0].boundingClientRect.top < 0;
       update();
@@ -1169,25 +1468,6 @@
       atFooter = e[0].isIntersecting;
       update();
     }).observe(foot);
-  })();
-
-  // Hero demo: pause button, and no autoplay for people who asked for reduced motion.
-  (function () {
-    var video = document.getElementById('demo-video');
-    var button = document.getElementById('demo-pause');
-    if (!video || !button) return;
-    function paint() {
-      var paused = video.paused;
-      button.textContent = paused ? 'Play' : 'Pause';
-      button.setAttribute('aria-pressed', String(paused));
-    }
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) video.pause();
-    button.addEventListener('click', function () {
-      if (video.paused) { video.play(); } else { video.pause(); }
-    });
-    video.addEventListener('play', paint);
-    video.addEventListener('pause', paint);
-    paint();
   })();
 
   // Live download total, from this site's own badge endpoint. Shown only once it is a meaningful number.
@@ -1219,13 +1499,6 @@
     }).catch(function () {});
   })();
 
-  // More scroll reveals: section headings and FAQ items fade in like the cards do.
-  document.querySelectorAll('.section-head').forEach(function (el) { el.setAttribute('data-reveal', ''); });
-  document.querySelectorAll('.faq-item').forEach(function (el, i) {
-    el.setAttribute('data-reveal', '');
-    el.style.transitionDelay = ((i % 2) * 80) + 'ms';
-  });
-
   // The nav picks up a soft shadow once the page has scrolled.
   (function () {
     var nav = document.querySelector('nav');
@@ -1238,54 +1511,6 @@
     paint();
   })();
 
-  var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // The cleaned-up sentence types itself out once, the way VoxScribe types into an app.
-  (function () {
-    var out = document.querySelector('.say-card.out .say-text');
-    if (!out || calm || !('IntersectionObserver' in window)) return;
-    var full = out.textContent;
-    var done = false;
-    new IntersectionObserver(function (entries, obs) {
-      if (done || !entries[0].isIntersecting) return;
-      done = true;
-      obs.disconnect();
-      out.style.minHeight = out.offsetHeight + 'px';
-      out.setAttribute('aria-label', full);
-      out.textContent = '';
-      var text = document.createTextNode('');
-      var caret = document.createElement('span');
-      caret.className = 'caret';
-      caret.setAttribute('aria-hidden', 'true');
-      out.appendChild(text);
-      out.appendChild(caret);
-      var i = 0;
-      setTimeout(function tick() {
-        i += 1;
-        text.nodeValue = full.slice(0, i);
-        if (i < full.length) { setTimeout(tick, 24); }
-        else { setTimeout(function () { if (caret.parentNode) caret.parentNode.removeChild(caret); }, 1400); }
-      }, 1100);
-    }, { threshold: 0.6 }).observe(out);
-  })();
-
-  if ('IntersectionObserver' in window) {
-    document.documentElement.classList.add('js-reveal');
-    var observer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('revealed');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('[data-reveal]').forEach(function (el) {
-      observer.observe(el);
-    });
-  }
-</script>
-<script>
-(function(){var c=document.getElementById('clock');if(!c)return;function t(){var d=new Date(),h=d.getHours(),m=('0'+d.getMinutes()).slice(-2);c.textContent=((h%12)||12)+':'+m+(h<12?' AM':' PM')}t();setInterval(t,30000)})();
 </script>
 <script src="assets/try.js?v=3" defer></script>
 <script>

@@ -24,12 +24,12 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="An Offline Alternative to Windows Voice Typing">
 <meta property="og:description" content="Free, open source, hold-to-talk dictation that runs on your PC and works in every Windows app.">
-<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 <meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/windows-voice-typing-alternative.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="An Offline Alternative to Windows Voice Typing">
 <meta name="twitter:description" content="Free, open source, hold-to-talk dictation that runs on your PC and works in every Windows app.">
-<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 
 <link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
 <script type="application/ld+json">
@@ -68,75 +68,7 @@
 }
 </script>
 
-<style>
-@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
-
-  :root {
-    --bg-window: #06060f;
-    --bg-card: #12121f;
-    --border: rgba(255,255,255,0.09);
-    --border-soft: rgba(255,255,255,0.06);
-    --text-primary: #f3f3fb;
-    --text-muted: #9797ac;
-    --text-faint: #5c5c72;
-    --accent-hover: #34d399;
-    --cyan: #5eead4;
-    --green: #34d399;
-    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0;
-    background: var(--bg-window); color: var(--text-primary);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
-  a { color: var(--accent-hover); }
-  .back { display: inline-block; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
-  .back:hover { color: var(--text-primary); }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 999px;
-    background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25);
-    color: var(--accent-hover); font-size: 12px; font-weight: 700;
-    letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 18px;
-  }
-  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
-  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
-  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
-  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
-  ol, ul { padding-left: 20px; }
-  ol li, ul li { margin-bottom: 8px; }
-  strong { color: var(--text-primary); }
-  .keycap {
-    display: inline-block; font-family: -apple-system, "Segoe UI", monospace; font-weight: 700;
-    font-size: 0.9em; color: var(--text-primary); background: var(--bg-card);
-    border: 1px solid var(--border); border-bottom: 3px solid var(--border);
-    border-radius: 6px; padding: 1px 8px; margin: 0 1px;
-  }
-
-  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
-    text-decoration: none; border: 1px solid transparent;
-  }
-  .btn-primary { background: var(--gradient-brand); color: #060612; }
-  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
-  .fine-print { font-size: 13px; color: var(--text-faint); margin: 4px 0 0; }
-
-  .card {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 20px 24px; margin: 20px 0;
-  }
-  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
-  .faq-item:last-child { border-bottom: none; }
-  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
-  .faq-item p { margin: 0; }
-</style>
+<link rel="stylesheet" href="assets/pages.css">
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
 </head>
 <body>

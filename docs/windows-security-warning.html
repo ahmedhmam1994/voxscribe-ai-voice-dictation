@@ -24,113 +24,15 @@
 <meta property="og:type" content="article">
 <meta property="og:title" content="Why Windows Warns About the VoxScribe Installer">
 <meta property="og:description" content="What the SmartScreen warning means, how to skip it, how to check the file, and what the installer changes.">
-<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta property="og:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 <meta property="og:url" content="https://voxscribe-ai-voice-dictation.vercel.app/windows-security-warning.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Why Windows Warns About the VoxScribe Installer">
 <meta name="twitter:description" content="What the SmartScreen warning means, how to skip it, how to check the file, and what the installer changes.">
-<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-image.png">
+<meta name="twitter:image" content="https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png">
 
 <link rel="preload" href="assets/fonts/Inter-400.woff" as="font" type="font/woff" crossorigin>
-<style>
-@font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url(assets/fonts/Inter-400.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url(assets/fonts/Inter-600.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url(assets/fonts/Inter-700.woff) format('woff')}
-@font-face{font-family:'Inter';font-style:normal;font-weight:800 900;font-display:swap;src:url(assets/fonts/Inter-800.woff) format('woff')}
-
-  :root {
-    --bg-window: #06060f;
-    --bg-card: #12121f;
-    --border: rgba(255,255,255,0.09);
-    --border-soft: rgba(255,255,255,0.06);
-    --text-primary: #f3f3fb;
-    --text-muted: #9797ac;
-    --text-faint: #5c5c72;
-    --accent: #10b981;
-    --accent-hover: #34d399;
-    --cyan: #5eead4;
-    --green: #34d399;
-    --amber: #f0a54a;
-    --gradient-brand: linear-gradient(90deg, var(--accent-hover), var(--cyan));
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0; padding: 0;
-    background: var(--bg-window); color: var(--text-primary);
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
-  a { color: var(--accent-hover); }
-  .back { display: block; width: fit-content; margin-bottom: 32px; font-size: 14px; color: var(--text-muted); text-decoration: none; }
-  .back:hover { color: var(--text-primary); }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 5px 10px; border-radius: 6px;
-    background: rgba(240,165,74,0.1); border: 1px solid rgba(240,165,74,0.28);
-    color: var(--amber); font-size: 11px; font-weight: 700;
-    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 18px;
-  }
-  h1 { font-size: 34px; font-weight: 900; margin: 0 0 16px; letter-spacing: -0.01em; line-height: 1.2; }
-  .subhead { font-size: 17px; color: var(--text-muted); line-height: 1.6; margin: 0 0 32px; }
-  h2 { font-size: 22px; font-weight: 800; margin: 44px 0 14px; }
-  p, li { color: var(--text-muted); font-size: 15px; line-height: 1.75; }
-  ul, ol { padding-left: 20px; }
-  strong { color: var(--text-primary); }
-  code {
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px;
-    background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft);
-    border-radius: 5px; padding: 1px 6px; color: var(--text-primary); overflow-wrap: anywhere;
-  }
-  pre {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 14px 16px; overflow-x: auto; margin: 12px 0 18px;
-  }
-  pre code { background: none; border: none; padding: 0; font-size: 13.5px; line-height: 1.7; }
-
-  .steps {
-    background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--amber);
-    border-radius: 14px; padding: 18px 24px 18px 22px; margin: 20px 0;
-  }
-  .steps ol { margin: 0; }
-  .steps li { margin: 4px 0; }
-
-  .cta-row { display: flex; gap: 14px; flex-wrap: wrap; margin: 28px 0 8px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 24px; border-radius: 10px; font-size: 15px; font-weight: 600;
-    text-decoration: none; border: 1px solid transparent;
-  }
-  .btn-primary { background: var(--gradient-brand); color: #060612; }
-  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
-
-  .table-scroll { overflow-x: auto; border-radius: 14px; width: 100%; margin: 20px 0; }
-  table { width: 100%; min-width: 420px; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
-  th, td { padding: 12px 16px; text-align: left; font-size: 14px; border-bottom: 1px solid var(--border-soft); vertical-align: top; }
-  th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
-  tr:last-child td { border-bottom: none; }
-  td { color: var(--text-muted); }
-  td.first { color: var(--text-primary); font-weight: 600; }
-  td.no { color: var(--text-faint); }
-
-  .faq-item { border-bottom: 1px solid var(--border-soft); padding: 20px 0; }
-  .faq-item:last-child { border-bottom: none; }
-  .faq-item h3 { font-size: 16px; margin: 0 0 8px; color: var(--text-primary); font-weight: 800; }
-  .faq-item p { margin: 0; }
-
-  @media (max-width: 560px) {
-    h1 { font-size: 28px; }
-    table.stack { min-width: 0; }
-    table.stack thead { display: none; }
-    table.stack tr { display: block; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
-    table.stack tr:last-child { border-bottom: none; }
-    table.stack td { display: block; border: none; padding: 3px 16px; }
-    table.stack td.first { font-size: 15px; padding-bottom: 6px; }
-    table.stack td[data-label]::before {
-      content: attr(data-label) ": "; color: var(--text-faint);
-      font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
-    }
-  }
-</style>
+<link rel="stylesheet" href="assets/pages.css">
 
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "VoxScribe", "item": "https://voxscribe-ai-voice-dictation.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Windows security warning", "item": "https://voxscribe-ai-voice-dictation.vercel.app/windows-security-warning.html"}]}
@@ -205,11 +107,11 @@ scoop install voxscribe</code></pre>
   <h2>Questions</h2>
   <div class="faq-item">
     <h3>Will you sign the app?</h3>
-    <p>Yes, it is being worked on. A free signing program for open source projects is the first route, and a paid certificate is the fallback. Until then this page, the published hashes and the open source code are the way to check it.</p>
+    <p>Yes. A free signing program for open source projects was not an option, so a paid code-signing certificate is planned and will be bought as soon as Pro sales cover it. Even then, Windows only stops warning after the signed app has built some download reputation. Until then this page, the published hashes and the open source code are the way to check it.</p>
   </div>
   <div class="faq-item">
     <h3>My antivirus deleted the installer, or removed VoxScribe after installing. What now?</h3>
-    <p>This is a false alarm. VoxScribe is open source, it is not signed yet, and it uses a global hotkey and types into other windows, which is a pattern antivirus programs often flag in unsigned apps. Check the hash first (see above). If it matches, you can put it back:</p>
+    <p>If Defender names it <code>Trojan:Win32/Bearfoos.A!ml</code>, the <code>!ml</code> means a machine-learning guess, not a match with known malware. This is a false alarm. VoxScribe is open source, it is not signed yet, and it uses a global hotkey and types into other windows, which is a pattern antivirus programs often flag in unsigned apps. Check the hash first (see above). If it matches, you can put it back:</p>
     <ol>
       <li>Open <strong>Windows Security</strong>, then <strong>Virus &amp; threat protection</strong>, then <strong>Protection history</strong>.</li>
       <li>Find the VoxScribe item, open <strong>Actions</strong>, and choose <strong>Restore</strong>, or <strong>Allow on device</strong>.</li>
