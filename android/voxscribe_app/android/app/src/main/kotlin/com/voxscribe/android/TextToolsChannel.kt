@@ -61,6 +61,15 @@ class TextToolsChannel(private val context: Context) : MethodChannel.MethodCallH
                 )
                 result.success(null)
             }
+            "addLearned" -> {
+                // Fixes learned on another device, kept with the same rules.
+                Replacements.parse(call.argument<String>("lines").orEmpty()).forEach { (heard, fixed) ->
+                    if (heard.isNotBlank() && fixed.isNotBlank()) {
+                        LearnedWords.remember(context, LearnedWords.Fix(heard, fixed))
+                    }
+                }
+                result.success(LearnedWords.text(context))
+            }
             "forgetLearned" -> {
                 LearnedWords.forget(context, call.argument<String>("heard").orEmpty())
                 result.success(LearnedWords.text(context))

@@ -3,6 +3,7 @@ import 'package:voxscribe_app/features/snippets/domain/snippet.dart';
 import 'package:voxscribe_app/features/snippets/domain/snippet_repository.dart';
 import 'package:voxscribe_app/features/texttools/domain/text_tools.dart';
 import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
+import 'package:voxscribe_app/features/texttools/domain/word_lists.dart';
 
 /// Pro state kept in memory. [validKey] is the one key it accepts.
 class FakeProRepository implements ProRepository {
@@ -71,6 +72,20 @@ class FakeTextToolsRepository implements TextToolsRepository {
 
   @override
   Future<void> save(TextToolsSettings settings) async => saved = settings;
+
+  @override
+  Future<String> addLearned(List<ReplacementRule> fixes) async {
+    final lines = saved.learned.isEmpty
+        ? <String>[]
+        : saved.learned.split('\n');
+    for (final fix in fixes) {
+      lines
+        ..removeWhere((l) => l.split('=>').first.trim() == fix.heard)
+        ..add('${fix.heard} => ${fix.replacement}');
+    }
+    saved = saved.copyWith(learned: lines.join('\n'));
+    return saved.learned;
+  }
 
   @override
   Future<String> forgetLearned(String heard) async {

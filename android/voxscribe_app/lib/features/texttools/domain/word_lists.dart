@@ -1,18 +1,25 @@
 import 'dart:convert';
 
+import 'package:voxscribe_app/features/snippets/domain/snippet.dart';
+
 /// The word lists file shared with the Windows app (`core/word_lists.py`):
 ///
 /// ```json
 /// {
 ///   "format": "voxscribe-word-lists",
-///   "version": 1,
+///   "version": 2,
 ///   "vocabulary": ["VoxScribe"],
-///   "replacements": [{"heard": "vox scribe", "replacement": "VoxScribe"}]
+///   "replacements": [{"heard": "vox scribe", "replacement": "VoxScribe"}],
+///   "learned": [{"heard": "shivon", "fixed": "Siobhan"}],
+///   "snippets": [{"trigger": "my sig", "expansion": "Best, Sam"}],
+///   "templates": [{"name": "bug report", "body": "Title: {title}"}],
+///   "profile": {"field": "medical", "app": "email"}
 /// }
 /// ```
 ///
-/// The phone only uses the replacements; the vocabulary is a Windows feature,
-/// so an import counts those terms and leaves them out. A plain text file with
+/// Version 1 files have only the vocabulary and replacements; every later key
+/// is optional. The vocabulary and the voice profile are Windows features, so
+/// an import counts the vocabulary and leaves both out. A plain text file with
 /// one `heard => replacement` per line imports too.
 const wordListsFormat = 'voxscribe-word-lists';
 const wordListsFileName = 'voxscribe-word-lists.json';
@@ -49,25 +56,93 @@ List<ReplacementRule> parseReplacementsText(String text) {
   return rules;
 }
 
-/// The file contents for the replacements text.
-String buildWordListsFile(String replacementsText) {
+/// The file contents. [templatesText] and [learnedText] are the settings
+/// box forms (`name => body` with `\n` for a line break, `heard => fixed`).
+String buildWordListsFile(
+  String replacementsText, {
+  String templatesText = '',
+  String learnedText = '',
+  List<Snippet> snippets = const [],
+}) {
   final data = {
     'format': wordListsFormat,
-    'version': 1,
+    'version': 2,
     'vocabulary': <String>[],
     'replacements': [
       for (final rule in parseReplacementsText(replacementsText))
         {'heard': rule.heard, 'replacement': rule.replacement},
     ],
+    'learned': [
+      for (final rule in parseReplacementsText(learnedText))
+        if (rule.replacement.isNotEmpty)
+          {'heard': rule.heard, 'fixed': rule.replacement},
+    ],
+    'snippets': [
+      for (final snippet in snippets)
+        if (snippet.trigger.trim().isNotEmpty && snippet.expansion.isNotEmpty)
+          {'trigger': snippet.trigger.trim(), 'expansion': snippet.expansion},
+    ],
+    'templates': [
+      for (final rule in parseReplacementsText(templatesText))
+        if (rule.replacement.isNotEmpty)
+          {
+            'name': rule.heard,
+            'body': rule.replacement.replaceAll(r'\n', '\n'),
+          },
+    ],
   };
   return '${const JsonEncoder.withIndent('  ').convert(data)}\n';
 }
 
+/// Templates as settings box lines: a line break in a body becomes `\n`.
+List<ReplacementRule> templateLines(List<ReplacementRule> templates) => [
+  for (final t in templates)
+    ReplacementRule(t.heard, t.replacement.replaceAll('\n', r'\n')),
+];
+
+List<(String, String)> _pairsIn(
+  Map<dynamic, dynamic> data,
+  String key,
+  String first,
+  String second, {
+  bool trimSecond = true,
+}) {
+  final found = <(String, String)>[];
+  final listed = data[key];
+  if (listed is! List) return found;
+  for (final item in listed) {
+    if (item is! Map) continue;
+    final a = item[first];
+    final b = item[second];
+    if (a is String &&
+        a.trim().isNotEmpty &&
+        b is String &&
+        b.trim().isNotEmpty) {
+      found.add((a.trim(), trimSecond ? b.trim() : b));
+    }
+  }
+  return found;
+}
+
 /// What a word lists file holds.
 class WordListImport {
-  const WordListImport(this.rules, {this.vocabularyCount = 0});
+  const WordListImport(
+    this.rules, {
+    this.vocabularyCount = 0,
+    this.learned = const [],
+    this.snippets = const [],
+    this.templates = const [],
+  });
 
   final List<ReplacementRule> rules;
+
+  /// Fixes learned on the other device: what was heard and what it should be.
+  final List<ReplacementRule> learned;
+
+  final List<Snippet> snippets;
+
+  /// Template names and bodies, with real line breaks in the bodies.
+  final List<ReplacementRule> templates;
 
   /// Vocabulary terms in the file, which the phone does not use.
   final int vocabularyCount;
@@ -108,7 +183,39 @@ WordListImport parseWordListImport(String text) {
         }
       }
     }
-    return WordListImport(rules, vocabularyCount: count);
+    return WordListImport(
+      rules,
+      vocabularyCount: count,
+      learned: [
+        for (final (heard, fixed) in _pairsIn(
+          data,
+          'learned',
+          'heard',
+          'fixed',
+        ))
+          ReplacementRule(heard, fixed),
+      ],
+      snippets: [
+        for (final (trigger, expansion) in _pairsIn(
+          data,
+          'snippets',
+          'trigger',
+          'expansion',
+          trimSecond: false,
+        ))
+          Snippet(trigger: trigger, expansion: expansion),
+      ],
+      templates: [
+        for (final (name, body) in _pairsIn(
+          data,
+          'templates',
+          'name',
+          'body',
+          trimSecond: false,
+        ))
+          ReplacementRule(name, body),
+      ],
+    );
   }
   final rules = parseReplacementsText(body);
   if (rules.isEmpty) {

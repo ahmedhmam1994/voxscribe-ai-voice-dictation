@@ -3361,8 +3361,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(replacements_hint)
 
         word_lists_row = QHBoxLayout()
-        export_lists_button = QPushButton("Export word lists...")
-        import_lists_button = QPushButton("Import word lists...")
+        export_lists_button = QPushButton("Export my words...")
+        import_lists_button = QPushButton("Import my words...")
         for button in (export_lists_button, import_lists_button):
             button.setObjectName("secondaryButton")
             button.setCursor(Qt.PointingHandCursor)
@@ -3371,8 +3371,8 @@ class MainWindow(QMainWindow):
         layout.addLayout(word_lists_row)
 
         word_lists_result = QLabel(
-            "One file with your vocabulary and replacements, for a backup, another "
-            "PC or the Android app."
+            "One file with your vocabulary, replacements, learned words, snippets, "
+            "templates and voice profile, for a backup, another PC or the Android app."
         )
         word_lists_result.setObjectName("settingsHint")
         word_lists_result.setWordWrap(True)
@@ -3381,62 +3381,144 @@ class MainWindow(QMainWindow):
         def _vocabulary_in_box() -> list[str]:
             return [t.strip() for t in vocab_edit.text().split(",") if t.strip()]
 
+        def _snippet_lines(text: str) -> list[tuple[str, str]]:
+            found = []
+            for line in text.splitlines():
+                trigger, arrow, expansion = line.partition("=>")
+                if arrow and trigger.strip():
+                    found.append((trigger.strip(), expansion.strip()))
+            return found
+
         def _export_word_lists() -> None:
             start = str(Path.home() / "Documents" / word_lists.DEFAULT_FILE_NAME)
             path, _ = QFileDialog.getSaveFileName(
-                dialog, "Export word lists", start, "VoxScribe word lists (*.json)"
+                dialog, "Export my words", start, "VoxScribe word lists (*.json)"
             )
             if not path:
                 return
-            vocabulary = _vocabulary_in_box()
-            pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            # What the boxes show now, so unsaved edits go along too.
+            bundle = word_lists.Bundle(
+                vocabulary=_vocabulary_in_box(),
+                replacements=replacements.parse_replacements_text(
+                    replacements_edit.toPlainText()
+                ),
+                learned=[(f.heard, f.fixed) for f in learned_words.all_fixes()],
+                snippets=_snippet_lines(snippets_edit.toPlainText()),
+                templates=[
+                    (t.name, t.body) for t in templates.parse_lines(templates_edit.toPlainText())
+                ],
+                profile={
+                    "field": voice_profile.get_field() or "",
+                    "app": voice_profile.get_app() or "",
+                },
+            )
             try:
-                Path(path).write_text(word_lists.export_text(vocabulary, pairs), encoding="utf-8")
+                Path(path).write_text(word_lists.export_bundle(bundle), encoding="utf-8")
             except OSError as exc:
                 word_lists_result.setText(f"Could not save the file: {exc}")
                 return
+            counts = bundle.counts()
+            parts = [
+                f"{n} {name if n != 1 else name.rstrip('s')}"
+                for name, n in (
+                    ("vocabulary terms", counts["vocabulary"]),
+                    ("replacements", counts["replacements"]),
+                    ("learned words", counts["learned"]),
+                    ("snippets", counts["snippets"]),
+                    ("templates", counts["templates"]),
+                )
+                if n
+            ]
             word_lists_result.setText(
-                f"Saved {len(vocabulary)} vocabulary term{'s' if len(vocabulary) != 1 else ''} "
-                f"and {len(pairs)} replacement{'s' if len(pairs) != 1 else ''} "
-                f"to {Path(path).name}."
+                f"Saved {', '.join(parts) or 'your settings'} to {Path(path).name}. "
+                "Open it on another PC, or in the Android app under Text tools."
             )
 
         def _import_word_lists() -> None:
             path, _ = QFileDialog.getOpenFileName(
                 dialog,
-                "Import word lists",
+                "Import my words",
                 str(Path.home() / "Documents"),
                 "Word lists (*.json *.txt);;All files (*)",
             )
             if not path:
                 return
             try:
-                vocabulary, pairs = word_lists.parse_import(
+                bundle = word_lists.parse_file(
                     Path(path).read_text(encoding="utf-8", errors="replace")
                 )
             except (OSError, ValueError) as exc:
                 word_lists_result.setText(str(exc))
                 return
+            report = []
+            # Word lists, snippets and templates go into the boxes to review;
+            # Save keeps them, like any other edit here.
             current_vocabulary = _vocabulary_in_box()
-            merged_vocabulary = vocab_learner.merge_vocabulary(current_vocabulary, vocabulary)
+            merged_vocabulary = vocab_learner.merge_vocabulary(
+                current_vocabulary, bundle.vocabulary
+            )
             new_terms = len(merged_vocabulary) - len(current_vocabulary)
-            current_pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
-            merged_pairs, added, changed = word_lists.merge_replacements(current_pairs, pairs)
             vocab_edit.setText(", ".join(merged_vocabulary))
+            current_pairs = replacements.parse_replacements_text(replacements_edit.toPlainText())
+            merged_pairs, added, changed = word_lists.merge_replacements(
+                current_pairs, bundle.replacements
+            )
             replacements_edit.setPlainText("\n".join(f"{a} => {b}" for a, b in merged_pairs))
-            if not (new_terms or added or changed):
-                word_lists_result.setText(
-                    "Nothing new in that file. Your lists already have it all."
+            if new_terms:
+                report.append(f"{new_terms} vocabulary term{'s' if new_terms != 1 else ''}")
+            if added or changed:
+                report.append(
+                    f"{added} replacement{'s' if added != 1 else ''}"
+                    + (f" ({changed} changed)" if changed else "")
                 )
+            if bundle.snippets:
+                # The box holds one snippet per line, so a line break becomes a space.
+                incoming = [(t, e.replace("\n", " ").strip()) for t, e in bundle.snippets]
+                merged, s_added, s_changed = word_lists.merge_replacements(
+                    _snippet_lines(snippets_edit.toPlainText()), incoming
+                )
+                if s_added or s_changed:
+                    snippets_edit.setPlainText("\n".join(f"{a} => {b}" for a, b in merged))
+                    note = "" if hotkey_license.is_pro() else ", kept only with Pro"
+                    n = s_added + s_changed
+                    report.append(f"{n} snippet{'s' if n != 1 else ''}{note}")
+            if bundle.templates:
+                in_box = templates.parse_lines(templates_edit.toPlainText())
+                merged, t_added, t_changed = word_lists.merge_replacements(
+                    [(t.name, t.body) for t in in_box], bundle.templates
+                )
+                if t_added or t_changed:
+                    templates_edit.setPlainText(
+                        templates.format_lines([templates.Template(n, b) for n, b in merged])
+                    )
+                    n = t_added + t_changed
+                    report.append(f"{n} template{'s' if n != 1 else ''}")
+            # Learned words are not in a box, so they are kept right away.
+            before = set(learned_words.all_fixes())
+            for heard, fixed in bundle.learned:
+                learned_words.remember(learned_words.Fix(heard, fixed))
+            learned = len(set(learned_words.all_fixes()) - before)
+            if learned:
+                report.append(f"{learned} learned word{'s' if learned != 1 else ''}")
+                self._refresh_my_words()
+            # A voice profile only fills in what this PC has not answered yet.
+            field_id, app_id = bundle.profile.get("field"), bundle.profile.get("app")
+            took_profile = False
+            known_fields = {c.id for c in voice_profile.FIELDS}
+            if field_id in known_fields and voice_profile.get_field() is None:
+                voice_profile.apply_field(field_id)
+                took_profile = True
+            if app_id in {c.id for c in voice_profile.APPS} and voice_profile.get_app() is None:
+                voice_profile.apply_app(app_id)
+                took_profile = True
+            if took_profile:
+                report.append("your voice profile")
+                self._refresh_my_words()
+            if not report:
+                word_lists_result.setText("Nothing new in that file. You already have it all.")
                 return
-            parts = [
-                f"{new_terms} vocabulary term{'s' if new_terms != 1 else ''}",
-                f"{added} replacement{'s' if added != 1 else ''}",
-            ]
-            changed_note = f", and changed {changed}" if changed else ""
             word_lists_result.setText(
-                f"Added {parts[0]} and {parts[1]}{changed_note}. "
-                "Review them above, then press Save."
+                f"Added {', '.join(report)}. Review the boxes, then press Save changes."
             )
 
         export_lists_button.clicked.connect(_export_word_lists)

@@ -268,6 +268,7 @@ class TemplatesPage extends StatelessWidget {
         const SizedBox(height: 16),
         if (controller.loaded)
           NoteField(
+            key: ValueKey('templates-${controller.replacementsRevision}'),
             label: 'Name => text with {slots}',
             hint: r'bug report => Title: {title}\nSteps: {steps}',
             help:

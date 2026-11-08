@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:voxscribe_app/features/texttools/domain/text_tools.dart';
 import 'package:voxscribe_app/features/texttools/domain/text_tools_repository.dart';
+import 'package:voxscribe_app/features/texttools/domain/word_lists.dart';
 
 /// Talks to `TextToolsChannel.kt`. If the native side cannot be reached the
 /// defaults are used and changes are not saved.
@@ -60,6 +61,20 @@ class MethodChannelTextToolsRepository implements TextToolsRepository {
       });
     } on PlatformException {
       // The screen already shows the new value; it just will not persist.
+    }
+  }
+
+  @override
+  Future<String> addLearned(List<ReplacementRule> fixes) async {
+    try {
+      return await _channel.invokeMethod<String>('addLearned', {
+            'lines': fixes
+                .map((f) => '${f.heard} => ${f.replacement}')
+                .join('\n'),
+          }) ??
+          '';
+    } on PlatformException {
+      return '';
     }
   }
 

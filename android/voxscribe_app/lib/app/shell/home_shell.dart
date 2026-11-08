@@ -73,6 +73,7 @@ class _HomeShellState extends State<HomeShell> {
   );
   late final TextToolsController _textTools = TextToolsController(
     repository: widget.textToolsRepository,
+    snippets: widget.snippetRepository,
   );
   late final TermPacksController _packs = TermPacksController();
   late final ReleaseController _release = ReleaseController(

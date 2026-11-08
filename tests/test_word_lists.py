@@ -14,7 +14,7 @@ def test_an_export_reads_back_the_same():
 def test_the_export_is_readable_json_with_the_format_name():
     data = json.loads(export_text(["Ahmed"], [("a med", "Ahmed")]))
     assert data["format"] == FORMAT
-    assert data["version"] == 1
+    assert data["version"] == 2
     assert data["replacements"] == [{"heard": "a med", "replacement": "Ahmed"}]
 
 
@@ -95,3 +95,53 @@ def test_repeats_inside_the_file_do_not_add_twice():
     merged, added, _ = merge_replacements([], [("a", "b"), ("A", "c")])
     assert merged == [("A", "c")]
     assert added == 1
+
+
+def test_version_2_carries_learned_words_snippets_templates_and_profile():
+    from core.word_lists import Bundle, export_bundle, parse_file
+
+    bundle = Bundle(
+        vocabulary=["VoxScribe"],
+        replacements=[("vox scribe", "VoxScribe")],
+        learned=[("shivon", "Siobhan")],
+        snippets=[("my sig", "Best,\nSam ")],
+        templates=[("bug report", "Title: {title}")],
+        profile={"field": "medical", "app": "email", "other": "x"},
+    )
+    back = parse_file(export_bundle(bundle))
+    assert back.learned == [("shivon", "Siobhan")]
+    assert back.snippets == [("my sig", "Best,\nSam ")]  # expansions keep their spacing
+    assert back.templates == [("bug report", "Title: {title}")]
+    assert back.profile == {"field": "medical", "app": "email"}
+
+
+def test_a_version_1_file_still_imports_and_has_no_extras():
+    from core.word_lists import parse_file
+
+    text = json.dumps(
+        {
+            "format": FORMAT,
+            "version": 1,
+            "vocabulary": [],
+            "replacements": [{"heard": "a", "replacement": "b"}],
+        }
+    )
+    back = parse_file(text)
+    assert back.replacements == [("a", "b")]
+    assert back.learned == back.snippets == back.templates == [] and back.profile == {}
+
+
+def test_broken_extras_are_skipped_not_fatal():
+    from core.word_lists import parse_file
+
+    text = json.dumps(
+        {
+            "format": FORMAT,
+            "version": 2,
+            "learned": [{"heard": "x"}, "junk", {"heard": "y", "fixed": "Y"}],
+            "snippets": [{"trigger": "", "expansion": "z"}],
+            "profile": "medical",
+        }
+    )
+    back = parse_file(text)
+    assert back.learned == [("y", "Y")] and back.snippets == [] and back.profile == {}

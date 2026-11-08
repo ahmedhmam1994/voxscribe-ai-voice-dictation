@@ -35,7 +35,7 @@ void main() {
     test('is the same format the Windows app writes', () {
       final data = jsonDecode(buildWordListsFile('a med => Ahmed')) as Map;
       expect(data['format'], 'voxscribe-word-lists');
-      expect(data['version'], 1);
+      expect(data['version'], 2);
       expect(data['vocabulary'], isEmpty);
       expect(data['replacements'], [
         {'heard': 'a med', 'replacement': 'Ahmed'},
@@ -165,7 +165,7 @@ void main() {
 
       expect(
         message,
-        'Added 1 replacement, changed 1. The 1 vocabulary term in it is for '
+        'Added 1 replacement (1 changed). The 1 vocabulary term in it is for '
         'Windows only.',
       );
       expect(repository.saved.replacements, 'a => new\nc => d');
