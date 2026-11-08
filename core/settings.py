@@ -414,7 +414,7 @@ def use_batch_trial() -> int:
 
 # Pro features that can be tried a few times first. Each has its own counter.
 FREE_FEATURE_TRIALS = 3
-TRIAL_FEATURES = ("link_import", "summary")
+TRIAL_FEATURES = ("link_import", "summary", "assistant")
 
 
 def get_feature_trials_left(feature: str) -> int:

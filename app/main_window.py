@@ -79,6 +79,7 @@ from app.whats_new import whats_new_text
 from core import (
     app_profiles,
     arabic_terms,
+    assistant,
     batch,
     code_dictation,
     diarize,
@@ -341,6 +342,9 @@ class HotkeyBridge(QObject):
     # focused box was read on a background thread.
     typed_into = Signal(str, object)
     box_read = Signal(object, object)
+    # The rewrite assistant (core/assistant.py) answered on a worker thread:
+    # (original text, new text or None, error message or None).
+    assistant_done = Signal(str, object, object)
 
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
@@ -2027,6 +2031,15 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
         self._hotkey_bridge.typed_into.connect(self._start_learning_watch)
         self._hotkey_bridge.box_read.connect(self._on_box_read)
+        # The rewrite assistant: a local model, started on first use and
+        # stopped after a few idle minutes (core/assistant.py).
+        self._assistant = assistant.Assistant()
+        self._assistant_busy = False
+        self._hotkey_bridge.assistant_done.connect(self._on_assistant_done)
+        self._assistant_idle_timer = QTimer(self)
+        self._assistant_idle_timer.setInterval(60_000)
+        self._assistant_idle_timer.timeout.connect(self._assistant.stop_if_idle)
+        self._assistant_idle_timer.start()
         # Learning your words: the box as VoxScribe left it, checked again
         # every few seconds while that window keeps the focus.
         self._learn_watch: dict | None = None
@@ -2906,6 +2919,98 @@ class MainWindow(QMainWindow):
             layout.addLayout(row)
 
         _refresh_engine_rows()
+
+        # -- the rewrite assistant (core/assistant.py) -----------------------
+        layout = speech
+        assistant_label = QLabel("REWRITE ASSISTANT")
+        assistant_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(assistant_label)
+        assistant_hint = QLabel(
+            'Right after a dictation, say "make it formal", "make it friendly", '
+            '"make it shorter", "bullet points" or "fix the grammar", and VoxScribe '
+            "rewrites what it just typed. A language model does it on this PC, offline; "
+            "nothing is sent. It uses your graphics card when it can, and checks that "
+            "every number you said is still there before typing. Pro, with 3 free tries."
+        )
+        assistant_hint.setObjectName("settingsHint")
+        assistant_hint.setWordWrap(True)
+        layout.addWidget(assistant_hint)
+
+        assistant_combo = self._new_settings_combo()
+        for model_id, model in assistant.MODELS.items():
+            assistant_combo.addItem(f"{model.label} ({model.size / 1e9:.1f} GB)", model_id)
+        assistant_combo.setCurrentIndex(max(0, assistant_combo.findData(assistant.get_model_id())))
+        layout.addWidget(assistant_combo)
+
+        assistant_row = QHBoxLayout()
+        assistant_status = QLabel()
+        assistant_status.setObjectName("settingsHint")
+        assistant_status.setWordWrap(True)
+        assistant_row.addWidget(assistant_status, stretch=1)
+        assistant_folder_button = QPushButton("Change folder...")
+        assistant_folder_button.setObjectName("secondaryButton")
+        assistant_folder_button.setCursor(Qt.PointingHandCursor)
+        assistant_folder_button.setMinimumHeight(30)
+        assistant_row.addWidget(assistant_folder_button)
+        assistant_button = QPushButton()
+        assistant_button.setObjectName("secondaryButton")
+        assistant_button.setCursor(Qt.PointingHandCursor)
+        assistant_button.setMinimumHeight(30)
+        assistant_row.addWidget(assistant_button)
+        layout.addLayout(assistant_row)
+
+        def _refresh_assistant_row() -> None:
+            ready = assistant.is_ready()
+            where = assistant.get_folder()
+            if ready:
+                assistant_status.setText(f"Downloaded, in {where}")
+                assistant_button.setText("Remove")
+            else:
+                missing = assistant.download_bytes() / 1e9
+                assistant_status.setText(f"Not downloaded ({missing:.1f} GB), goes to {where}")
+                assistant_button.setText("Download")
+
+        def _pick_assistant_model() -> None:
+            self._assistant.stop()
+            assistant.set_model_id(assistant_combo.currentData())
+            _refresh_assistant_row()
+
+        def _on_assistant_button() -> None:
+            model = assistant.MODELS[assistant.get_model_id()]
+            if assistant.is_ready():
+                answer = QMessageBox.question(
+                    self,
+                    "Remove the assistant model?",
+                    f"Delete {model.label} from this PC? You can download it again.",
+                )
+                if answer == QMessageBox.Yes:
+                    self._assistant.stop()
+                    assistant.remove()
+                    _refresh_assistant_row()
+                return
+            _run_download(
+                f"Download {model.label}?",
+                f"This downloads {model.label} (about {assistant.download_bytes() / 1e9:.1f} GB) "
+                "from Hugging Face, and the llama.cpp runtime from GitHub, into "
+                f"{assistant.get_folder()}. Nothing about you or your text is sent. Continue?",
+                lambda progress: assistant.download(progress=progress),
+                _refresh_assistant_row,
+            )
+
+        def _change_assistant_folder() -> None:
+            chosen = QFileDialog.getExistingDirectory(
+                self, "Where should the assistant model go?", str(assistant.get_folder())
+            )
+            if not chosen:
+                return
+            self._assistant.stop()
+            assistant.set_folder(Path(chosen))
+            _refresh_assistant_row()
+
+        assistant_combo.currentIndexChanged.connect(lambda _i: _pick_assistant_model())
+        assistant_button.clicked.connect(_on_assistant_button)
+        assistant_folder_button.clicked.connect(_change_assistant_folder)
+        _refresh_assistant_row()
 
         layout = speech
         model_label = QLabel("WHISPER MODEL SIZE")
@@ -4666,6 +4771,7 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.Yes:
                 return
         self._meeting.shutdown()
+        self._assistant.stop()
         if self._link_worker is not None and self._link_worker.isRunning():
             # The download stops at its next chunk and deletes its .part file.
             self._link_worker.request_stop()
@@ -5295,6 +5401,12 @@ class MainWindow(QMainWindow):
         editing_mode = get_editing_command(text) if text else None
         if editing_mode and voice_commands_on:
             self._after_typing(lambda: self._handle_editing_command(editing_mode))
+            return
+        # Downloading the assistant turns on its own commands, even with the
+        # other spoken commands off: "make it formal" means nothing else.
+        spoken_rewrite = assistant.get_command(text) if text else None
+        if spoken_rewrite and (voice_commands_on or assistant.is_ready()):
+            self._after_typing(lambda: self._run_assistant(spoken_rewrite))
             return
         if text and voice_commands_on:
             transform = get_transform_command(text)
@@ -6965,6 +7077,76 @@ class MainWindow(QMainWindow):
         threading.Thread(target=_retype, daemon=True).start()
         self._set_status(status_text, "ready")
         self._indicator.flash_success(status_text)
+
+    def _run_assistant(self, command_id: str) -> None:
+        """Spoken "make it formal", "bullet points"...: the local model rewrites
+        the last dictation on a worker thread, then only the changed part is
+        retyped through _handle_rewrite_command (which refuses if the window
+        changed meanwhile). Pro, with a few free tries."""
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        label = assistant.COMMANDS[command_id].label
+        original = self._last_typed_text
+        if not original:
+            self._set_status("Nothing to rewrite", "ready")
+            self._indicator.flash_error("Nothing to rewrite")
+            return
+        if self._last_typed_hwnd is None or foreground_window_handle() != self._last_typed_hwnd:
+            self._set_status("Can't rewrite -- active window changed", "error")
+            self._indicator.flash_error("Can't rewrite, window changed")
+            return
+        if self._assistant_busy:
+            self._set_status("Still rewriting the last one", "ready")
+            return
+        firstrun.feature("assistant")
+        is_pro = hotkey_license.is_pro()
+        if not is_pro and hotkey_settings.get_feature_trials_left("assistant") <= 0:
+            self._set_status("The rewrite assistant is a Pro feature", "error")
+            self._indicator.flash_error("Rewrite assistant is Pro")
+            return
+        if not assistant.is_ready():
+            self._set_status("Download the rewrite assistant in Settings > Speech first", "error")
+            self._indicator.flash_error("Assistant not downloaded")
+            return
+        self._assistant_busy = True
+        self._assistant_trial = not is_pro
+        self._set_status(f"{label}...", "transcribing")
+        self._indicator.show_status(f"{label}...")
+        bridge = self._hotkey_bridge
+        worker = self._assistant
+
+        def _work() -> None:
+            try:
+                bridge.assistant_done.emit(original, worker.rewrite(original, command_id), None)
+            except assistant.AssistantError as exc:
+                bridge.assistant_done.emit(original, None, str(exc))
+            except Exception:  # noqa: BLE001 -- never let a model problem crash dictation
+                bridge.assistant_done.emit(original, None, "The assistant failed")
+
+        self._assistant_label = label
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _on_assistant_done(self, original: str, new, error) -> None:  # noqa: ANN001
+        self._assistant_busy = False
+        self._indicator.hide_indicator()
+        if error or new is None:
+            self._set_status(error or "The assistant failed", "error")
+            self._indicator.flash_error(error or "The assistant failed")
+            return
+        if new.strip() == original.strip():
+            self._set_status("Already fine, nothing changed", "ready")
+            return
+        if self._assistant_trial:
+            left = hotkey_settings.use_feature_trial("assistant")
+            status = (
+                f"{self._assistant_label}: done. {left} free tr{'ies' if left != 1 else 'y'} left"
+            )
+        else:
+            status = f"{self._assistant_label}: done"
+        # Only if the last dictation is still what the model saw.
+        self._handle_rewrite_command(
+            lambda old: new if old == original else None, status
+        )
 
     def _handle_send_command(self) -> None:
         """Spoken "send it" (opt-in): presses Enter in the app being dictated
