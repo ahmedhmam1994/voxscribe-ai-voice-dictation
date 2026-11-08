@@ -119,6 +119,18 @@ def delete(entry_id: str, *, folder: Path | None = None) -> None:
         (_folder(folder) / f"{entry_id}.json").unlink(missing_ok=True)
 
 
+def delete_before(cutoff: float | None, *, folder: Path | None = None) -> int:
+    """Deletes entries made before `cutoff` (a time.time() value), or all of
+    them when None. Returns how many went."""
+    gone = 0
+    for path in _files(_folder(folder)):
+        entry = _read(path)
+        if cutoff is None or (entry is not None and entry.created < cutoff):
+            path.unlink(missing_ok=True)
+            gone += 1
+    return gone
+
+
 def clear(*, folder: Path | None = None) -> None:
     for path in _files(_folder(folder)):
         path.unlink(missing_ok=True)

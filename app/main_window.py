@@ -91,6 +91,7 @@ from core import (
     history,
     inbox,
     learned_words,
+    library,
     link_import,
     modes,
     network_guard,
@@ -254,6 +255,10 @@ def _icon_words(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
     return _load_svg_icon("book-open", size, color)
 
 
+def _icon_library(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
+    return _load_svg_icon("library", size, color)
+
+
 class _StatusDot(QWidget):
     """Small solid-color circle used inside the status pill."""
 
@@ -279,6 +284,7 @@ PAGE_DICTATION = 0
 PAGE_FILES = 1
 PAGE_INSIGHTS = 2
 PAGE_WORDS = 3
+PAGE_LIBRARY = 4
 
 
 class StatusPill(QWidget):
@@ -560,6 +566,18 @@ QTextEdit#transcriptArea {{
 }}
 QTextEdit#transcriptArea[hasContent="false"] {{
     border: 1px solid {BORDER_SOFT};
+}}
+
+QLineEdit#librarySearch {{
+    background: {BG_CARD};
+    border: 1px solid {BORDER};
+    border-radius: 10px;
+    padding: 6px 14px;
+    font-size: 14px;
+    selection-background-color: {ACCENT};
+}}
+QLineEdit#librarySearch:focus {{
+    border: 1px solid {ACCENT};
 }}
 
 QScrollBar:vertical {{
@@ -1506,6 +1524,7 @@ class MainWindow(QMainWindow):
 
         _add_nav("Dictation", _icon_mic(17, TEXT_MUTED), PAGE_DICTATION)
         _add_nav("Files", _icon_upload(17, TEXT_MUTED), PAGE_FILES)
+        _add_nav("Library", _icon_library(17, TEXT_MUTED), PAGE_LIBRARY)
         _add_nav("My words", _icon_words(17, TEXT_MUTED), PAGE_WORDS)
         _add_nav("Insights", _icon_insights(17, TEXT_MUTED), PAGE_INSIGHTS)
 
@@ -2058,6 +2077,10 @@ class MainWindow(QMainWindow):
 
         self._build_insights_page()
         self._build_words_page()
+        self._build_library_page()
+        # "Keep for" is checked at every start, so old items go even when the
+        # app runs for days without the Library being opened.
+        library.apply_retention()
         self._switch_page(PAGE_DICTATION)
         self._refresh_history_feed()
         self._refresh_recent()
@@ -5701,7 +5724,9 @@ class MainWindow(QMainWindow):
             # The pill stays on "Transcribing" until the text is really typed
             # (or held): _type_into_focused_window shows the check or the error.
             hotkey_settings.record_dictation(len(text.split()))
-            history.add_entry(text, self._last_recording_duration)
+            history.add_entry(
+                text, self._last_recording_duration, keep_text=library.keeps_text()
+            )
             telemetry.send_dictation_used()
             if self._released_at:
                 firstrun.step(
@@ -6001,6 +6026,8 @@ class MainWindow(QMainWindow):
             self._refresh_insights(from_zero=True)
         if index == PAGE_WORDS:
             self._refresh_my_words()
+        if index == PAGE_LIBRARY:
+            self._refresh_library()
 
     # -- recent file and link transcripts ----------------------------------
 
@@ -6088,6 +6115,301 @@ class MainWindow(QMainWindow):
     def _build_insights_page(self) -> None:
         self._insights_page = InsightsPage()
         self._pages.addWidget(self._insights_page)
+
+    # -- Library: everything you said or imported (core/library.py) --------
+
+    _LIBRARY_SHOWN = 150
+
+    def _build_library_page(self) -> None:
+        content = QWidget()
+        page = QVBoxLayout(content)
+        page.setContentsMargins(36, 26, 36, 22)
+        page.setSpacing(10)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet(
+            "QScrollArea { border: none; background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+        )
+        scroll.setWidget(content)
+        self._pages.addWidget(scroll)
+
+        hero = QWidget()
+        hero.setObjectName("heroBanner")
+        hero.setFixedHeight(84)
+        hero_text = QVBoxLayout(hero)
+        hero_text.setContentsMargins(24, 10, 18, 10)
+        hero_text.setSpacing(2)
+        hero_text.addStretch(1)
+        hero_title = QLabel("Library")
+        hero_title.setObjectName("heroTitle")
+        hero_text.addWidget(hero_title)
+        hero_subtitle = QLabel(
+            "Everything you dictated, imported or saved to notes, in one place. "
+            "Search it all. Kept on this PC."
+        )
+        hero_subtitle.setObjectName("heroSubtitle")
+        hero_text.addWidget(hero_subtitle)
+        hero_text.addStretch(1)
+        page.addWidget(hero)
+
+        self._library_search = QLineEdit()
+        self._library_search.setObjectName("librarySearch")
+        self._library_search.setPlaceholderText("Search everything you said, imported or noted")
+        self._library_search.setClearButtonEnabled(True)
+        self._library_search.setMinimumHeight(40)
+        self._library_search_timer = QTimer(self)
+        self._library_search_timer.setSingleShot(True)
+        self._library_search_timer.setInterval(180)
+        self._library_search_timer.timeout.connect(self._show_library_results)
+        self._library_search.textChanged.connect(lambda _: self._library_search_timer.start())
+        page.addWidget(self._library_search)
+
+        self._library_kind: str | None = None
+        self._library_since: int | None = None
+
+        def _chips(choices, on_pick) -> tuple[QHBoxLayout, dict]:  # noqa: ANN001
+            row = QHBoxLayout()
+            row.setSpacing(6)
+            group = QButtonGroup(self)
+            group.setExclusive(True)
+            buttons = {}
+            for value, label in choices:
+                button = QPushButton(label)
+                button.setCheckable(True)
+                button.setCursor(Qt.PointingHandCursor)
+                button.setFixedHeight(30)
+                button.setStyleSheet(self._FIELD_CHIP_STYLE)
+                button.clicked.connect(lambda _=False, v=value: on_pick(v))
+                group.addButton(button)
+                row.addWidget(button)
+                buttons[value] = button
+            buttons[choices[0][0]].setChecked(True)
+            return row, buttons
+
+        def _pick_kind(value) -> None:  # noqa: ANN001
+            self._library_kind = value
+            self._show_library_results()
+
+        def _pick_since(value) -> None:  # noqa: ANN001
+            self._library_since = value
+            self._show_library_results()
+
+        filters = QHBoxLayout()
+        kind_row, _ = _chips(library.FILTERS, _pick_kind)
+        since_row, _ = _chips(library.SINCE, _pick_since)
+        filters.addLayout(kind_row)
+        filters.addStretch(1)
+        filters.addLayout(since_row)
+        page.addLayout(filters)
+
+        results_header = QHBoxLayout()
+        self._library_count = QLabel("")
+        self._library_count.setObjectName("transcriptCaption")
+        results_header.addWidget(self._library_count)
+        results_header.addStretch(1)
+        keep_label = QLabel("Keep dictations and file transcripts:")
+        keep_label.setObjectName("historyTime")
+        results_header.addWidget(keep_label)
+        keep_row, self._keep_buttons = _chips(library.KEEP_CHOICES, self._set_library_keep)
+        results_header.addLayout(keep_row)
+        page.addLayout(results_header)
+
+        results_scroll = QScrollArea()
+        results_scroll.setObjectName("historyScroll")
+        results_scroll.setWidgetResizable(True)
+        results_scroll.setFrameShape(QScrollArea.NoFrame)
+        results_scroll.setMinimumHeight(260)
+        results_content = QWidget()
+        self._library_layout = QVBoxLayout(results_content)
+        self._library_layout.setContentsMargins(0, 0, 0, 0)
+        self._library_layout.setSpacing(0)
+        self._library_layout.addStretch(1)
+        results_scroll.setWidget(results_content)
+        page.addWidget(results_scroll, stretch=2)
+
+        detail_header = QHBoxLayout()
+        detail_header.setSpacing(8)
+        self._library_detail_title = QLabel("OPEN AN ITEM TO READ IT HERE")
+        self._library_detail_title.setObjectName("transcriptCaption")
+        detail_header.addWidget(self._library_detail_title, stretch=1)
+        self._library_buttons: list[QPushButton] = []
+        for caption, name, handler in (
+            ("Summarize", "secondaryButton", self._summarize_library_item),
+            ("Save", "secondaryButton", lambda: self._save_area(self.library_area)),
+            ("Copy", "secondaryButton", lambda: self._copy_area(self.library_area)),
+            ("Delete", "ghostButton", self._delete_library_item),
+        ):
+            button = QPushButton(caption)
+            button.setObjectName(name)
+            button.setFixedHeight(32)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setEnabled(False)
+            button.clicked.connect(handler)
+            detail_header.addWidget(button)
+            self._library_buttons.append(button)
+        page.addLayout(detail_header)
+        self.library_area = QTextEdit()
+        self.library_area.setObjectName("transcriptArea")
+        self.library_area.setReadOnly(True)
+        self.library_area.setMinimumHeight(180)
+        self.library_area.setPlaceholderText("Pick something from the list above.")
+        page.addWidget(self.library_area, stretch=1)
+        self._library_open = None
+        self._library_items: list = []
+
+    def _refresh_library(self) -> None:
+        """Reloads everything from disk and shows the current search."""
+        if not hasattr(self, "_library_layout"):
+            return
+        keep = library.get_keep_days()
+        for value, button in self._keep_buttons.items():
+            button.setChecked(value == keep)
+        self._library_items = library.all_items()
+        self._show_library_results()
+
+    def _show_library_results(self) -> None:
+        query = self._library_search.text()
+        found = library.search(
+            self._library_items, query, self._library_kind, self._library_since
+        )
+        layout = self._library_layout
+        while layout.count() > 1:
+            widget = layout.takeAt(0).widget()
+            if widget is not None:
+                widget.setParent(None)
+                widget.deleteLater()
+        total = len(self._library_items)
+        if not total:
+            self._library_count.setText("NOTHING KEPT YET")
+        elif len(found) == total:
+            self._library_count.setText(f"{total:,} ITEMS")
+        else:
+            self._library_count.setText(f"{len(found):,} OF {total:,} ITEMS")
+        if not found:
+            empty = QLabel(
+                "Nothing matches. Try fewer words or another filter."
+                if total
+                else "Your dictations, imported files and links, inbox notes and meeting "
+                "notes show up here once there are some."
+            )
+            empty.setObjectName("historyEmpty")
+            empty.setWordWrap(True)
+            layout.insertWidget(0, empty)
+            return
+        for item in found[: self._LIBRARY_SHOWN]:
+            row = QWidget()
+            row.setObjectName("historyItem")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(8, 6, 8, 6)
+            row_layout.setSpacing(10)
+            text_box = QVBoxLayout()
+            text_box.setSpacing(1)
+            title = QLabel(item.title)
+            title.setObjectName("historyText")
+            title.setToolTip(item.source or item.title)
+            text_box.addWidget(title)
+            if query.strip() and item.kind not in (library.KIND_DICTATION, library.KIND_INBOX):
+                # Where the words were found, for anything longer than its title.
+                found_in = QLabel(library.snippet(item, query, 150))
+                found_in.setObjectName("historyTime")
+                text_box.addWidget(found_in)
+            meta = QLabel(f"{item.label}  ·  {library.when(item)}  ·  {item.words:,} words")
+            meta.setObjectName("historyTime")
+            text_box.addWidget(meta)
+            row_layout.addLayout(text_box, stretch=1)
+            open_button = QPushButton("Open")
+            open_button.setObjectName("secondaryButton")
+            open_button.setFixedHeight(28)
+            open_button.setStyleSheet("padding: 3px 14px;")
+            open_button.setCursor(Qt.PointingHandCursor)
+            open_button.clicked.connect(lambda _=False, i=item: self._open_library_item(i))
+            row_layout.addWidget(open_button)
+            layout.insertWidget(layout.count() - 1, row)
+        if len(found) > self._LIBRARY_SHOWN:
+            more = QLabel(
+                f"Showing the newest {self._LIBRARY_SHOWN}. Search to find older ones."
+            )
+            more.setObjectName("historyEmpty")
+            layout.insertWidget(layout.count() - 1, more)
+
+    def _open_library_item(self, item) -> None:  # noqa: ANN001
+        self._library_open = item
+        self._library_detail_title.setText(
+            f"{item.label.upper()}  ·  {library.when(item).upper()}"
+        )
+        self.library_area.setPlainText(item.text)
+        for button in self._library_buttons:
+            button.setEnabled(True)
+        self._library_buttons[-1].setVisible(item.deletable)
+
+    def _close_library_item(self) -> None:
+        self._library_open = None
+        self._library_detail_title.setText("OPEN AN ITEM TO READ IT HERE")
+        self.library_area.clear()
+        for button in self._library_buttons:
+            button.setEnabled(False)
+
+    def _delete_library_item(self) -> None:
+        item = self._library_open
+        if item is None or not item.deletable:
+            return
+        what = "dictation" if item.kind == library.KIND_DICTATION else "transcript"
+        if not self._ask_link_question(
+            f"Delete this {what}?",
+            "It is removed from the Library and from this PC.",
+            "Insights keeps counting it. This cannot be undone.",
+            "Delete",
+        ):
+            return
+        library.delete(item)
+        self._close_library_item()
+        self._refresh_library()
+        self._refresh_recent()
+        self._refresh_history_feed()
+
+    def _summarize_library_item(self) -> None:
+        """Summaries live on the Files page; the item goes there and is summarized."""
+        item = self._library_open
+        if item is None:
+            return
+        self.files_area.setPlainText(f"[{item.title}] {item.text}")
+        self._switch_page(PAGE_FILES)
+        self.summarize_transcript()
+
+    def _set_library_keep(self, days) -> None:  # noqa: ANN001
+        old = library.get_keep_days()
+        if days == old:
+            return
+        shorter = days is not None and (old is None or days < old)
+        if shorter:
+            what = (
+                "Nothing you dictate or import will be kept from now on, and everything "
+                "kept so far is removed."
+                if days == library.KEEP_OFF
+                else f"Dictations and file transcripts older than {days} days are removed now, "
+                "and from then on."
+            )
+            if not self._ask_link_question(
+                "Keep less?",
+                what,
+                "Insights keeps its counts. Inbox and meeting notes are your own files and "
+                "are never removed. This cannot be undone.",
+                "Keep less",
+            ):
+                for value, button in self._keep_buttons.items():
+                    button.setChecked(value == old)
+                return
+        library.set_keep_days(days)
+        gone = library.apply_retention()
+        self._close_library_item()
+        self._refresh_library()
+        self._refresh_recent()
+        self._refresh_history_feed()
+        if gone:
+            self._set_status(f"Removed {gone} old item{'s' if gone != 1 else ''}", "ready")
 
     # -- My words: your field, learned fixes and word lists ----------------
 
@@ -6393,7 +6715,8 @@ class MainWindow(QMainWindow):
             if widget is not None:
                 widget.deleteLater()
 
-        entries = history.get_today(limit=20)
+        # Entries whose words were deleted (Library) keep only their counts.
+        entries = [e for e in history.get_today(limit=40) if e.text][:20]
         if not entries:
             empty = QLabel("No dictations yet today.")
             empty.setObjectName("historyEmpty")
@@ -6868,9 +7191,10 @@ class MainWindow(QMainWindow):
         )
         if captions.srt_path is not None:
             self.files_area.append(f"  saved: {captions.srt_path.name}")
-        file_library.add(
-            captions.title, self._link_url, file_library.KIND_CAPTIONS, captions.text
-        )
+        if library.keeps_text():
+            file_library.add(
+                captions.title, self._link_url, file_library.KIND_CAPTIONS, captions.text
+            )
         self._refresh_recent()
         self._note_link_trial()
         self._set_status("Captions added", "ready")
@@ -7251,7 +7575,7 @@ class MainWindow(QMainWindow):
         if worker is not None and not worker.was_paused:
             hotkey_settings.record_transcribe_speed(worker.audio_seconds, worker.elapsed_seconds)
         origin = self._link_origins.pop(path, None)
-        if text:
+        if text and library.keeps_text():
             file_library.add(
                 Path(path).stem if origin else Path(path).name,
                 origin or path,

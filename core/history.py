@@ -59,15 +59,16 @@ def _save(entries: list[HistoryEntry]) -> None:
         pass
 
 
-def add_entry(text: str, duration_seconds: float) -> None:
+def add_entry(text: str, duration_seconds: float, keep_text: bool = True) -> None:
     """Called once per successful (non-empty) transcription -- mirrors
     core/settings.py's record_dictation(), which callers still call
-    separately for the running totals."""
+    separately for the running totals. With `keep_text` False (the Library's
+    "Keep for: Off", core/library.py) only the counts are kept, for Insights."""
     entries = _load()
     entries.append(
         HistoryEntry(
             timestamp=datetime.now().isoformat(timespec="seconds"),
-            text=text,
+            text=text if keep_text else "",
             words=len(text.split()),
             duration_seconds=duration_seconds,
         )
@@ -85,6 +86,32 @@ def replace_last_text(old: str, new: str) -> None:
     entries[-1].text = new
     entries[-1].words = len(new.split())
     _save(entries)
+
+
+def forget_text(timestamp: str, text: str) -> bool:
+    """Removes what was said in one dictation and keeps its counts, so
+    Insights stays right. Returns False when no such entry exists."""
+    entries = _load()
+    for entry in reversed(entries):
+        if entry.timestamp == timestamp and entry.text == text and text:
+            entry.text = ""
+            _save(entries)
+            return True
+    return False
+
+
+def forget_text_before(cutoff: datetime | None) -> int:
+    """Removes the words of every dictation older than `cutoff` (all of them
+    when None), keeping the counts. Returns how many were cleared."""
+    entries = _load()
+    cleared = 0
+    for entry in entries:
+        if entry.text and (cutoff is None or entry.local_datetime() < cutoff):
+            entry.text = ""
+            cleared += 1
+    if cleared:
+        _save(entries)
+    return cleared
 
 
 def get_recent(limit: int = 50) -> list[HistoryEntry]:
