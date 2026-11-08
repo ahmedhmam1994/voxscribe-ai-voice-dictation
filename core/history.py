@@ -124,6 +124,15 @@ def get_today(limit: int = 100) -> list[HistoryEntry]:
     return [e for e in get_recent(limit=_MAX_ENTRIES) if e.local_datetime().date() == today][:limit]
 
 
+def words_by_day(entries: list[HistoryEntry] | None = None) -> dict[date, int]:
+    """Dictated words per day, for the fix rate on the Insights page."""
+    totals: dict[date, int] = {}
+    for entry in _load() if entries is None else entries:
+        day = entry.local_datetime().date()
+        totals[day] = totals.get(day, 0) + entry.words
+    return totals
+
+
 # A typical typing speed, used only for the Insights "typing saved" estimate.
 TYPING_WPM = 40
 ACTIVITY_WEEKS = 12

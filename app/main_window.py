@@ -86,6 +86,7 @@ from core import (
     estimate,
     file_library,
     firstrun,
+    fix_stats,
     focused_text,
     gpu,
     history,
@@ -5371,6 +5372,7 @@ class MainWindow(QMainWindow):
             if text and self._option("period", True) is False:
                 # Chat mode: no full stop at the end of a one-sentence message.
                 text = modes.drop_final_period(text)
+        before_fixes = text
         if text:
             text = replacements.apply_replacements(text)
         if text:
@@ -5380,6 +5382,8 @@ class MainWindow(QMainWindow):
                 hotkey_settings.correction_terms(packs),
                 hotkey_settings.correction_fuzzy_terms(packs),
             )
+        # Words your lists and learned words fixed, counted once it is typed.
+        self._auto_fixed = fix_stats.changed_words(before_fixes or "", text or "")
         if text and hotkey_settings.get_spoken_formats_enabled():
             packs = getattr(self, "_recording_profile", {}).get("packs")
             text = spoken_formats.apply_spoken_formats(
@@ -5464,6 +5468,7 @@ class MainWindow(QMainWindow):
                 self._redo_model if self._redo_model and self._redo_model[0] == size else None
             )
         firstrun.feature("try_harder")
+        fix_stats.record("redo")
         language, prompt, task = redo["params"]
         self._indicator.show_status("redo")
         self._set_status("Trying harder...", "transcribing")
@@ -5622,6 +5627,7 @@ class MainWindow(QMainWindow):
         fix = learned_words.find_fix(watch["base"], text, watch["from"])
         if fix is not None and fix != watch["learned"]:
             watch["learned"] = fix
+            fix_stats.record("hand")
             self._remember_fix(fix)
 
     def _learn_from(self, old: str, new: str, source: str) -> None:
@@ -5646,6 +5652,7 @@ class MainWindow(QMainWindow):
             )
             self._indicator.flash_success(f"Learned {learned.fixed}", 1600)
             firstrun.feature("learned_word")
+            fix_stats.record("learned")
         self._refresh_my_words()
 
     # How long a half-filled template waits for the next answer before it is dropped.
@@ -5724,6 +5731,8 @@ class MainWindow(QMainWindow):
             # The pill stays on "Transcribing" until the text is really typed
             # (or held): _type_into_focused_window shows the check or the error.
             hotkey_settings.record_dictation(len(text.split()))
+            fix_stats.record("auto", getattr(self, "_auto_fixed", 0))
+            self._auto_fixed = 0
             history.add_entry(
                 text, self._last_recording_duration, keep_text=library.keeps_text()
             )

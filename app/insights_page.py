@@ -28,7 +28,7 @@ from PySide6.QtWidgets import (
 
 from app import theme
 from app.motion import animations_enabled, count_up
-from core import history
+from core import fix_stats, history
 
 ACCENT = theme.qc("#3ecf8e")
 TEXT = theme.qc("#eceef4")
@@ -229,6 +229,42 @@ class _WeekChart(QWidget):
             painter.drawText(
                 QRectF(slot * i, bottom + 6, slot, 16), Qt.AlignCenter, _DAY_INITIALS[day.weekday()]
             )
+
+
+class _RateBars(QWidget):
+    """Fixes per 1,000 words for the last weeks, oldest first. Lower is
+    better, so this week's bar is green when it is lower than a month ago."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFixedHeight(38)
+        self.rates: list[float | None] = []
+        self.better = True
+        self.progress = 1.0
+
+    def paintEvent(self, event) -> None:  # noqa: N802, ANN001
+        if not self.rates:
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setPen(Qt.NoPen)
+        peak = max((r for r in self.rates if r), default=1.0) or 1.0
+        slot = self.width() / len(self.rates)
+        bar_w = min(16.0, slot * 0.55)
+        eased = 1 - (1 - self.progress) ** 3
+        last = len(self.rates) - 1
+        for i, rate in enumerate(self.rates):
+            x = slot * i + (slot - bar_w) / 2
+            if rate is None:
+                painter.setBrush(theme.qc("#262833"))
+                painter.drawRoundedRect(QRectF(x, self.height() - 4, bar_w, 4), 2, 2)
+                continue
+            bar_h = max(4.0, (self.height() - 2) * rate / peak * eased)
+            if i == last:
+                painter.setBrush(ACCENT if self.better else theme.qc("#d9a55b"))
+            else:
+                painter.setBrush(IDLE_BAR)
+            painter.drawRoundedRect(QRectF(x, self.height() - bar_h, bar_w, bar_h), 3, 3)
 
 
 class _ActivityGrid(QWidget):
@@ -485,6 +521,45 @@ class InsightsPage(QWidget):
         bottom_row.addWidget(highlights_card, 2)
         layout.addLayout(bottom_row)
 
+        # -- learning your words ---------------------------------------------------
+        learn_header = _label("LEARNING YOUR WORDS", "insightsCaption")
+        layout.addWidget(learn_header)
+        learn_row = QHBoxLayout()
+        learn_row.setSpacing(12)
+
+        learned_card, learned = _card()
+        learned.addWidget(_label("WORDS LEARNED", "insightsCaption"))
+        self._learned, learned_value = self._value_with_unit("this week")
+        learned.addLayout(learned_value)
+        self._learned_note = _label("", "insightsSub")
+        self._learned_note.setWordWrap(True)
+        learned.addWidget(self._learned_note)
+        learned.addStretch(1)
+        learn_row.addWidget(learned_card, 1)
+
+        auto_card, auto = _card()
+        auto.addWidget(_label("FIXED FOR YOU", "insightsCaption"))
+        self._auto, auto_value = self._value_with_unit("words this week")
+        auto.addLayout(auto_value)
+        self._auto_note = _label("", "insightsSub")
+        self._auto_note.setWordWrap(True)
+        auto.addWidget(self._auto_note)
+        auto.addStretch(1)
+        learn_row.addWidget(auto_card, 1)
+
+        rate_card, rate = _card()
+        rate.addWidget(_label("FIXES NEEDED", "insightsCaption"))
+        self._rate, rate_value = self._value_with_unit("per 1,000 words")
+        rate.addLayout(rate_value)
+        self._rate_note = _label("", "insightsSub")
+        self._rate_note.setWordWrap(True)
+        rate.addWidget(self._rate_note)
+        self._rate_bars = _RateBars()
+        rate.addWidget(self._rate_bars)
+        learn_row.addWidget(rate_card, 1)
+        layout.addLayout(learn_row)
+        self._learning = [learn_header, learned_card, auto_card, rate_card]
+
         self._empty = _label(
             "Nothing to count yet. Hold your hotkey anywhere and talk, and your "
             "numbers show up here.",
@@ -521,8 +596,13 @@ class InsightsPage(QWidget):
         for widget in self._content:
             widget.setVisible(not empty)
         self._empty.setVisible(empty)
+        learning = fix_stats.compute(history.words_by_day())
+        for widget in self._learning:
+            widget.setVisible(not empty and learning.has_data)
         if empty:
             return
+        if learning.has_data:
+            self._show_learning(learning, animate)
 
         for label, value, fmt in (
             (self._total, ins.total_words, "{:,}"),
@@ -563,10 +643,40 @@ class InsightsPage(QWidget):
         self._grid.values = ins.activity
         self._run_reveal(animate)
 
+    def _show_learning(self, stats: fix_stats.LearningStats, animate: bool) -> None:
+        for label, value in (
+            (self._learned, stats.learned_week),
+            (self._auto, stats.auto_week),
+        ):
+            count_up(label, 0 if animate else self._old_number(label), value, "{:,}")
+        self._learned_note.setText(
+            f"{stats.learned_total:,} learned from your fixes in all"
+            if stats.learned_total
+            else "Fix a word after dictating and VoxScribe learns it"
+        )
+        self._auto_note.setText(
+            f"{stats.auto_total:,} in all, by your word lists and learned words"
+        )
+        now, before = stats.rate_now, stats.rate_before
+        self._rate.setText("-" if now is None else f"{now:g}")
+        if now is None:
+            note = "Not enough dictation yet this week"
+        elif before is None:
+            note = "Try harder and words you fix by hand. Lower is better"
+        elif now < before:
+            note = f"Down from {before:g} four weeks ago"
+        elif now > before:
+            note = f"Up from {before:g} four weeks ago"
+        else:
+            note = "Same as four weeks ago"
+        self._rate_note.setText(note)
+        self._rate_bars.rates = stats.rates
+        self._rate_bars.better = before is None or now is None or now <= before
+
     def _run_reveal(self, animate: bool) -> None:
         if self._anim is not None:
             self._anim.stop()
-        charts = (self._speed_bars, self._week_chart, self._grid)
+        charts = (self._speed_bars, self._week_chart, self._grid, self._rate_bars)
         if not animate or not animations_enabled():
             for chart in charts:
                 chart.progress = 1.0
