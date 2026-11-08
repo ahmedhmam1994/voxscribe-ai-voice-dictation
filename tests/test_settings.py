@@ -83,6 +83,23 @@ def test_batch_trials_run_out_after_two(monkeypatch, tmp_path):
     assert settings.get_batch_trials_left() == 0
 
 
+def test_feature_trials_are_three_each_and_counted_separately(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_feature_trials_left("link_import") == 3
+    assert settings.use_feature_trial("link_import") == 2
+    assert settings.use_feature_trial("link_import") == 1
+    assert settings.use_feature_trial("link_import") == 0
+    assert settings.use_feature_trial("link_import") == 0
+    assert settings.get_feature_trials_left("summary") == 3
+
+
+def test_unknown_trial_feature_is_an_error():
+    import pytest
+
+    with pytest.raises(ValueError):
+        settings.get_feature_trials_left("nope")
+
+
 def test_caption_line_chars_default_range_and_off(monkeypatch, tmp_path):
     _use_temp_settings(monkeypatch, tmp_path)
     assert settings.get_caption_line_chars() == 42
@@ -144,3 +161,17 @@ def test_meeting_settings_defaults_and_changes(monkeypatch, tmp_path):
     settings.set_meeting_loopback(False)
     assert settings.get_meeting_folder() == "D:/vault/Meetings"
     assert settings.get_meeting_loopback() is False
+
+
+def test_transcribe_speed_is_learned_per_model(monkeypatch, tmp_path):
+    _use_temp_settings(monkeypatch, tmp_path)
+    assert settings.get_transcribe_speed() is None
+    settings.record_transcribe_speed(10, 50)  # too short to learn from
+    assert settings.get_transcribe_speed() is None
+    settings.record_transcribe_speed(600, 120)
+    assert settings.get_transcribe_speed() == 0.2
+    settings.record_transcribe_speed(600, 240)  # blended, not replaced
+    assert abs(settings.get_transcribe_speed() - (0.2 * 0.6 + 0.4 * 0.4)) < 1e-9
+    other = next(c for c, _ in settings.AVAILABLE_MODEL_SIZES if c != settings.get_model_size())
+    settings.set_model_size(other)
+    assert settings.get_transcribe_speed() is None

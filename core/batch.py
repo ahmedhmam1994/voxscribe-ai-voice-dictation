@@ -12,6 +12,7 @@ from pathlib import Path
 
 MEDIA_EXTENSIONS = (
     ".wav", ".mp3", ".m4a", ".mp4", ".mov", ".flac", ".ogg", ".wma", ".aac", ".webm",
+    ".opus",
 )  # fmt: skip
 
 

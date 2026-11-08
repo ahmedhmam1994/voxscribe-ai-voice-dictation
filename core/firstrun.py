@@ -134,6 +134,7 @@ def step(event: str, *, code: str = "", once: bool = False, **extra: str) -> Non
 
 FEATURES = (
     "snippets", "try_harder", "file_import", "batch_import", "meeting", "dictation_mode",
+    "link_import", "summary",
 )
 
 

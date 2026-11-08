@@ -412,6 +412,55 @@ def use_batch_trial() -> int:
     return max(0, left - 1)
 
 
+# Pro features that can be tried a few times first. Each has its own counter.
+FREE_FEATURE_TRIALS = 3
+TRIAL_FEATURES = ("link_import", "summary")
+
+
+def get_feature_trials_left(feature: str) -> int:
+    """Free uses left of a Pro feature (see TRIAL_FEATURES) for users without Pro."""
+    if feature not in TRIAL_FEATURES:
+        raise ValueError(f"unknown trial feature: {feature}")
+    try:
+        used = int(_settings().value(f"trials_used_{feature}", 0))
+    except (TypeError, ValueError):
+        used = 0
+    return max(0, FREE_FEATURE_TRIALS - max(0, used))
+
+
+def use_feature_trial(feature: str) -> int:
+    """Spends one free use of `feature` and returns how many are left."""
+    left = get_feature_trials_left(feature)
+    if left > 0:
+        _settings().setValue(f"trials_used_{feature}", FREE_FEATURE_TRIALS - left + 1)
+    return max(0, left - 1)
+
+
+def _speed_key() -> str:
+    """Speed is learned per engine and model, since each runs at its own pace."""
+    return f"transcribe_speed/{get_speech_engine()}_{get_model_size()}"
+
+
+def get_transcribe_speed() -> float | None:
+    """Seconds of work per second of audio for file imports on this PC, with
+    the current engine and model, or None before anything was measured."""
+    try:
+        value = float(_settings().value(_speed_key(), 0) or 0)
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def record_transcribe_speed(audio_seconds: float, elapsed_seconds: float) -> None:
+    """Learns from a finished import. Short clips are skipped (start-up time
+    dominates them), and new results are blended with the old ones."""
+    if audio_seconds < 30 or elapsed_seconds <= 0:
+        return
+    ratio = elapsed_seconds / audio_seconds
+    old = get_transcribe_speed()
+    _settings().setValue(_speed_key(), ratio if old is None else old * 0.6 + ratio * 0.4)
+
+
 DEFAULT_CAPTION_LINE_CHARS = 42
 MIN_CAPTION_LINE_CHARS = 20
 MAX_CAPTION_LINE_CHARS = 80

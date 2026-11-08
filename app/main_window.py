@@ -81,17 +81,22 @@ from core import (
     code_dictation,
     diarize,
     engines,
+    estimate,
+    file_library,
     firstrun,
     gpu,
     history,
     inbox,
+    link_import,
     modes,
     network_guard,
     read_aloud,
     replacements,
+    site_link,
     smart_format,
     snippets,
     spoken_formats,
+    summarize,
     telemetry,
     templates,
     term_packs,
@@ -258,6 +263,12 @@ class _StatusDot(QWidget):
         painter.setPen(Qt.NoPen)
         painter.setBrush(self._color)
         painter.drawEllipse(self.rect())
+
+
+# Sidebar pages, in the order they sit in the page stack.
+PAGE_DICTATION = 0
+PAGE_FILES = 1
+PAGE_INSIGHTS = 2
 
 
 class StatusPill(QWidget):
@@ -1059,6 +1070,114 @@ class TranscribeThread(QThread):
         self.done.emit(text)
 
 
+class LinkDownloadThread(QThread):
+    """Downloads a link off the Qt thread: a direct audio or video file
+    (core/link_import.py), or the audio of a video site link through the
+    download helper (core/site_link.py). On success the saved file is imported
+    like any other file."""
+
+    done = Signal(str)
+    failed = Signal(str, bool)  # message, whether updating the helper may help
+    progress = Signal(int, str)  # percent (-1 when the size is unknown), size text
+    stage = Signal(str)  # what is being downloaded now
+    needs_helper = Signal()
+    captions_done = Signal(object)  # site_link.Captions
+    no_captions = Signal(str)
+    info_found = Signal(object)  # site_link.VideoInfo
+    cancelled = Signal()
+
+    # What the thread does with a video site link.
+    AUDIO = "audio"
+    CAPTIONS = "captions"
+    LOOK_UP = "look_up"
+
+    def __init__(
+        self,
+        url: str,
+        folder: Path,
+        *,
+        get_helper: bool = False,
+        mode: str = "audio",
+        language: str | None = None,
+        save_srt: bool = False,
+    ) -> None:
+        super().__init__()
+        self.url = url
+        self.folder = folder
+        self.get_helper = get_helper  # download (or update) the helper first
+        self.mode = mode  # AUDIO, CAPTIONS (the site's own) or LOOK_UP
+        self.language = language
+        self.save_srt = save_srt
+        self._stop_requested = False
+
+    def request_stop(self) -> None:
+        self._stop_requested = True
+
+    def _report(self, done: int, total: int | None) -> None:
+        pct = link_import.percent(done, total)
+        self.progress.emit(-1 if pct is None else pct, link_import.describe_size(done))
+
+    def _from_site(self) -> Path | site_link.Captions | site_link.VideoInfo:
+        stop = lambda: self._stop_requested  # noqa: E731
+        if self.get_helper or not site_link.is_installed():
+            if not self.get_helper:
+                raise site_link.HelperMissing()
+            self.stage.emit("Getting the download helper")
+            site_link.install_helper(progress=self._report, should_stop=stop)
+        if self.mode == self.LOOK_UP:
+            self.stage.emit("Looking up the video")
+            self.progress.emit(-1, "")
+            return site_link.look_up(self.url, self.language, should_stop=stop)
+        if self.mode == self.CAPTIONS:
+            self.stage.emit("Getting the site's captions")
+            self.progress.emit(-1, "")
+            return site_link.fetch_captions(
+                self.url,
+                self.folder,
+                self.language,
+                save_srt=self.save_srt,
+                should_stop=stop,
+            )
+        self.stage.emit("Downloading the audio")
+        self.progress.emit(-1, "starting")
+        return site_link.download_audio(
+            self.url, self.folder, progress=self._report, should_stop=stop
+        )
+
+    def run(self) -> None:
+        try:
+            if site_link.is_site(self.url):
+                path = self._from_site()
+            else:
+                try:
+                    self.stage.emit("Downloading")
+                    path = link_import.download(
+                        self.url,
+                        self.folder,
+                        progress=self._report,
+                        should_stop=lambda: self._stop_requested,
+                    )
+                except link_import.WebPageLink:
+                    path = self._from_site()
+        except link_import.Cancelled:
+            self.cancelled.emit()
+        except site_link.HelperMissing:
+            self.needs_helper.emit()
+        except site_link.NoCaptions as exc:
+            self.no_captions.emit(str(exc))
+        except site_link.SiteError as exc:
+            self.failed.emit(str(exc), exc.can_update)
+        except Exception as exc:  # noqa: BLE001 -- every failure becomes a message
+            self.failed.emit(link_import.friendly_error(exc), False)
+        else:
+            if isinstance(path, site_link.Captions):
+                self.captions_done.emit(path)
+            elif isinstance(path, site_link.VideoInfo):
+                self.info_found.emit(path)
+            else:
+                self.done.emit(str(path))
+
+
 class FileTranscribeThread(QThread):
     """Same shape as TranscribeThread, but for an existing file on disk
     (see Transcriber.transcribe_file) rather than a captured mic buffer."""
@@ -1099,6 +1218,9 @@ class FileTranscribeThread(QThread):
         self._run_gate = threading.Event()
         self._run_gate.set()
         self._stop_requested = False
+        self.audio_seconds = 0.0
+        self.elapsed_seconds = 0.0
+        self.was_paused = False
         self.review_total = 0
         self.review_notes: list[str] = []
         self.srt_path: str | None = None
@@ -1106,6 +1228,7 @@ class FileTranscribeThread(QThread):
 
     def set_paused(self, paused: bool) -> None:
         if paused:
+            self.was_paused = True  # its timing no longer shows this PC's speed
             self._run_gate.clear()
         else:
             self._run_gate.set()
@@ -1120,6 +1243,7 @@ class FileTranscribeThread(QThread):
         return self._stop_requested
 
     def run(self) -> None:
+        started = time.monotonic()
         try:
             detailed = self.transcriber.transcribe_file_detailed(
                 self.path,
@@ -1136,6 +1260,9 @@ class FileTranscribeThread(QThread):
             self.failed.emit(str(exc))
             return
 
+        # For the time estimate on video links: how fast this PC transcribes.
+        self.elapsed_seconds = time.monotonic() - started
+        self.audio_seconds = detailed[-1][1] if detailed else 0.0
         segments = [(start, end, text) for start, end, text, _words in detailed]
         if self.label_speakers:
             labeled = self._label_speakers(segments)
@@ -1363,8 +1490,9 @@ class MainWindow(QMainWindow):
             sidebar_layout.addWidget(btn)
             self._nav_buttons[page_index] = btn
 
-        _add_nav("Dictation", _icon_mic(17, TEXT_MUTED), 0)
-        _add_nav("Insights", _icon_insights(17, TEXT_MUTED), 1)
+        _add_nav("Dictation", _icon_mic(17, TEXT_MUTED), PAGE_DICTATION)
+        _add_nav("Files", _icon_upload(17, TEXT_MUTED), PAGE_FILES)
+        _add_nav("Insights", _icon_insights(17, TEXT_MUTED), PAGE_INSIGHTS)
 
         sidebar_layout.addStretch(1)
 
@@ -1398,6 +1526,45 @@ class MainWindow(QMainWindow):
         )
         page_scroll.setWidget(content)
         self._pages.addWidget(page_scroll)
+
+        # The Files page: importing files, folders and links, their
+        # transcripts, and summaries, kept apart from live dictation.
+        files_content = QWidget()
+        files_layout = QVBoxLayout(files_content)
+        files_layout.setContentsMargins(36, 26, 36, 22)
+        files_layout.setSpacing(14)
+        files_scroll = QScrollArea()
+        files_scroll.setWidgetResizable(True)
+        files_scroll.setFrameShape(QScrollArea.NoFrame)
+        files_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        files_scroll.setStyleSheet(page_scroll.styleSheet())
+        files_scroll.setWidget(files_content)
+        self._pages.addWidget(files_scroll)
+
+        files_hero = QWidget()
+        files_hero.setObjectName("heroBanner")
+        files_hero.setFixedHeight(84)
+        files_hero_text = QVBoxLayout(files_hero)
+        files_hero_text.setContentsMargins(24, 10, 18, 10)
+        files_hero_text.setSpacing(2)
+        files_hero_text.addStretch(1)
+        files_hero_title = QLabel("Transcribe files and links")
+        files_hero_title.setObjectName("heroTitle")
+        files_hero_text.addWidget(files_hero_title)
+        files_hero_subtitle = QLabel(
+            "Audio, video, whole folders or a web link, transcribed on this PC. "
+            "Then summarize, save or copy."
+        )
+        files_hero_subtitle.setObjectName("heroSubtitle")
+        files_hero_text.addWidget(files_hero_subtitle)
+        files_hero_text.addStretch(1)
+        files_layout.addWidget(files_hero)
+
+        files_status_row = QHBoxLayout()
+        self.files_status_pill = StatusPill()
+        files_status_row.addWidget(self.files_status_pill)
+        files_status_row.addStretch(1)
+        files_layout.addLayout(files_status_row)
 
         hero = QWidget()
         hero.setObjectName("heroBanner")
@@ -1530,11 +1697,13 @@ class MainWindow(QMainWindow):
 
         layout.addSpacing(6)
 
-        button_row = record_row
+        button_row = QHBoxLayout()
+        button_row.setSpacing(12)
+        files_layout.addLayout(button_row)
         self.import_button = QPushButton("Import Audio")
         self.import_button.setObjectName("secondaryButton")
         self.import_button.setEnabled(False)
-        self.import_button.setFixedSize(150, 56)
+        self.import_button.setFixedHeight(56)
         self.import_button.setCursor(Qt.PointingHandCursor)
         self.import_button.setIcon(_icon_upload(16, TEXT_PRIMARY))
         self.import_button.setIconSize(QSize(15, 15))
@@ -1547,13 +1716,31 @@ class MainWindow(QMainWindow):
         self.import_folder_button = QPushButton("Import Folder")
         self.import_folder_button.setObjectName("secondaryButton")
         self.import_folder_button.setEnabled(False)
-        self.import_folder_button.setFixedSize(150, 56)
+        self.import_folder_button.setFixedHeight(56)
         self.import_folder_button.setCursor(Qt.PointingHandCursor)
         self.import_folder_button.setToolTip(
             "Transcribe every audio and video file in a folder (Pro, 2 free runs)"
         )
         self.import_folder_button.clicked.connect(self.import_folder)
         button_row.addWidget(self.import_folder_button)
+
+        self.import_link_button = QPushButton("Import Link")
+        self.import_link_button.setObjectName("secondaryButton")
+        self.import_link_button.setEnabled(False)
+        self.import_link_button.setFixedHeight(56)
+        self.import_link_button.setCursor(Qt.PointingHandCursor)
+        self.import_link_button.setToolTip(
+            "Transcribe an audio or video file from a web link, or a video on a site like "
+            "YouTube. Only the download uses the internet "
+            f"(Pro, {hotkey_settings.FREE_FEATURE_TRIALS} free tries)"
+        )
+        self.import_link_button.clicked.connect(self.import_link)
+        button_row.addWidget(self.import_link_button)
+        self._link_worker: LinkDownloadThread | None = None
+        self._link_url = ""
+        self._link_mode = LinkDownloadThread.AUDIO
+        self._link_origins: dict[str, str] = {}  # downloaded file -> its web link
+        self._link_stage = "Downloading"
 
         self.meeting_button = QPushButton("Start meeting")
         self.meeting_button.setObjectName("meetingButton")
@@ -1591,7 +1778,7 @@ class MainWindow(QMainWindow):
         )
         options_row.addWidget(self.label_speakers_checkbox)
         options_row.addStretch(1)
-        layout.addLayout(options_row)
+        files_layout.addLayout(options_row)
 
         self._batch_bar = QWidget()
         batch_layout = QHBoxLayout(self._batch_bar)
@@ -1633,7 +1820,83 @@ class MainWindow(QMainWindow):
         self._batch_retry_button.hide()
         self._retry_paths: list[str] = []
         self._batch_folder: str | None = None
-        layout.addWidget(self._batch_bar)
+        files_layout.addWidget(self._batch_bar)
+        files_layout.addSpacing(6)
+
+        files_header = QHBoxLayout()
+        files_header.setSpacing(8)
+        files_caption = QLabel("FILE TRANSCRIPTS")
+        files_caption.setObjectName("transcriptCaption")
+        files_header.addWidget(files_caption)
+        files_header.addStretch(1)
+        self.summarize_button = QPushButton("Summarize")
+        self.summarize_button.setObjectName("secondaryButton")
+        self.summarize_button.setEnabled(False)
+        self.summarize_button.setFixedHeight(32)
+        self.summarize_button.setCursor(Qt.PointingHandCursor)
+        self.summarize_button.setToolTip(
+            "Pick the key sentences and action items from the transcript, or from the "
+            "selected part. Instant and offline "
+            f"(Pro, {hotkey_settings.FREE_FEATURE_TRIALS} free tries)"
+        )
+        self.summarize_button.clicked.connect(self.summarize_transcript)
+        files_header.addWidget(self.summarize_button)
+        (
+            self.files_save_button,
+            self.files_copy_button,
+            self.files_clear_button,
+        ) = self._transcript_buttons(
+            files_header,
+            lambda: self._save_area(self.files_area),
+            lambda: self._copy_area(self.files_area),
+            lambda: self.files_area.clear(),
+        )
+        files_layout.addLayout(files_header)
+        files_layout.addSpacing(2)
+
+        self.files_area = QTextEdit()
+        self.files_area.setObjectName("transcriptArea")
+        self.files_area.setProperty("hasContent", False)
+        self.files_area.setReadOnly(True)
+        self.files_area.setFrameShape(QTextEdit.NoFrame)
+        self.files_area.setPlaceholderText(
+            "Import an audio or video file, a whole folder, or a link, or drop files "
+            "or a folder on this window. The transcripts appear here, ready to "
+            "summarize, save or copy."
+        )
+        self.files_area.setAcceptDrops(False)
+        self.files_area.setMinimumHeight(260)
+        self.files_area.textChanged.connect(self._update_files_buttons)
+        files_layout.addWidget(self.files_area, stretch=1)
+
+        recent_header = QHBoxLayout()
+        recent_caption = QLabel("RECENT")
+        recent_caption.setObjectName("transcriptCaption")
+        recent_header.addWidget(recent_caption)
+        recent_hint = QLabel("Kept on this PC")
+        recent_hint.setObjectName("historyTime")
+        recent_header.addWidget(recent_hint)
+        recent_header.addStretch(1)
+        self._recent_clear_button = QPushButton("Clear all")
+        self._recent_clear_button.setObjectName("ghostButton")
+        self._recent_clear_button.setFixedHeight(28)
+        self._recent_clear_button.setCursor(Qt.PointingHandCursor)
+        self._recent_clear_button.clicked.connect(self._clear_recent)
+        recent_header.addWidget(self._recent_clear_button)
+        files_layout.addSpacing(6)
+        files_layout.addLayout(recent_header)
+        recent_scroll = QScrollArea()
+        recent_scroll.setObjectName("historyScroll")
+        recent_scroll.setWidgetResizable(True)
+        recent_scroll.setFrameShape(QScrollArea.NoFrame)
+        recent_scroll.setFixedHeight(200)
+        recent_content = QWidget()
+        self._recent_layout = QVBoxLayout(recent_content)
+        self._recent_layout.setContentsMargins(0, 0, 0, 0)
+        self._recent_layout.setSpacing(0)
+        self._recent_layout.addStretch(1)
+        recent_scroll.setWidget(recent_content)
+        files_layout.addWidget(recent_scroll)
 
         layout.addSpacing(6)
 
@@ -1644,6 +1907,7 @@ class MainWindow(QMainWindow):
         transcript_header.addWidget(transcript_label)
         transcript_header.addStretch(1)
         button_row = transcript_header
+
         self.save_button = QPushButton("Save Transcript")
         self.save_button.setObjectName("primaryOutlineButton")
         self.save_button.setEnabled(False)
@@ -1689,8 +1953,8 @@ class MainWindow(QMainWindow):
         self.transcript_area.setFrameShape(QTextEdit.NoFrame)
         self.transcript_area.setPlaceholderText(
             "Click Start Recording, speak, then click Stop Recording. "
-            "Or import audio, or drop files or a folder on this window. "
-            "Your transcribed text will appear here."
+            "Your transcribed text will appear here. To transcribe files or links, "
+            "open Files on the left."
         )
         self.transcript_area.setAcceptDrops(False)
         self.transcript_area.setMinimumHeight(150)
@@ -1770,8 +2034,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(history_scroll)
 
         self._build_insights_page()
-        self._switch_page(0)
+        self._switch_page(PAGE_DICTATION)
         self._refresh_history_feed()
+        self._refresh_recent()
 
         self._register_global_hotkey()
         self._sync_ready_stream()
@@ -4349,6 +4614,10 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.Yes:
                 return
         self._meeting.shutdown()
+        if self._link_worker is not None and self._link_worker.isRunning():
+            # The download stops at its next chunk and deletes its .part file.
+            self._link_worker.request_stop()
+            self._link_worker.wait(5000)
         try:
             keyboard.unhook_all()
         except Exception:  # noqa: BLE001
@@ -4369,6 +4638,7 @@ class MainWindow(QMainWindow):
 
     def _set_status(self, text: str, kind: str) -> None:
         self.status_pill.set_status(text, kind)
+        self.files_status_pill.set_status(text, kind)
 
     def _set_record_button_recording(self, is_recording: bool) -> None:
         """Flips the record button's `recording` dynamic property, which the
@@ -4392,19 +4662,56 @@ class MainWindow(QMainWindow):
             self._record_shadow.setBlurRadius(24)
 
     def _update_save_button(self) -> None:
-        has_text = bool(self.transcript_area.toPlainText().strip())
-        self.save_button.setEnabled(has_text)
-        self.copy_button.setEnabled(has_text)
-        self.clear_button.setEnabled(has_text)
+        self._refresh_area_buttons(
+            self.transcript_area, (self.save_button, self.copy_button, self.clear_button)
+        )
 
-        self.transcript_area.setProperty("hasContent", has_text)
-        self.transcript_area.style().unpolish(self.transcript_area)
-        self.transcript_area.style().polish(self.transcript_area)
+    def _update_files_buttons(self) -> None:
+        self._refresh_area_buttons(
+            self.files_area,
+            (
+                self.summarize_button,
+                self.files_save_button,
+                self.files_copy_button,
+                self.files_clear_button,
+            ),
+        )
+
+    def _refresh_area_buttons(self, area: QTextEdit, buttons: tuple) -> None:
+        has_text = bool(area.toPlainText().strip())
+        for button in buttons:
+            button.setEnabled(has_text)
+        area.setProperty("hasContent", has_text)
+        area.style().unpolish(area)
+        area.style().polish(area)
+
+    def _transcript_buttons(self, row: QHBoxLayout, save, copy, clear) -> tuple:  # noqa: ANN001
+        """Save, Copy and Clear for a transcript box, added to `row`."""
+        made = []
+        for text, name, icon, handler in (
+            ("Save Transcript", "primaryOutlineButton", _icon_save(16, ACCENT), save),
+            ("Copy", "secondaryButton", _icon_copy(16, TEXT_PRIMARY), copy),
+            ("Clear", "ghostButton", _icon_clear(16, TEXT_MUTED), clear),
+        ):
+            button = QPushButton(text)
+            button.setObjectName(name)
+            button.setEnabled(False)
+            button.setFixedHeight(32)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setIcon(icon)
+            button.setIconSize(QSize(15, 15))
+            button.clicked.connect(handler)
+            row.addWidget(button)
+            made.append(button)
+        return tuple(made)
 
     # -- save to file -----------------------------------------------------
 
     def save_transcript(self) -> None:
-        text = self.transcript_area.toPlainText()
+        self._save_area(self.transcript_area)
+
+    def _save_area(self, area: QTextEdit) -> None:
+        text = area.toPlainText()
         if not text.strip():
             return
 
@@ -4425,7 +4732,10 @@ class MainWindow(QMainWindow):
         self._set_status(f"Saved to {path}", "ready")
 
     def copy_transcript(self) -> None:
-        text = self.transcript_area.toPlainText()
+        self._copy_area(self.transcript_area)
+
+    def _copy_area(self, area: QTextEdit) -> None:
+        text = area.toPlainText()
         if not text.strip():
             return
         QApplication.clipboard().setText(text)
@@ -4434,6 +4744,111 @@ class MainWindow(QMainWindow):
     def clear_transcript(self) -> None:
         self.transcript_area.clear()
         self._set_status("Ready", "ready")
+
+    # -- instant summary ----------------------------------------------------
+
+    def summarize_transcript(self) -> None:
+        """Key sentences and action items from the selected text, or the whole
+        transcript (core/summarize.py). Pro, with a few free tries; a try is
+        only spent when a summary is actually shown."""
+        selected = self.files_area.textCursor().selectedText().replace(" ", "\n")
+        text = selected if selected.strip() else self.files_area.toPlainText()
+        if not text.strip():
+            return
+        firstrun.feature("summary")
+        is_pro = hotkey_license.is_pro()
+        if not is_pro and hotkey_settings.get_feature_trials_left("summary") <= 0:
+            self._offer_summary_pro()
+            return
+        result = summarize.summarize(text, "short")
+        if result.is_empty():
+            self._show_link_message(
+                "Too short to summarize",
+                f"That text has {result.sentence_count} sentence"
+                f"{'s' if result.sentence_count != 1 else ''}. A summary needs at least "
+                f"{summarize.MIN_SENTENCES}, so there is nothing to shorten yet.",
+            )
+            return
+        note = ""
+        if not is_pro:
+            left = hotkey_settings.use_feature_trial("summary")
+            note = (
+                f"Free summary used, {left} left. Summaries are a Pro feature."
+                if left
+                else "Last free summary used. Summaries are a Pro feature."
+            )
+        self._show_summary_dialog(text, result, note)
+
+    def _show_summary_dialog(self, text: str, first: summarize.Summary, note: str) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Summary")
+        dialog.setStyleSheet(SETTINGS_DIALOG_STYLESHEET)
+        dialog.resize(620, 460)
+        dialog_layout = QVBoxLayout(dialog)
+
+        top = QHBoxLayout()
+        length_box = QComboBox()
+        length_box.addItem("Short", "short")
+        length_box.addItem("Medium", "medium")
+        top.addWidget(QLabel("Length"))
+        top.addWidget(length_box)
+        top.addStretch(1)
+        dialog_layout.addLayout(top)
+
+        view = QTextEdit()
+        view.setReadOnly(True)
+        view.setPlainText(first.as_text())
+        dialog_layout.addWidget(view)
+
+        hint = QLabel(
+            "Sentences picked from your transcript, word for word, so nothing is made up. "
+            "Made on this PC, nothing is sent anywhere."
+            + (f"\n{note}" if note else "")
+        )
+        hint.setWordWrap(True)
+        hint.setObjectName("hotkeyHint")
+        dialog_layout.addWidget(hint)
+
+        buttons = QHBoxLayout()
+        copy_button = QPushButton("Copy")
+        close_button = QPushButton("Close")
+        copy_button.setObjectName("primaryOutlineButton")
+        close_button.setObjectName("secondaryButton")
+        for button in (copy_button, close_button):
+            button.setCursor(Qt.PointingHandCursor)
+        buttons.addStretch(1)
+        buttons.addWidget(copy_button)
+        buttons.addWidget(close_button)
+        dialog_layout.addLayout(buttons)
+
+        def change_length() -> None:
+            view.setPlainText(summarize.summarize(text, length_box.currentData()).as_text())
+
+        def copy() -> None:
+            QApplication.clipboard().setText(view.toPlainText())
+            copy_button.setText("Copied")
+
+        length_box.currentIndexChanged.connect(change_length)
+        copy_button.clicked.connect(copy)
+        close_button.clicked.connect(dialog.accept)
+        dialog.exec()
+
+    def _offer_summary_pro(self) -> None:
+        box = QMessageBox(self)
+        box.setWindowTitle("Summaries are a Pro feature")
+        box.setText(
+            f"Your {hotkey_settings.FREE_FEATURE_TRIALS} free summaries are used up. "
+            "Summaries are part of VoxScribe Pro."
+        )
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        pro_button = box.addButton("Get Pro", QMessageBox.AcceptRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(pro_button)
+        firstrun.step("pro_wall_seen", code="summary")
+        box.exec()
+        if box.clickedButton() is pro_button:
+            firstrun.step("pro_buy_clicked", code="summary")
+            webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
 
     # -- model loading --------------------------------------------------
 
@@ -4586,10 +5001,16 @@ class MainWindow(QMainWindow):
     def _set_import_enabled(self, enabled: bool) -> None:
         self.import_button.setEnabled(enabled)
         self.import_folder_button.setEnabled(enabled)
+        self.import_link_button.setEnabled(enabled)
 
     def _import_active(self) -> bool:
         worker = getattr(self, "_file_worker", None)
-        return bool(self._import_queue) or (worker is not None and worker.isRunning())
+        link = getattr(self, "_link_worker", None)
+        return (
+            bool(self._import_queue)
+            or (worker is not None and worker.isRunning())
+            or (link is not None and link.isRunning())
+        )
 
     def _start_recording(self) -> None:
         if self._import_active():
@@ -5442,8 +5863,91 @@ class MainWindow(QMainWindow):
         self._pages.setCurrentIndex(index)
         for i, btn in self._nav_buttons.items():
             btn.setChecked(i == index)
-        if index == 1:
+        if index == PAGE_INSIGHTS:
             self._refresh_insights(from_zero=True)
+
+    # -- recent file and link transcripts ----------------------------------
+
+    def _refresh_recent(self) -> None:
+        layout = self._recent_layout
+        while layout.count() > 1:  # everything but the closing stretch
+            item = layout.takeAt(0)
+            if item.widget() is not None:
+                item.widget().deleteLater()
+        entries = file_library.recent(30)
+        self._recent_clear_button.setVisible(bool(entries))
+        if not entries:
+            empty = QLabel(
+                "Transcripts of imported files and links show up here, so you can open "
+                "them again later."
+            )
+            empty.setObjectName("historyEmpty")
+            empty.setWordWrap(True)
+            layout.insertWidget(0, empty)
+            return
+        for entry in entries:
+            row = QWidget()
+            row.setObjectName("historyItem")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(8, 6, 8, 6)
+            row_layout.setSpacing(10)
+            text_box = QVBoxLayout()
+            text_box.setSpacing(1)
+            title = QLabel(entry.title)
+            title.setObjectName("historyText")
+            title.setToolTip(entry.source)
+            text_box.addWidget(title)
+            meta = QLabel(
+                f"{entry.label}  ·  {file_library.when(entry)}  ·  "
+                f"{entry.words:,} words"
+            )
+            meta.setObjectName("historyTime")
+            text_box.addWidget(meta)
+            row_layout.addLayout(text_box, stretch=1)
+            for caption, name, handler in (
+                ("Open", "secondaryButton", lambda _=False, e=entry.id: self._open_recent(e)),
+                ("Delete", "ghostButton", lambda _=False, e=entry.id: self._delete_recent(e)),
+            ):
+                button = QPushButton(caption)
+                button.setObjectName(name)
+                button.setFixedHeight(28)
+                button.setStyleSheet("padding: 3px 14px;")
+                button.setCursor(Qt.PointingHandCursor)
+                button.clicked.connect(handler)
+                row_layout.addWidget(button)
+            layout.insertWidget(layout.count() - 1, row)
+
+    def _open_recent(self, entry_id: str) -> None:
+        entry = file_library.get(entry_id)
+        if entry is None:
+            self._refresh_recent()
+            return
+        note = (
+            "(the site's own captions, may contain mistakes) "
+            if entry.kind == file_library.KIND_CAPTIONS
+            else ""
+        )
+        self.files_area.setPlainText(f"[{entry.title}] {note}{entry.text}")
+        self._set_status(f"Opened {entry.title}", "ready")
+
+    def _delete_recent(self, entry_id: str) -> None:
+        file_library.delete(entry_id)
+        self._refresh_recent()
+
+    def _clear_recent(self) -> None:
+        if self._ask_link_question(
+            "Clear recent transcripts?",
+            "This removes every saved file and link transcript from this list.",
+            "Files you saved yourself, and .srt files, are not touched. This cannot "
+            "be undone.",
+            "Clear all",
+        ):
+            file_library.clear()
+            self._refresh_recent()
+
+    def _show_files_page(self) -> None:
+        if self._pages.currentIndex() != PAGE_FILES:
+            self._switch_page(PAGE_FILES)
 
     def _build_insights_page(self) -> None:
         self._insights_page = InsightsPage()
@@ -5745,7 +6249,8 @@ class MainWindow(QMainWindow):
             self,
             "Import Audio or Video",
             "",
-            "Audio/Video Files (*.wav *.mp3 *.m4a *.mp4 *.mov *.flac *.ogg *.wma *.aac *.webm);;"
+            "Audio/Video Files (*.wav *.mp3 *.m4a *.mp4 *.mov *.flac *.ogg *.wma *.aac *.webm "
+            "*.opus);;"
             "All Files (*)",
         )
         if paths:
@@ -5758,6 +6263,293 @@ class MainWindow(QMainWindow):
         if folder:
             self._begin_import([folder])
 
+    # -- import from a direct link -------------------------------------------
+
+    def import_link(self) -> None:
+        """Asks for a direct audio or video link, downloads it into
+        Documents\\VoxScribe Links, then imports it like a picked file. Pro,
+        with a few free tries. Only the download uses the internet."""
+        if self._meeting.busy:
+            self._set_status("Finish the meeting before importing files", "error")
+            return
+        if not self.import_button.isEnabled() or self._import_active():
+            self._set_status("Wait for the current job to finish", "error")
+            return
+        if hotkey_settings.get_offline_mode_enabled():
+            self._show_link_message(
+                "Offline mode is on",
+                "Importing from a link needs the internet for the download, and offline "
+                "mode blocks every connection. Turn offline mode off in Settings, or "
+                "download the file yourself and use Import Audio.",
+            )
+            return
+        firstrun.feature("link_import")
+        if not hotkey_license.is_pro() and (
+            hotkey_settings.get_feature_trials_left("link_import") <= 0
+        ):
+            self._offer_link_pro()
+            return
+
+        clipboard = QApplication.clipboard().text().strip()
+        suggested = clipboard if clipboard.lower().startswith(("http://", "https://")) else ""
+        text, accepted = QInputDialog.getText(
+            self,
+            "Import from a link",
+            "Paste a link to an audio or video file, or to a video on a site like YouTube.\n"
+            "Only the download uses the internet. The audio is saved in "
+            "Documents\\VoxScribe Links and transcribed on this PC with your own model "
+            "and word lists.\nOnly use links you have the right to transcribe.",
+            QLineEdit.Normal,
+            suggested,
+        )
+        if not accepted:
+            return
+        url = link_import.clean_url(text)
+        problem = link_import.check_url(url)
+        if problem:
+            self._show_link_message("Cannot use that link", problem)
+            return
+        # A video site link is looked up first (title, length, captions) so
+        # the choice between transcribing here and the site's captions can
+        # show how long each takes.
+        if site_link.is_site(url):
+            self._start_link_download(url, mode=LinkDownloadThread.LOOK_UP)
+        else:
+            self._start_link_download(url)
+
+    def _on_link_info(self, info: site_link.VideoInfo) -> None:
+        self._end_link_download()
+        mode = self._ask_site_route(info)
+        if mode is not None:
+            self._start_link_download(self._link_url, mode=mode)
+
+    def _ask_site_route(self, info: site_link.VideoInfo) -> str | None:
+        """For a video site link: transcribe the audio here (the default), or
+        take the site's own captions when it has some. Returns the thread mode,
+        or None to cancel."""
+        language = hotkey_settings.get_language()
+        box = QMessageBox(self)
+        box.setWindowTitle("How should this video be transcribed?")
+        length = f" ({estimate.describe_length(info.duration)})" if info.duration else ""
+        box.setText(f"{info.title}{length}")
+        here_text = "On this PC: "
+        if info.duration:
+            here_text += (
+                estimate.transcribe_time(info.duration, hotkey_settings.get_transcribe_speed())
+                + " on this computer. "
+            )
+        here_text += "More accurate, and uses your model, word lists and custom words."
+        if info.captions == "written":
+            site_text = "The site's captions: written by a person, ready in seconds."
+        elif info.captions == "automatic":
+            site_text = (
+                "The site's captions: made automatically by the site, ready in seconds, "
+                "but they often get names, terms and accents wrong."
+            )
+        else:
+            site_text = (
+                "This video has no captions"
+                + (f" in {site_link.language_name(language)}" if language else "")
+                + ", so it can only be transcribed on this PC."
+            )
+        box.setInformativeText(f"{here_text}\n\n{site_text}")
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        here = box.addButton("Transcribe on this PC", QMessageBox.AcceptRole)
+        site = (
+            box.addButton("Use the site's captions", QMessageBox.ActionRole)
+            if info.captions
+            else None
+        )
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(here)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is here:
+            return LinkDownloadThread.AUDIO
+        if site is not None and clicked is site:
+            return LinkDownloadThread.CAPTIONS
+        return None
+
+    def _start_link_download(
+        self, url: str, *, get_helper: bool = False, mode: str = LinkDownloadThread.AUDIO
+    ) -> None:
+        self._link_url = url
+        self._link_mode = mode
+        self._link_stage = "Downloading"
+        self._link_worker = LinkDownloadThread(
+            url,
+            link_import.DEFAULT_FOLDER,
+            get_helper=get_helper,
+            mode=mode,
+            language=hotkey_settings.get_language(),
+            save_srt=self.export_srt_checkbox.isChecked(),
+        )
+        self._link_worker.progress.connect(self._on_link_progress)
+        self._link_worker.stage.connect(self._on_link_stage)
+        self._link_worker.done.connect(self._on_link_downloaded)
+        self._link_worker.captions_done.connect(self._on_link_captions)
+        self._link_worker.no_captions.connect(self._on_link_no_captions)
+        self._link_worker.info_found.connect(self._on_link_info)
+        self._link_worker.failed.connect(self._on_link_failed)
+        self._link_worker.needs_helper.connect(self._on_link_needs_helper)
+        self._link_worker.cancelled.connect(self._on_link_cancelled)
+        self.record_button.setEnabled(False)
+        self._set_import_enabled(False)
+        animate_progress(self._batch_progress, 0)
+        self._batch_progress.show()
+        self._batch_pause_button.hide()
+        self._batch_retry_button.hide()
+        self._batch_open_button.hide()
+        self._batch_cancel_button.show()
+        self._batch_label.setText("Downloading...")
+        self._batch_bar.show()
+        self._set_status("Downloading the file...", "loading")
+        self._link_worker.start()
+
+    def _on_link_stage(self, stage: str) -> None:
+        self._link_stage = stage
+        animate_progress(self._batch_progress, 0)
+        self._batch_label.setText(f"{stage}...")
+        self._set_status(f"{stage}...", "loading")
+
+    def _on_link_progress(self, percent: int, size_text: str) -> None:
+        stage = getattr(self, "_link_stage", "Downloading")
+        if percent >= 0:
+            animate_progress(self._batch_progress, percent)
+            self._batch_label.setText(f"{stage}... {percent}% ({size_text})")
+        else:
+            self._batch_label.setText(f"{stage}... {size_text}")
+
+    def _end_link_download(self) -> None:
+        worker, self._link_worker = self._link_worker, None
+        if worker is not None:
+            # The thread sends its result as its last step, so it is ending
+            # now. Let it finish before the reference goes: dropping a running
+            # QThread aborts the whole app.
+            worker.wait(5000)
+        self._batch_bar.hide()
+        self._batch_cancel_button.hide()
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        self._set_status("Ready", "ready")
+
+    def _on_link_captions(self, captions: site_link.Captions) -> None:
+        self._end_link_download()
+        self.files_area.append(
+            f"[{captions.title}] (the site's own captions, may contain mistakes) "
+            f"{captions.text}"
+        )
+        if captions.srt_path is not None:
+            self.files_area.append(f"  saved: {captions.srt_path.name}")
+        file_library.add(
+            captions.title, self._link_url, file_library.KIND_CAPTIONS, captions.text
+        )
+        self._refresh_recent()
+        self._note_link_trial()
+        self._set_status("Captions added", "ready")
+
+    def _on_link_no_captions(self, message: str) -> None:
+        self._end_link_download()
+        if self._ask_link_question(
+            "No captions",
+            message,
+            "Transcribe the audio on this PC instead?",
+            "Transcribe on this PC",
+        ):
+            self._start_link_download(self._link_url)
+
+    def _note_link_trial(self) -> None:
+        if not hotkey_license.is_pro():
+            left = hotkey_settings.use_feature_trial("link_import")
+            self.files_area.append(
+                f"Free link import used, {left} left. Import from a link is a Pro feature."
+                if left
+                else "Last free link import used. Import from a link is a Pro feature."
+            )
+
+    def _on_link_downloaded(self, path: str) -> None:
+        self._end_link_download()
+        self._link_origins[path] = self._link_url
+        self.files_area.append(f"Downloaded to {path}")
+        self._note_link_trial()
+        self._begin_import([path])
+
+    def _on_link_failed(self, message: str, can_update: bool) -> None:
+        self._end_link_download()
+        self._set_status("Download failed", "error")
+        if not can_update:
+            self._show_link_message("Could not download that link", message)
+            return
+        if self._ask_link_question(
+            "Could not download that link",
+            message,
+            "Sites change often, and the free download helper is updated to follow "
+            f"them. Update it now ({site_link.HELPER_SIZE_TEXT}, from its official "
+            "page) and try again?",
+            "Update and try again",
+        ):
+            self._start_link_download(
+                self._link_url, get_helper=True, mode=self._link_mode
+            )
+
+    def _on_link_needs_helper(self) -> None:
+        self._end_link_download()
+        if self._ask_link_question(
+            "Get the download helper?",
+            "To take the audio from a video site, VoxScribe uses yt-dlp, a free open "
+            f"source download helper ({site_link.HELPER_SIZE_TEXT}).",
+            "It is downloaded once from its official page, checked against its "
+            "published checksum, and kept on this PC. Only the audio is downloaded, and "
+            "it is transcribed here, never by an online service.",
+            "Download helper",
+        ):
+            self._start_link_download(
+                self._link_url, get_helper=True, mode=self._link_mode
+            )
+
+    def _ask_link_question(self, title: str, text: str, info: str, yes: str) -> bool:
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setInformativeText(info)
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        yes_button = box.addButton(yes, QMessageBox.AcceptRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(yes_button)
+        box.exec()
+        return box.clickedButton() is yes_button
+
+    def _on_link_cancelled(self) -> None:
+        self._end_link_download()
+        self._set_status("Download stopped", "ready")
+
+    def _show_link_message(self, title: str, text: str) -> None:
+        box = QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        box.exec()
+
+    def _offer_link_pro(self) -> None:
+        box = QMessageBox(self)
+        box.setWindowTitle("Import from a link is a Pro feature")
+        box.setText(
+            f"Your {hotkey_settings.FREE_FEATURE_TRIALS} free link imports are used up. "
+            "Importing from a link is part of VoxScribe Pro."
+        )
+        box.setInformativeText(
+            "You can still download the file yourself and use Import Audio for free."
+        )
+        box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+        pro_button = box.addButton("Get Pro", QMessageBox.AcceptRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(pro_button)
+        firstrun.step("pro_wall_seen", code="link_import")
+        box.exec()
+        if box.clickedButton() is pro_button:
+            firstrun.step("pro_buy_clicked", code="link_import")
+            webbrowser.open("https://hmamster3.gumroad.com/l/tbsfom")
+
     def dragEnterEvent(self, event) -> None:  # noqa: N802, ANN001
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -5766,12 +6558,14 @@ class MainWindow(QMainWindow):
         paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
         if paths:
             event.acceptProposedAction()
+            self._show_files_page()
             self._begin_import(paths)
 
     def _begin_import(self, paths: list[str], retry: bool = False) -> None:
         """Starts an import from picked files, a picked folder or a drop. One
         file is free; several files or a folder is a batch: Pro, with a couple
         of free runs so it can be tried first."""
+        self._show_files_page()
         if self._meeting.busy:
             self._set_status("Finish the meeting before importing files", "error")
             return
@@ -5812,7 +6606,7 @@ class MainWindow(QMainWindow):
                 return
 
         if trial_note:
-            self.transcript_area.append(trial_note)
+            self.files_area.append(trial_note)
         self._import_queue = list(files)
         self._batch = (
             {
@@ -5880,6 +6674,10 @@ class MainWindow(QMainWindow):
         self._refresh_batch_label(None)
 
     def _cancel_import(self) -> None:
+        if self._link_worker is not None and self._link_worker.isRunning():
+            self._batch_label.setText("Stopping the download...")
+            self._link_worker.request_stop()
+            return
         if self._batch is None:
             return
         self._batch["cancelled"] = True
@@ -5934,14 +6732,14 @@ class MainWindow(QMainWindow):
         summary = batch.format_summary(
             b["total"], b["done"], b["failed"], b["skipped"], b["saved"], b["cancelled"]
         )
-        self.transcript_area.append(summary)
+        self.files_area.append(summary)
         handled = {r["path"] for r in b["results"]}
         results = b["results"] + [
             {"path": p, "status": "not run"} for p in b["paths"] if p not in handled
         ]
         folder = batch.common_folder(b["paths"])
         for line in batch.format_report(results, folder):
-            self.transcript_area.append(line)
+            self.files_area.append(line)
         self._retry_paths = batch.to_retry(results)
         self._batch_retry_button.setText(
             f"Retry {len(self._retry_paths)} file{'s' if len(self._retry_paths) != 1 else ''}"
@@ -6021,7 +6819,19 @@ class MainWindow(QMainWindow):
         if text and hotkey_settings.get_arabic_terms_enabled():
             text = arabic_terms.apply_arabic_terms(text)
         label = f"[{Path(path).name}]"
-        self.transcript_area.append(f"{label} {text if text else '[no speech recognized]'}")
+        self.files_area.append(f"{label} {text if text else '[no speech recognized]'}")
+        worker = self._file_worker
+        if worker is not None and not worker.was_paused:
+            hotkey_settings.record_transcribe_speed(worker.audio_seconds, worker.elapsed_seconds)
+        origin = self._link_origins.pop(path, None)
+        if text:
+            file_library.add(
+                Path(path).stem if origin else Path(path).name,
+                origin or path,
+                file_library.KIND_LINK if origin else file_library.KIND_FILE,
+                text,
+            )
+            self._refresh_recent()
         if self._batch is not None:
             self._batch["done"] += 1
             if self._file_worker is not None and self._file_worker.srt_path:
@@ -6034,27 +6844,27 @@ class MainWindow(QMainWindow):
                 }
             )
         if self._file_worker is not None and self._file_worker.srt_path:
-            self.transcript_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
+            self.files_area.append(f"  saved: {Path(self._file_worker.srt_path).name}")
         if self._file_worker is not None and self._file_worker.review_total:
             worker = self._file_worker
-            self.transcript_area.append(
+            self.files_area.append(
                 f"  review: {worker.review_total} caption card"
                 f"{'s' if worker.review_total != 1 else ''} to check "
                 "(flagged only, nothing was changed)"
             )
             for note in worker.review_notes:
-                self.transcript_area.append(f"    {note}")
+                self.files_area.append(f"    {note}")
         if self._file_worker is not None and self._file_worker.speaker_error:
-            self.transcript_area.append(
+            self.files_area.append(
                 f"  could not label speakers: {self._file_worker.speaker_error}"
             )
         if self._file_worker is not None and self._file_worker.extra_paths:
             names = ", ".join(Path(p).name for p in self._file_worker.extra_paths)
-            self.transcript_area.append(f"  saved: {names}")
+            self.files_area.append(f"  saved: {names}")
         self._process_next_import_file()
 
     def _on_file_transcribe_failed(self, message: str, path: str) -> None:
-        self.transcript_area.append(f"[{Path(path).name}] [error] {message}")
+        self.files_area.append(f"[{Path(path).name}] [error] {message}")
         if self._batch is not None:
             self._batch["failed"] += 1
             self._batch["results"].append({"path": path, "status": "failed", "error": message})

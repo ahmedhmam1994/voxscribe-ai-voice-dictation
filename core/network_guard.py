@@ -91,6 +91,14 @@ def _trim_locked() -> None:
     LOG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def note(host: str) -> None:
+    """Logs a host reached by a helper program VoxScribe starts. Such programs
+    run in their own process, outside this guard, so callers check
+    is_blocking() first and log the host here, keeping the log complete."""
+    if not is_local(host):
+        _record(host, _blocking)
+
+
 def _refuse(host: str) -> OSError:
     return OSError(f"VoxScribe offline mode is on, so it cannot reach {host}.")
 
