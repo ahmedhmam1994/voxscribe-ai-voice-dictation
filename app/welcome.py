@@ -15,10 +15,20 @@ import time
 
 from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QLinearGradient, QPainter, QPen
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QButtonGroup,
+    QDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app import theme
 from app.motion import animations_enabled
+from core.voice_profile import APPS, FIELDS
 
 ACCENT = theme.qc("#3ecf8e")
 AMBER = theme.qc("#f0a54a")
@@ -224,7 +234,10 @@ class DemoScene(QWidget):
 
 
 class WelcomeDialog(QDialog):
-    """The welcome window around the demo, with the three steps spelled out."""
+    """The welcome window around the demo, with the three steps spelled out,
+    and two questions that set VoxScribe up for your kind of work
+    (core/voice_profile.py). `chosen_field` and `chosen_app` are the
+    answers, or None when skipped."""
 
     def __init__(self, hotkey: str, stylesheet: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -266,6 +279,21 @@ class WelcomeDialog(QDialog):
             steps.addWidget(step, 1)
         layout.addLayout(steps)
 
+        self.chosen_field: str | None = None
+        self.chosen_app: str | None = None
+        self._field_hint = self._add_question(
+            layout,
+            "What do you mostly write?",
+            FIELDS,
+            lambda choice: setattr(self, "chosen_field", choice.id),
+        )
+        self._app_hint = self._add_question(
+            layout,
+            "Where do you write most?",
+            APPS,
+            lambda choice: setattr(self, "chosen_app", choice.id),
+        )
+
         note = QLabel(
             "VoxScribe waits in the system tray (bottom right, near the clock). "
             "Change the key, language and more in Settings. The first time, the speech "
@@ -297,3 +325,44 @@ class WelcomeDialog(QDialog):
         layout.addLayout(buttons)
         got_it.clicked.connect(self.accept)
         self.open_button.clicked.connect(lambda: self.done(2))
+
+    _CHIP_STYLE = (
+        "QPushButton { background: #1b1d27; color: #c9cbd6; border: 1px solid #2b2e3b;"
+        " border-radius: 9px; padding: 6px 12px; font-size: 12px; font-weight: 600; }"
+        "QPushButton:hover { background: #22242f; }"
+        "QPushButton:checked { background: #173b2b; color: #eceef4;"
+        " border: 1px solid #3ecf8e; }"
+    )
+
+    def _add_question(self, layout, title: str, choices, on_pick) -> QLabel:  # noqa: ANN001
+        """A question with one chip per choice; the hint under it explains the pick."""
+        question = QLabel(title)
+        question.setStyleSheet(
+            "font-size: 13px; font-weight: 700; color: #eceef4; margin-top: 6px;"
+        )
+        layout.addWidget(question)
+        grid = QGridLayout()
+        grid.setSpacing(8)
+        group = QButtonGroup(self)
+        group.setExclusive(True)
+        hint = QLabel("You can change this later on the My words page.")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("font-size: 11px; color: #8b8d9c;")
+
+        def _picked(choice) -> None:  # noqa: ANN001
+            on_pick(choice)
+            hint.setText(choice.hint)
+
+        for index, choice in enumerate(choices):
+            button = QPushButton(choice.label)
+            button.setCheckable(True)
+            button.setToolTip(choice.hint)
+            button.setCursor(Qt.PointingHandCursor)
+            button.setMinimumHeight(32)
+            button.setStyleSheet(self._CHIP_STYLE)
+            button.clicked.connect(lambda _=False, c=choice: _picked(c))
+            group.addButton(button)
+            grid.addWidget(button, index // 3, index % 3)
+        layout.addLayout(grid)
+        layout.addWidget(hint)
+        return hint

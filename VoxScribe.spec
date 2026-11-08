@@ -47,6 +47,7 @@ def _strip_bloat(entries):
 datas = [('app/icon.ico', 'app')]
 datas += [(svg, 'app/icons') for svg in glob.glob('app/icons/*.svg')]
 datas += [(txt, 'core/packs') for txt in glob.glob('core/packs/*.txt')]
+datas += [(txt, 'core/data') for txt in glob.glob('core/data/*.txt')]
 binaries = []
 hiddenimports = ['sounddevice']
 tmp_ret = collect_all('keyboard')

@@ -51,11 +51,15 @@ def parse_replacements_text(text: str) -> list[tuple[str, str]]:
 
 
 def apply_replacements(text: str, pairs: list[tuple[str, str]] | None = None) -> str:
-    """Case-insensitive, whole-word replacement, applied in list order."""
+    """Case-insensitive, whole-word replacement, applied in list order. With
+    no `pairs`, your own replacements run first, then the fixes learned from
+    you (core/learned_words.py)."""
     if not text:
         return text
     if pairs is None:
-        pairs = get_replacements()
+        from core import learned_words
+
+        pairs = get_replacements() + learned_words.pairs()
     for heard, replacement in pairs:
         pattern = re.compile(r"(?<!\w)" + re.escape(heard) + r"(?!\w)", re.IGNORECASE)
         text = pattern.sub(lambda _m, r=replacement: r, text)

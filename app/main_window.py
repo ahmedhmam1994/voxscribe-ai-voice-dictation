@@ -9,6 +9,7 @@ pattern proven out in test_ptt_visual.py.
 
 from __future__ import annotations
 
+import html
 import os
 import threading
 import time
@@ -32,10 +33,11 @@ from PySide6.QtCore import (
     QTimer,
     Signal,
 )
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextCursor
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -84,9 +86,11 @@ from core import (
     estimate,
     file_library,
     firstrun,
+    focused_text,
     gpu,
     history,
     inbox,
+    learned_words,
     link_import,
     modes,
     network_guard,
@@ -103,6 +107,7 @@ from core import (
     transcript_export,
     unsure,
     vocab_learner,
+    voice_profile,
     word_lists,
 )
 from core import license as hotkey_license
@@ -245,6 +250,10 @@ def _icon_upload(size: int = 16, color: str = TEXT_PRIMARY) -> QIcon:
     return _load_svg_icon("upload", size, color)
 
 
+def _icon_words(size: int = 18, color: str = TEXT_MUTED) -> QIcon:
+    return _load_svg_icon("book-open", size, color)
+
+
 class _StatusDot(QWidget):
     """Small solid-color circle used inside the status pill."""
 
@@ -269,6 +278,7 @@ class _StatusDot(QWidget):
 PAGE_DICTATION = 0
 PAGE_FILES = 1
 PAGE_INSIGHTS = 2
+PAGE_WORDS = 3
 
 
 class StatusPill(QWidget):
@@ -320,6 +330,10 @@ class HotkeyBridge(QObject):
     # The Try harder key (core/redo.py).
     redo_requested = Signal()
     redo_too_late = Signal()
+    # Learning your words (core/learned_words.py): typing finished, and the
+    # focused box was read on a background thread.
+    typed_into = Signal(str, object)
+    box_read = Signal(object, object)
 
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
@@ -1492,6 +1506,7 @@ class MainWindow(QMainWindow):
 
         _add_nav("Dictation", _icon_mic(17, TEXT_MUTED), PAGE_DICTATION)
         _add_nav("Files", _icon_upload(17, TEXT_MUTED), PAGE_FILES)
+        _add_nav("My words", _icon_words(17, TEXT_MUTED), PAGE_WORDS)
         _add_nav("Insights", _icon_insights(17, TEXT_MUTED), PAGE_INSIGHTS)
 
         sidebar_layout.addStretch(1)
@@ -1990,6 +2005,14 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.inbox_release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.redo_requested.connect(self._try_harder)
         self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
+        self._hotkey_bridge.typed_into.connect(self._start_learning_watch)
+        self._hotkey_bridge.box_read.connect(self._on_box_read)
+        # Learning your words: the box as VoxScribe left it, checked again
+        # every few seconds while that window keeps the focus.
+        self._learn_watch: dict | None = None
+        self._learn_timer = QTimer(self)
+        self._learn_timer.setInterval(self._LEARN_CHECK_MS)
+        self._learn_timer.timeout.connect(self._check_learning_watch)
         self._last_typed_at = 0.0
         self._redo_hook = None
         self._redo_key_down = False
@@ -2034,6 +2057,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(history_scroll)
 
         self._build_insights_page()
+        self._build_words_page()
         self._switch_page(PAGE_DICTATION)
         self._refresh_history_feed()
         self._refresh_recent()
@@ -4312,6 +4336,10 @@ class MainWindow(QMainWindow):
 
         def _closed(result: int) -> None:
             self._welcome = None
+            if dialog.chosen_field:
+                self._apply_voice_field(dialog.chosen_field)
+            if dialog.chosen_app:
+                self._apply_voice_app(dialog.chosen_app)
             dialog.deleteLater()
             if result == 2:
                 self._show_and_raise()
@@ -5028,6 +5056,7 @@ class MainWindow(QMainWindow):
             return
 
         self._dictation_started_at = time.time()
+        self._stop_learning_watch()
         firstrun.step("first_press", once=True)
         self._inbox_session, self._inbox_pending = self._inbox_pending, False
         read_aloud.stop()
@@ -5182,6 +5211,12 @@ class MainWindow(QMainWindow):
         VoxScribe already shows, never another app."""
         menu = self.transcript_area.createStandardContextMenu()
         heard = replacements.clean_selection(self.transcript_area.textCursor().selectedText())
+        if not heard:
+            # Nothing selected: the word that was right-clicked, for example
+            # one underlined as unsure.
+            under = self.transcript_area.cursorForPosition(pos)
+            under.select(QTextCursor.SelectionType.WordUnderCursor)
+            heard = replacements.clean_selection(under.selectedText())
         if heard:
             shown = heard if len(heard) <= 30 else heard[:29] + "..."
             menu.addSeparator()
@@ -5481,6 +5516,7 @@ class MainWindow(QMainWindow):
                     pass
 
         threading.Thread(target=_retype, daemon=True).start()
+        self._learn_from(old, new, "Try harder")
         history.replace_last_text(old, new)
         self._refresh_history_feed()
         self.transcript_area.append(f"[tried harder with {name}] {new}")
@@ -5490,6 +5526,104 @@ class MainWindow(QMainWindow):
     def _on_redo_failed(self, message: str) -> None:
         self._set_status(f"Try harder failed: {message}", "error")
         self._indicator.flash_error("Try harder failed")
+
+    # -- learning your words (core/learned_words.py) --------------------------
+
+    _LEARN_CHECK_MS = 2500
+    _LEARN_WATCH_SEC = 120
+
+    def _start_learning_watch(self, text: str, hwnd) -> None:  # noqa: ANN001
+        """Typing finished: note the box as VoxScribe left it, then look again
+        every few seconds while that window keeps the focus. A word fixed by
+        hand in between is learned. The box's text stays in memory only."""
+        self._stop_learning_watch()
+        if not text.strip() or not learned_words.get_enabled():
+            return
+        self._learn_watch = {
+            "text": text,
+            "hwnd": hwnd if hwnd is not None else foreground_window_handle(),
+            "started": time.monotonic(),
+            "base": None,
+            "from": 0,
+            "last": None,
+            "learned": None,
+            "reading": False,
+        }
+        self._read_box(self._learn_watch)
+        self._learn_timer.start()
+
+    def _stop_learning_watch(self) -> None:
+        self._learn_watch = None
+        self._learn_timer.stop()
+
+    def _check_learning_watch(self) -> None:
+        watch = self._learn_watch
+        if watch is None:
+            self._learn_timer.stop()
+            return
+        if (
+            time.monotonic() - watch["started"] > self._LEARN_WATCH_SEC
+            or foreground_window_handle() != watch["hwnd"]
+        ):
+            self._stop_learning_watch()
+            return
+        if self._typing_lock.locked():
+            # VoxScribe itself is typing there right now.
+            return
+        self._read_box(watch)
+
+    def _read_box(self, watch: dict) -> None:
+        if watch["reading"]:
+            return
+        watch["reading"] = True
+
+        def _read() -> None:
+            self._hotkey_bridge.box_read.emit(watch, focused_text.focused_text())
+
+        threading.Thread(target=_read, daemon=True).start()
+
+    def _on_box_read(self, watch: dict, text) -> None:  # noqa: ANN001
+        watch["reading"] = False
+        if watch is not self._learn_watch or text is None:
+            return
+        if watch["base"] is None:
+            # The box once the dictation is in it. Until the typed words show
+            # up (a slow app may still be taking them), keep looking.
+            start = text.rfind(watch["text"])
+            if start >= 0:
+                watch["base"], watch["from"], watch["last"] = text, start, text
+            return
+        if text == watch["last"]:
+            return
+        watch["last"] = text
+        fix = learned_words.find_fix(watch["base"], text, watch["from"])
+        if fix is not None and fix != watch["learned"]:
+            watch["learned"] = fix
+            self._remember_fix(fix)
+
+    def _learn_from(self, old: str, new: str, source: str) -> None:
+        """A word VoxScribe itself changed (Try harder) is learned too, when it
+        is a clear spelling fix: you pressed the key because it was wrong."""
+        if not learned_words.get_enabled():
+            return
+        fix = learned_words.find_fix(old, new)
+        if fix is None:
+            return
+        if self._learn_watch is not None:
+            self._learn_watch["learned"] = fix
+        self._remember_fix(fix)
+
+    def _remember_fix(self, fix) -> None:  # noqa: ANN001
+        learned = learned_words.remember(fix)
+        if learned is None:
+            self._set_status(f'Forgot the learned fix for "{fix.fixed}"', "ready")
+        else:
+            self._set_status(
+                f'Learned: "{learned.heard}" is typed as "{learned.fixed}" from now on', "ready"
+            )
+            self._indicator.flash_success(f"Learned {learned.fixed}", 1600)
+            firstrun.feature("learned_word")
+        self._refresh_my_words()
 
     # How long a half-filled template waits for the next answer before it is dropped.
     _TEMPLATE_TIMEOUT_SEC = 120
@@ -5865,6 +5999,8 @@ class MainWindow(QMainWindow):
             btn.setChecked(i == index)
         if index == PAGE_INSIGHTS:
             self._refresh_insights(from_zero=True)
+        if index == PAGE_WORDS:
+            self._refresh_my_words()
 
     # -- recent file and link transcripts ----------------------------------
 
@@ -5952,6 +6088,295 @@ class MainWindow(QMainWindow):
     def _build_insights_page(self) -> None:
         self._insights_page = InsightsPage()
         self._pages.addWidget(self._insights_page)
+
+    # -- My words: your field, learned fixes and word lists ----------------
+
+    _FIELD_CHIP_STYLE = (
+        "QPushButton { background: #1b1d27; color: #c9cbd6; border: 1px solid #2b2e3b;"
+        " border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 600; }"
+        "QPushButton:hover { background: #22242f; }"
+        "QPushButton:checked { background: #173b2b; color: #eceef4; border: 1px solid #3ecf8e; }"
+    )
+
+    def _build_words_page(self) -> None:
+        """Everything about how VoxScribe spells for you in one place: the
+        field you write in (core/voice_profile.py), the fixes it learned from
+        you (core/learned_words.py) and a summary of your word lists."""
+        content = QWidget()
+        page = QVBoxLayout(content)
+        page.setContentsMargins(36, 26, 36, 22)
+        page.setSpacing(12)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet(
+            "QScrollArea { border: none; background: transparent; }"
+            "QScrollArea > QWidget > QWidget { background: transparent; }"
+        )
+        scroll.setWidget(content)
+        self._pages.addWidget(scroll)
+
+        hero = QWidget()
+        hero.setObjectName("heroBanner")
+        hero.setFixedHeight(84)
+        hero_text = QVBoxLayout(hero)
+        hero_text.setContentsMargins(24, 10, 18, 10)
+        hero_text.setSpacing(2)
+        hero_text.addStretch(1)
+        hero_title = QLabel("My words")
+        hero_title.setObjectName("heroTitle")
+        hero_text.addWidget(hero_title)
+        hero_subtitle = QLabel(
+            "How VoxScribe spells for you. It learns from your fixes, and everything "
+            "here stays on this PC."
+        )
+        hero_subtitle.setObjectName("heroSubtitle")
+        hero_text.addWidget(hero_subtitle)
+        hero_text.addStretch(1)
+        page.addWidget(hero)
+
+        def _caption(text: str) -> QLabel:
+            label = QLabel(text)
+            label.setObjectName("transcriptCaption")
+            return label
+
+        page.addSpacing(4)
+        def _chip_row(title: str, choices, on_pick) -> tuple[dict[str, QPushButton], QLabel]:  # noqa: ANN001
+            page.addWidget(_caption(title))
+            row = QHBoxLayout()
+            row.setSpacing(8)
+            buttons: dict[str, QPushButton] = {}
+            group = QButtonGroup(self)
+            group.setExclusive(True)
+            for choice in choices:
+                button = QPushButton(choice.label)
+                button.setCheckable(True)
+                button.setCursor(Qt.PointingHandCursor)
+                button.setMinimumHeight(34)
+                button.setStyleSheet(self._FIELD_CHIP_STYLE)
+                button.setToolTip(choice.hint)
+                button.clicked.connect(lambda _=False, c=choice.id: on_pick(c))
+                group.addButton(button)
+                row.addWidget(button)
+                buttons[choice.id] = button
+            row.addStretch(1)
+            page.addLayout(row)
+            hint = QLabel("")
+            hint.setObjectName("historyTime")
+            hint.setWordWrap(True)
+            page.addWidget(hint)
+            return buttons, hint
+
+        self._field_buttons, self._field_hint = _chip_row(
+            "WHAT YOU MOSTLY WRITE", voice_profile.FIELDS, self._apply_voice_field
+        )
+        page.addSpacing(4)
+        self._app_buttons, self._app_hint = _chip_row(
+            "WHERE YOU WRITE MOST", voice_profile.APPS, self._apply_voice_app
+        )
+
+        page.addSpacing(10)
+        learned_header = QHBoxLayout()
+        learned_header.addWidget(_caption("LEARNED FROM YOUR FIXES"))
+        self._learned_count = QLabel("")
+        self._learned_count.setObjectName("historyTime")
+        learned_header.addWidget(self._learned_count)
+        learned_header.addStretch(1)
+        self._learn_toggle = QCheckBox("Learn from my fixes")
+        self._learn_toggle.setCursor(Qt.PointingHandCursor)
+        self._learn_toggle.toggled.connect(self._set_learning_enabled)
+        learned_header.addWidget(self._learn_toggle)
+        self._learned_clear_button = QPushButton("Clear all")
+        self._learned_clear_button.setObjectName("ghostButton")
+        self._learned_clear_button.setFixedHeight(28)
+        self._learned_clear_button.setCursor(Qt.PointingHandCursor)
+        self._learned_clear_button.clicked.connect(self._clear_learned)
+        learned_header.addWidget(self._learned_clear_button)
+        page.addLayout(learned_header)
+        learned_scroll = QScrollArea()
+        learned_scroll.setObjectName("historyScroll")
+        learned_scroll.setWidgetResizable(True)
+        learned_scroll.setFrameShape(QScrollArea.NoFrame)
+        learned_scroll.setMinimumHeight(180)
+        learned_content = QWidget()
+        self._learned_layout = QVBoxLayout(learned_content)
+        self._learned_layout.setContentsMargins(0, 0, 0, 0)
+        self._learned_layout.setSpacing(0)
+        self._learned_layout.addStretch(1)
+        learned_scroll.setWidget(learned_content)
+        page.addWidget(learned_scroll, stretch=1)
+
+        page.addSpacing(10)
+        page.addWidget(_caption("YOUR WORD LISTS"))
+        self._word_lists_summary = QLabel("")
+        self._word_lists_summary.setObjectName("historyText")
+        self._word_lists_summary.setWordWrap(True)
+        self._word_lists_summary.setTextFormat(Qt.RichText)
+        page.addWidget(self._word_lists_summary)
+        actions = QHBoxLayout()
+        actions.setSpacing(8)
+        teach_button = QPushButton("Teach VoxScribe your voice")
+        teach_button.setObjectName("secondaryButton")
+        teach_button.setToolTip(
+            "Read a few sentences aloud. VoxScribe finds the words it mishears in your "
+            "voice and fixes them from then on."
+        )
+        teach_button.clicked.connect(self._teach_from_words_page)
+        edit_button = QPushButton("Edit word lists in Settings")
+        edit_button.setObjectName("ghostButton")
+        edit_button.clicked.connect(self._open_text_settings)
+        for button in (teach_button, edit_button):
+            button.setCursor(Qt.PointingHandCursor)
+            button.setFixedHeight(34)
+            actions.addWidget(button)
+        actions.addStretch(1)
+        page.addLayout(actions)
+
+    def _apply_voice_field(self, field_id: str) -> None:
+        field = voice_profile.apply_field(field_id)
+        firstrun.feature("voice_profile")
+        firstrun.step("voice_profile", once=True, field=field.id)
+        note = ""
+        if field.code and not hotkey_license.is_pro():
+            note = " Code dictation is part of Pro."
+        self._set_status(f"Set up for {field.label.lower()}.{note}", "ready")
+        self._refresh_my_words()
+
+    def _apply_voice_app(self, app_id: str) -> None:
+        choice = voice_profile.apply_app(app_id)
+        firstrun.step("voice_profile_app", once=True, app=choice.id)
+        note = ""
+        if choice.mode in modes.PRO_MODES and not hotkey_license.is_pro():
+            note = " Code mode is part of Pro."
+        mode_name = modes.MODE_LABELS[choice.mode].split(" (")[0]
+        self._set_status(f"Dictation mode: {mode_name}.{note}", "ready")
+        self._refresh_my_words()
+
+    def _set_learning_enabled(self, enabled: bool) -> None:
+        learned_words.set_enabled(enabled)
+        if not enabled:
+            self._stop_learning_watch()
+
+    def _forget_learned(self, heard: str) -> None:
+        learned_words.forget(heard)
+        self._refresh_my_words()
+
+    def _clear_learned(self) -> None:
+        if self._ask_link_question(
+            "Forget every learned fix?",
+            "VoxScribe will stop correcting the words it learned from you.",
+            "Your own word replacements and custom words are not touched. This cannot "
+            "be undone.",
+            "Forget all",
+        ):
+            learned_words.clear()
+            self._refresh_my_words()
+
+    def _open_text_settings(self) -> None:
+        self._settings_open_section = 3  # Text
+        self._open_settings_dialog()
+
+    def _teach_from_words_page(self) -> None:
+        if self.stream is not None:
+            self._set_status("Stop the current recording first", "error")
+            return
+        teach = TeachDialog(SETTINGS_DIALOG_STYLESHEET, self.transcriber, self)
+        teach.exec()
+        added = sum(
+            replacements.add_replacement(heard, fix) in ("added", "updated")
+            for heard, fix in teach.accepted_pairs or []
+        )
+        if added:
+            self._set_status(
+                f"Added {added} fix{'es' if added != 1 else ''} to your word replacements",
+                "ready",
+            )
+        self._refresh_my_words()
+
+    def _refresh_my_words(self) -> None:
+        if not hasattr(self, "_learned_layout"):
+            return
+        chosen = voice_profile.get_field()
+        for field_id, button in self._field_buttons.items():
+            button.setChecked(field_id == chosen)
+        self._field_hint.setText(
+            voice_profile.field_by_id(chosen).hint
+            + " Picking a field only switches things on; your own words stay."
+            if chosen
+            else "Pick one and VoxScribe switches on the word pack and formats for it."
+        )
+        where = voice_profile.get_app()
+        for app_id, button in self._app_buttons.items():
+            button.setChecked(app_id == where)
+        self._app_hint.setText(
+            voice_profile.app_by_id(where).hint
+            + (" With Pro, the mode also switches by itself with the app." if where else "")
+            if where
+            else "Sets how your words are written: full sentences, chat style or notes."
+        )
+
+        self._learn_toggle.blockSignals(True)
+        self._learn_toggle.setChecked(learned_words.get_enabled())
+        self._learn_toggle.blockSignals(False)
+        layout = self._learned_layout
+        while layout.count() > 1:
+            widget = layout.takeAt(0).widget()
+            if widget is not None:
+                # Off the page at once: deleteLater alone leaves it painted
+                # until the event loop gets to it.
+                widget.setParent(None)
+                widget.deleteLater()
+        fixes = list(reversed(learned_words.all_fixes()))
+        self._learned_clear_button.setVisible(bool(fixes))
+        self._learned_count.setText(f"{len(fixes)} of {learned_words.MAX}" if fixes else "")
+        if not fixes:
+            empty = QLabel(
+                "Nothing learned yet. When you fix a word VoxScribe typed, right in the app "
+                "you dictated into, the fix shows up here and is made for you from then on. "
+                "Words changed by Try harder count too. Works in most text boxes; a few "
+                "rich editors cannot be read."
+            )
+            empty.setObjectName("historyEmpty")
+            empty.setWordWrap(True)
+            layout.insertWidget(0, empty)
+        for fix in fixes:
+            row = QWidget()
+            row.setObjectName("historyItem")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(8, 5, 8, 5)
+            row_layout.setSpacing(10)
+            text = QLabel(
+                f"<span style='color:{TEXT_MUTED};'>{html.escape(fix.heard)}</span>"
+                f"&nbsp;&nbsp;→&nbsp;&nbsp;<b>{html.escape(fix.fixed)}</b>"
+            )
+            text.setObjectName("historyText")
+            text.setTextFormat(Qt.RichText)
+            row_layout.addWidget(text, stretch=1)
+            remove = QPushButton("Remove")
+            remove.setObjectName("ghostButton")
+            remove.setFixedHeight(28)
+            remove.setStyleSheet("padding: 3px 14px;")
+            remove.setCursor(Qt.PointingHandCursor)
+            remove.clicked.connect(lambda _=False, h=fix.heard: self._forget_learned(h))
+            row_layout.addWidget(remove)
+            layout.insertWidget(layout.count() - 1, row)
+
+        pack_names = dict((pid, label) for pid, label, _ in term_packs.available_packs())
+        packs = [pack_names.get(p, p) for p in hotkey_settings.get_enabled_packs()]
+        lines = [
+            ("Word packs", ", ".join(packs) if packs else "none"),
+            ("Custom words", str(len(hotkey_settings.get_custom_vocabulary()))),
+            ("Word replacements", str(len(replacements.get_replacements()))),
+            ("Spoken formats", "on" if hotkey_settings.get_spoken_formats_enabled() else "off"),
+            ("Dictation mode", modes.MODE_LABELS[hotkey_settings.get_mode()].split(" (")[0]),
+        ]
+        self._word_lists_summary.setText(
+            "<br>".join(
+                f"<span style='color:{TEXT_MUTED};'>{name}:</span>&nbsp; {html.escape(value)}"
+                for name, value in lines
+            )
+        )
 
     def _refresh_insights(self, from_zero: bool = False) -> None:
         """Opening the page counts everything up from zero; a new dictation
@@ -6097,6 +6522,8 @@ class MainWindow(QMainWindow):
                     keyboard.write(text, delay=typing_delay)
                     self._last_typed_text = text
                     self._last_typed_hwnd = target_hwnd
+                    if not send_after:
+                        self._hotkey_bridge.typed_into.emit(text, target_hwnd)
                     if send_after:
                         # A moment for the app to take the last characters.
                         time.sleep(0.15)
