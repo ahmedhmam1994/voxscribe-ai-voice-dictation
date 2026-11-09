@@ -36,6 +36,10 @@ WHATS_NEW: dict[str, str] = {
         "this PC and the VoxScribe Android app.\n"
         "- Insights has a new Learning your words row: words learned, words fixed "
         "for you and how often you still need to fix one.\n"
+        "- Short forms like ASAP, BTW, FYI, IDK and etc. are typed the way you write "
+        "them, even when the speech model mishears them. \"Make it formal\" writes them "
+        "out in full.\n"
+        "- Two dictations in a row into the same box now get a space between them.\n"
         "- Right-click a word in the transcript to always correct it.\n"
         "- A Copy diagnostics button in About, for when you need help."
     ),
