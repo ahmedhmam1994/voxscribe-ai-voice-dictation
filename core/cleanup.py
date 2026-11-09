@@ -122,6 +122,24 @@ def clean_transcript(text: str) -> str:
     return result
 
 
+# A new dictation right after one typed into the same box: these end or start
+# a piece of text that takes no space between the two.
+_NO_SPACE_AFTER = "([{/‘“"
+_NO_SPACE_BEFORE = ".,;:!?)]}%’”…"
+
+
+def joining_space(previous: str, text: str) -> str:
+    """" " when `text` is typed right after `previous` and the two would
+    otherwise run together ("Thanks a lot.Make it"), else ""."""
+    if not previous or not text:
+        return ""
+    if previous[-1].isspace() or previous[-1] in _NO_SPACE_AFTER:
+        return ""
+    if text[0].isspace() or text[0] in _NO_SPACE_BEFORE:
+        return ""
+    return " "
+
+
 if __name__ == "__main__":
     _cases = [
         "um so I was, like, thinking about it",

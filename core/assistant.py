@@ -256,7 +256,9 @@ COMMANDS: dict[str, Command] = {
     for c in (
         Command("grammar", "Fix grammar", "Fix the grammar, spelling and punctuation. "
                 "Change as little as possible."),
-        Command("formal", "Make formal", "Make it formal and polite. Keep requests as requests."),
+        Command("formal", "Make formal", "Make it formal and polite. Keep requests as requests. "
+                "Write chat short forms out in full (ASAP as 'as soon as possible', "
+                "BTW as 'by the way', FYI as 'for your information')."),
         Command("friendly", "Make friendly", "Make it warm and friendly. Keep it as short."),
         Command("shorter", "Make shorter", "Make it shorter. Keep every fact."),
         Command("bullets", "Bullet points", "Turn it into bullet points, one point per line "

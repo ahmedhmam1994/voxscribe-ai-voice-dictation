@@ -128,7 +128,7 @@ from core.audio_capture import (
 )
 from core.captions import review_flags, split_segments_timed
 from core.chime import make_chime
-from core.cleanup import clean_transcript
+from core.cleanup import clean_transcript, joining_space
 from core.crash_reporter import LOG_DIR as CRASH_LOG_DIR
 from core.focused_window import focus_window, foreground_process_name, foreground_window_handle
 from core.hold_gate import HoldGate
@@ -140,6 +140,7 @@ from core.redo import (
     TYPED_HINT_COUNT,
     pick_redo_model,
 )
+from core.short_forms import apply_short_forms
 from core.srt import format_srt, format_timestamp
 from core.transcribe import (
     MODEL_APPROX_MB,
@@ -2053,6 +2054,12 @@ class MainWindow(QMainWindow):
         self._learn_timer.setInterval(self._LEARN_CHECK_MS)
         self._learn_timer.timeout.connect(self._check_learning_watch)
         self._last_typed_at = 0.0
+        # A dictation right after one typed into the same box gets a space in
+        # front (see _joining_space). Enter, Tab or a key that moves the caret
+        # pressed in between means a new line or another spot: no space.
+        self._caret_moved = True
+        self._typing_until = 0.0
+        self._join_hook = None
         self._redo_hook = None
         self._redo_key_down = False
         # Try harder state: the last recording (memory only, see core/redo.py),
@@ -2106,6 +2113,7 @@ class MainWindow(QMainWindow):
         self._refresh_recent()
 
         self._register_global_hotkey()
+        self._watch_caret_keys()
         self._sync_ready_stream()
 
         self._setup_tray_icon()
@@ -5592,6 +5600,8 @@ class MainWindow(QMainWindow):
         else:
             if text and self._option("cleanup", hotkey_settings.get_cleanup_enabled()):
                 text = clean_transcript(text)
+            if text:
+                text = apply_short_forms(text)
             if text and voice_commands_on:
                 text = apply_voice_commands(text)
             smart_on = self._option("smart", hotkey_settings.get_smart_formatting_enabled())
@@ -6044,6 +6054,7 @@ class MainWindow(QMainWindow):
         the notes thread."""
         if hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
+        text = apply_short_forms(text)
         text = replacements.apply_replacements(text)
         text = term_packs.correct_text(
             text, hotkey_settings.correction_terms(), hotkey_settings.correction_fuzzy_terms()
@@ -7013,6 +7024,41 @@ class MainWindow(QMainWindow):
                 self._copy_held_text,
             )
 
+    _CARET_KEYS = frozenset(
+        {"enter", "tab", "up", "down", "left", "right", "home", "end", "page up", "page down"}
+    )
+    # A dictation more than this long after the last one gets no space: the
+    # caret may well have been clicked somewhere else in the meantime.
+    _JOIN_WINDOW_SEC = 120.0
+
+    def _watch_caret_keys(self) -> None:
+        def _on_key(event) -> None:  # noqa: ANN001
+            # VoxScribe's own typing (a dictation with a new line in it) is not
+            # the user moving the caret.
+            if (
+                event.event_type == "down"
+                and event.name in self._CARET_KEYS
+                and time.monotonic() > self._typing_until
+            ):
+                self._caret_moved = True
+
+        try:
+            self._join_hook = keyboard.hook(_on_key)
+        except Exception:  # noqa: BLE001 -- the space is a nicety, never block start-up
+            self._join_hook = None
+
+    def _joining_space(self, target_hwnd: int | None, text: str) -> str:
+        """" " when this dictation goes right after the last one, in the same
+        box, so the two don't run together ("Thanks a lot.Make it")."""
+        if (
+            self._caret_moved
+            or target_hwnd is None
+            or target_hwnd != self._last_typed_hwnd
+            or time.monotonic() - self._last_typed_at > self._JOIN_WINDOW_SEC
+        ):
+            return ""
+        return joining_space(self._last_typed_text, text)
+
     def _type_into_focused_window(self, text: str) -> None:
         # Transcription runs in the background and finishes after a delay --
         # long enough for the user to have switched to a different window
@@ -7041,6 +7087,7 @@ class MainWindow(QMainWindow):
             self._set_status("Not typed: the box is a password field", "error")
             self._indicator.flash_error("Not typing into a password field", 2500)
             return
+        lead = self._joining_space(target_hwnd, text)
         self._last_typed_at = time.monotonic()
         redo_key = hotkey_settings.get_redo_hotkey()
         hints_left = TYPED_HINT_COUNT - hotkey_settings.get_redo_hints_shown()
@@ -7079,9 +7126,18 @@ class MainWindow(QMainWindow):
                     # 12ms/char wasn't enough for some inputs; the 30ms default
                     # still reads as instant but gives slower inputs room, and
                     # Settings lets users raise it for the slowest editors.
-                    keyboard.write(text, delay=typing_delay)
+                    # The space is not part of the dictation: "scratch that"
+                    # and Try harder replace only the words.
+                    self._typing_until = float("inf")
+                    try:
+                        keyboard.write(lead + text, delay=typing_delay)
+                    finally:
+                        # Our own Enter and arrow keys may still be reaching
+                        # the key hook for a moment.
+                        self._typing_until = time.monotonic() + 0.5
                     self._last_typed_text = text
                     self._last_typed_hwnd = target_hwnd
+                    self._caret_moved = False
                     if not send_after:
                         self._hotkey_bridge.typed_into.emit(text, target_hwnd)
                     if send_after:
@@ -7955,6 +8011,7 @@ class MainWindow(QMainWindow):
         if text and hotkey_settings.get_cleanup_enabled():
             text = clean_transcript(text)
         if text:
+            text = apply_short_forms(text)
             text = replacements.apply_replacements(text)
         if text:
             text = term_packs.correct_text(

@@ -9,6 +9,36 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.8.4": (
+        "- New (Pro): fill forms by voice. Say \"name Sam Lee, phone 0100 123 4567, "
+        "email sam at gmail dot com\" and each part goes into the box with that label, "
+        "in a browser or any Windows app. Dropdowns pick the option you say, date "
+        "boxes take a spoken date, password boxes are never touched. Only a sentence "
+        "that starts with a label and names two or more boxes fills a form; anything "
+        "else is typed as usual. 3 free tries. Settings, Text.\n"
+        "- New (Pro): the rewrite assistant. After a dictation, say \"make it formal\", "
+        "\"make it shorter\", \"bullet points\" or \"fix the grammar\" and a model on "
+        "this PC rewrites it in the same window. The model is an optional download. "
+        "3 free tries.\n"
+        "- New: the Library page. Search everything you said, imported or saved to "
+        "your notes inbox and meeting notes, in one list, and choose how long "
+        "dictations are kept.\n"
+        "- New: the My words page. VoxScribe learns from the spelling fixes you make "
+        "right after dictating and applies them from then on. See and remove them "
+        "here. Two short first-run questions (what you write, where you write it) "
+        "set the right word pack and mode.\n"
+        "- New: the Files page, for audio files, folders and web links, kept apart "
+        "from dictation. Paste a YouTube or other site link and VoxScribe uses the "
+        "site's own captions when it has them, and says how long transcribing will "
+        "take on this PC before it starts.\n"
+        "- New: Export my words and Import my words, in Settings, Text. One file "
+        "carries your word lists, snippets, templates and learned words between "
+        "this PC and the VoxScribe Android app.\n"
+        "- Insights has a new Learning your words row: words learned, words fixed "
+        "for you and how often you still need to fix one.\n"
+        "- Right-click a word in the transcript to always correct it.\n"
+        "- A Copy diagnostics button in About, for when you need help."
+    ),
     "1.8.3": (
         "- New: more speech models, each downloaded only when you choose it, in "
         "Settings, Speech. Cohere Transcribe is far better at Arabic and keeps your "

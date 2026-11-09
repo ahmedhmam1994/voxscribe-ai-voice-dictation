@@ -83,3 +83,20 @@ def test_does_not_capitalize_after_time_and_country_abbreviations():
 def test_does_not_capitalize_after_titles_and_suffixes():
     assert clean_transcript("ask Acme inc. and then wait") == "Ask Acme inc. and then wait"
     assert clean_transcript("call John jr. and then Mary sr. and then Main st. and then go").count(". And") == 0
+
+
+def test_joining_space_between_two_dictations():
+    from core.cleanup import joining_space
+
+    assert joining_space("Thanks a lot.", "Make it") == " "
+    assert joining_space("so I said", "hello") == " "
+    assert joining_space("", "Hello") == ""
+    assert joining_space("Hello", "") == ""
+    # Already spaced, a new line, or punctuation that sticks to the word.
+    assert joining_space("Hello ", "world") == ""
+    assert joining_space("Hello\n", "world") == ""
+    assert joining_space("Hello", ", world") == ""
+    assert joining_space("Hello", "?") == ""
+    # Right after an opening bracket or a slash.
+    assert joining_space("call(", "x") == ""
+    assert joining_space("and/", "or") == ""
