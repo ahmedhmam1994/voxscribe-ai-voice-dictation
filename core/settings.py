@@ -207,6 +207,20 @@ def set_send_it_enabled(enabled: bool) -> None:
     _settings().setValue("send_it_enabled", enabled)
 
 
+def get_form_fill_enabled() -> bool:
+    """Default True: a sentence fills a form only when it starts with a box's
+    label and names at least two boxes in the window (core/form_fill.py), so
+    ordinary dictation is never affected."""
+    value = _settings().value("form_fill_enabled", True)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_form_fill_enabled(enabled: bool) -> None:
+    _settings().setValue("form_fill_enabled", enabled)
+
+
 def get_translate_to_english_enabled() -> bool:
     """Default False: most users dictate and want the words back in the
     language they spoke them in. When on, Whisper's own built-in
@@ -414,7 +428,7 @@ def use_batch_trial() -> int:
 
 # Pro features that can be tried a few times first. Each has its own counter.
 FREE_FEATURE_TRIALS = 3
-TRIAL_FEATURES = ("link_import", "summary", "assistant")
+TRIAL_FEATURES = ("link_import", "summary", "assistant", "form_fill")
 
 
 def get_feature_trials_left(feature: str) -> int:

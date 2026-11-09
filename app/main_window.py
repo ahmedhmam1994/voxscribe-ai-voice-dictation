@@ -89,6 +89,8 @@ from core import (
     firstrun,
     fix_stats,
     focused_text,
+    form_fields,
+    form_fill,
     gpu,
     history,
     inbox,
@@ -345,6 +347,9 @@ class HotkeyBridge(QObject):
     # The rewrite assistant (core/assistant.py) answered on a worker thread:
     # (original text, new text or None, error message or None).
     assistant_done = Signal(str, object, object)
+    # Form fill (core/form_fill.py) finished on a worker thread: (spoken text,
+    # (boxes filled, boxes planned) or None when the window holds no form for it).
+    form_filled = Signal(str, object)
 
 STATUS_COLORS = {
     "loading": TEXT_MUTED,
@@ -2036,6 +2041,7 @@ class MainWindow(QMainWindow):
         self._assistant = assistant.Assistant()
         self._assistant_busy = False
         self._hotkey_bridge.assistant_done.connect(self._on_assistant_done)
+        self._hotkey_bridge.form_filled.connect(self._on_form_filled)
         self._assistant_idle_timer = QTimer(self)
         self._assistant_idle_timer.setInterval(60_000)
         self._assistant_idle_timer.timeout.connect(self._assistant.stop_if_idle)
@@ -3168,6 +3174,21 @@ class MainWindow(QMainWindow):
         voice_commands_hint.setObjectName("settingsHint")
         voice_commands_hint.setWordWrap(True)
         layout.addWidget(voice_commands_hint)
+
+        form_fill_checkbox = QCheckBox("Fill forms by voice")
+        form_fill_checkbox.setChecked(hotkey_settings.get_form_fill_enabled())
+        layout.addWidget(form_fill_checkbox)
+
+        form_fill_hint = QLabel(
+            'Say "Name Sam Lee, phone 0100 123 4567, email sam at gmail dot com" '
+            "and each part goes into the box with that label, in a browser or any "
+            "app. Only a sentence that starts with a label and names at least two "
+            "boxes fills a form; password boxes are never touched. Pro, with "
+            f"{hotkey_settings.FREE_FEATURE_TRIALS} free tries."
+        )
+        form_fill_hint.setObjectName("settingsHint")
+        form_fill_hint.setWordWrap(True)
+        layout.addWidget(form_fill_hint)
 
         send_it_checkbox = QCheckBox('Say "send it" to press Enter')
         send_it_checkbox.setChecked(hotkey_settings.get_send_it_enabled())
@@ -4417,6 +4438,13 @@ class MainWindow(QMainWindow):
                     else "Voice commands disabled."
                 )
 
+            new_form_fill_enabled = form_fill_checkbox.isChecked()
+            if new_form_fill_enabled != hotkey_settings.get_form_fill_enabled():
+                hotkey_settings.set_form_fill_enabled(new_form_fill_enabled)
+                changes.append(
+                    "Form fill enabled." if new_form_fill_enabled else "Form fill disabled."
+                )
+
             new_send_it_enabled = send_it_checkbox.isChecked()
             if new_send_it_enabled != hotkey_settings.get_send_it_enabled():
                 hotkey_settings.set_send_it_enabled(new_send_it_enabled)
@@ -5467,7 +5495,7 @@ class MainWindow(QMainWindow):
         """A setting as the focused app's profile sees it."""
         return bool(self._recording_profile.get(name, default))
 
-    def _on_transcribed(self, text: str) -> None:
+    def _on_transcribed(self, text: str, form_checked: bool = False) -> None:
         self._send_after_typing = False
         self._unsure_words = (
             unsure.unsure_words(
@@ -5519,6 +5547,12 @@ class MainWindow(QMainWindow):
                 return
         if text and hotkey_settings.get_send_it_enabled() and is_send_command(text):
             self._after_typing(self._handle_send_command)
+            return
+        # "Name Sam Lee, phone 0100 123 4567, email ...": fills the boxes of
+        # the form in the window. A sentence that only looks like one is
+        # typed as usual once the window turns out to hold no such form.
+        if text and not form_checked and self._form_fill_wanted(text):
+            self._after_typing(lambda: self._start_form_fill(text))
             return
         # "how are you? send it": type the sentence, then press Enter.
         if text and hotkey_settings.get_send_it_enabled():
@@ -7229,6 +7263,92 @@ class MainWindow(QMainWindow):
         self._handle_rewrite_command(
             lambda old: new if old == original else None, status
         )
+
+    # -- Form fill (core/form_fill.py, core/form_fields.py) -----------------
+
+    def _form_fill_wanted(self, text: str) -> bool:
+        """Cheap checks only: the setting, the sentence's shape, a window to
+        fill. The window's boxes are read later, on a worker thread."""
+        return (
+            hotkey_settings.get_form_fill_enabled()
+            and self._recording_target_hwnd is not None
+            and not self._inbox_session
+            and form_fill.starts_like_a_form(text)
+        )
+
+    def _start_form_fill(self, text: str) -> None:
+        """Reads the boxes of the window dictated into and fills the ones the
+        sentence names, on a worker thread. Pro, with a few free tries; once
+        those are used up the sentence is typed as usual."""
+        if not hotkey_license.is_pro() and hotkey_settings.get_feature_trials_left(
+            "form_fill"
+        ) <= 0:
+            self._on_transcribed(text, form_checked=True)
+            # Said after the typing, which shows its own "Typed" status and pill.
+            note = "Form fill is a Pro feature, so this was typed as usual"
+            self._set_status(note, "ready")
+            QTimer.singleShot(
+                400,
+                lambda: self._after_typing(
+                    lambda: self._indicator.flash_error("Form fill is Pro: typed instead", 3500)
+                ),
+            )
+            return
+        target = self._recording_target_hwnd
+        typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
+        bridge = self._hotkey_bridge
+        self._set_status("Filling the form...", "transcribing")
+
+        def _type_value(value: str, select_all: bool) -> None:
+            # Replaces what a text box holds, typed like any dictation. A
+            # dropdown picks its option from the name typed quickly.
+            if select_all:
+                # Ctrl+End then Ctrl+Shift+Home selects everything; older
+                # Windows text boxes ignore Ctrl+A.
+                keyboard.send("ctrl+end")
+                keyboard.send("ctrl+shift+home")
+            keyboard.write(value, delay=typing_delay if select_all else 0.02)
+
+        def _work() -> None:
+            result = None
+            with self._typing_lock:
+                try:
+                    focus_window(target)
+                    if self._wait_for_foreground(target) and not focused_is_password():
+                        result = form_fields.fill_form(
+                            target, lambda fields: form_fill.plan(text, fields), _type_value
+                        )
+                except Exception:  # noqa: BLE001 -- never let a form break dictation
+                    result = None
+            bridge.form_filled.emit(text, result)
+
+        threading.Thread(target=_work, daemon=True).start()
+
+    def _on_form_filled(self, text: str, result) -> None:  # noqa: ANN001
+        if not result or result[0] == 0:
+            # No form for this sentence here (or no box took its text): type it.
+            self._on_transcribed(text, form_checked=True)
+            return
+        filled, planned = result
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        firstrun.feature("form_fill")
+        self.transcript_area.append(text)
+        hotkey_settings.record_dictation(len(text.split()))
+        history.add_entry(text, self._last_recording_duration, keep_text=library.keeps_text())
+        telemetry.send_dictation_used()
+        self._refresh_history_feed()
+        # Not one block of text, so "scratch that" and Try harder do not apply.
+        self._last_typed_text = ""
+        self._clear_redo()
+        boxes = f"{filled} box{'es' if filled != 1 else ''}"
+        status = f"Filled {boxes}" + (f" of {planned}" if filled < planned else "")
+        if not hotkey_license.is_pro():
+            left = hotkey_settings.use_feature_trial("form_fill")
+            status += f". {left} free form fill{'s' if left != 1 else ''} left"
+        self._set_status(status, "ready")
+        self._indicator.flash_success(f"Filled {boxes}")
+        self._after_first_dictation()
 
     def _handle_send_command(self) -> None:
         """Spoken "send it" (opt-in): presses Enter in the app being dictated
