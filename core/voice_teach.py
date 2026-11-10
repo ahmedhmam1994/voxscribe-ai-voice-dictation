@@ -77,6 +77,29 @@ SENTENCES: dict[str, list[tuple[str, list[str]]]] = {
             ["testator", "executor", "beneficiary", "codicil"],
         ),
     ],
+    "software": [
+        (
+            "Push the branch to GitHub and open a pull request for the Kubernetes config.",
+            ["GitHub", "pull request", "Kubernetes"],
+        ),
+        (
+            "The Postgres query is slow, so add an index and check the Redis cache.",
+            ["Postgres", "Redis"],
+        ),
+        ("Use Docker Compose to run Nginx in front of the API.", ["Docker", "Nginx", "API"]),
+        (
+            "We fine tuned Llama on our support tickets using LoRA.",
+            ["Llama", "LoRA"],
+        ),
+        (
+            "The TypeScript build fails because of a missing Webpack plugin.",
+            ["TypeScript", "Webpack"],
+        ),
+        (
+            "Deploy it with Terraform and watch the logs in Grafana.",
+            ["Terraform", "Grafana"],
+        ),
+    ],
     "business": [
         ("Our EBITDA grew this quarter, and the KPI report is due Friday.", ["EBITDA", "KPI"]),
         ("The client wants to renew the SLA before the end of Q3.", ["SLA", "Q3"]),

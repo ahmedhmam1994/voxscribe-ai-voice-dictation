@@ -191,3 +191,21 @@ def test_two_neighbouring_letters_swapped_in_a_drug_name():
     terms = combined_terms(["medical"], [])
     fuzzy = term_packs.combined_fuzzy_terms(["medical"])
     assert correct_text("on atrovastatine daily", terms, fuzzy) == "on atorvastatin daily"
+
+
+def test_a_term_repeated_inside_a_fuzzy_block_keeps_its_place_and_gains_the_flag():
+    terms, fuzzy = term_packs.parse_pack(
+        "Kubernetes\nGitHub\nTerraform\n# fuzzy: on\nKubernetes\nTerraform\n# fuzzy: off\n"
+    )
+    assert terms == ["Kubernetes", "GitHub", "Terraform"]
+    assert fuzzy == ["Kubernetes", "Terraform"]
+
+
+def test_software_pack_repairs_rare_names_and_leaves_everyday_words_alone():
+    terms = term_packs.combined_terms(["software"], [])
+    fuzzy = term_packs.combined_fuzzy_terms(["software"])
+    assert term_packs.correct_text("add it to kuburnets and terrafom", terms, fuzzy) == (
+        "add it to Kubernetes and Terraform"
+    )
+    for word in ("suppose", "posters", "react", "rust", "go", "swift"):
+        assert term_packs.correct_text(word, terms, fuzzy) == word

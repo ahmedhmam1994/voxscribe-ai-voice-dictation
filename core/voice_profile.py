@@ -61,6 +61,7 @@ FIELDS: tuple[Field, ...] = (
         "Software and code",
         "Say names and symbols, get code: camel case user name becomes userName (Pro).",
         code=True,
+        pack="software",
     ),
 )
 

@@ -1,8 +1,8 @@
-"""Term packs: ready-made word lists for a field (medical, law, business) and
+"""Term packs: ready-made word lists for a field (medical, law, business, software) and
 the user's own list files, plus the step that fixes how those words are written.
 
 A pack is a plain text file, one term per line (lines starting with # are
-notes). Three packs ship inside the app; a user can import their own file, for
+notes). Four packs ship inside the app; a user can import their own file, for
 example a clinic's drug list or a firm's client names, and it is kept in the
 app's folder. Everything is local: no pack is ever downloaded.
 
@@ -20,6 +20,8 @@ Two things use the enabled packs together with the custom vocabulary:
 
 A pack file may hold the line "# fuzzy: on" before such rare terms and
 "# fuzzy: off" after them. Without those lines a term only gets its casing fixed.
+A term that is already listed higher up and is repeated inside such a block keeps
+its place (the hint order) and is marked safe for repair.
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ BUILTIN_PACKS: tuple[tuple[str, str], ...] = (
     ("medical", "Medical"),
     ("legal", "Law"),
     ("business", "Business"),
+    ("software", "Software and AI"),
 )
 USER_PREFIX = "user:"
 
@@ -74,6 +77,9 @@ def parse_pack(text: str) -> tuple[list[str], list[str]]:
         if not term or term.startswith("#") or len(term) > MAX_TERM_LENGTH:
             continue
         if term.lower() in seen:
+            # Listed again inside a fuzzy block: keeps its place, gains the flag.
+            if fuzzy_on and not any(f.lower() == term.lower() for f in fuzzy):
+                fuzzy.append(next(x for x in terms if x.lower() == term.lower()))
             continue
         seen.add(term.lower())
         terms.append(term)
