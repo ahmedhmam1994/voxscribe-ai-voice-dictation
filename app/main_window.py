@@ -24,6 +24,7 @@ import sounddevice as sd
 from PySide6.QtCore import (
     QByteArray,
     QEasingCurve,
+    QEvent,
     QObject,
     QPropertyAnimation,
     QSequentialAnimationGroup,
@@ -33,7 +34,16 @@ from PySide6.QtCore import (
     QTimer,
     Signal,
 )
-from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPixmap, QTextCursor
+from PySide6.QtGui import (
+    QAction,
+    QColor,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPixmap,
+    QShortcut,
+    QTextCursor,
+)
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QApplication,
@@ -47,9 +57,11 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QPlainTextEdit,
     QProgressBar,
     QProgressDialog,
     QPushButton,
@@ -101,6 +113,7 @@ from core import (
     network_guard,
     read_aloud,
     replacements,
+    screen_context,
     site_link,
     smart_format,
     snippets,
@@ -736,6 +749,60 @@ QMessageBox QPushButton:default {{
 }}
 """
 
+INPUT_DIALOG_STYLESHEET = f"""
+QInputDialog {{
+    background: {BG_WINDOW};
+}}
+QInputDialog QLabel {{
+    color: {TEXT_PRIMARY};
+    font-size: 13px;
+}}
+QInputDialog QLineEdit {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER};
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    selection-background-color: {ACCENT};
+}}
+QInputDialog QLineEdit:focus {{
+    border: 1px solid {ACCENT};
+}}
+QInputDialog QPushButton {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {BORDER_SOFT};
+    border-radius: 9px;
+    padding: 7px 18px;
+    min-width: 90px;
+    font-weight: 600;
+}}
+QInputDialog QPushButton:hover {{
+    background: {theme.hx("#22242f")};
+}}
+QInputDialog QPushButton:default {{
+    background: {ACCENT};
+    color: {theme.hx("#0b2418")};
+    border: none;
+}}
+"""
+
+
+def _ask_text(parent, title: str, label: str, text: str = "") -> tuple[str, bool]:  # noqa: ANN001
+    """A one-line text prompt in the app's own colours (the plain
+    QInputDialog.getText leaves light text on a white window)."""
+    dialog = QInputDialog(parent)
+    dialog.setStyleSheet(INPUT_DIALOG_STYLESHEET)
+    dialog.setWindowTitle(title)
+    dialog.setLabelText(label)
+    dialog.setTextValue(text)
+    dialog.setInputMode(QInputDialog.TextInput)
+    dialog.resize(560, dialog.sizeHint().height())
+    accepted = dialog.exec() == QDialog.Accepted
+    return dialog.textValue(), accepted
+
+
 SETTINGS_DIALOG_STYLESHEET = f"""
 QDialog, QWidget#settingsPage {{
     background: {BG_WINDOW};
@@ -837,6 +904,33 @@ QTextEdit:focus {{
 QLabel#settingsHint {{
     color: {TEXT_FAINT};
     font-size: 11px;
+}}
+QLabel#settingsUnsaved {{
+    color: #f0b44c;
+    font-size: 12px;
+    font-weight: 600;
+    padding-right: 6px;
+}}
+QLineEdit#settingsSearch {{
+    border-radius: 17px;
+    padding: 4px 14px;
+}}
+QListWidget#settingsSearchResults {{
+    background: {BG_CARD};
+    color: {TEXT_PRIMARY};
+    border: 1px solid {ACCENT};
+    border-radius: 10px;
+    padding: 4px;
+    font-size: 13px;
+    outline: none;
+}}
+QListWidget#settingsSearchResults::item {{
+    padding: 7px 10px;
+    border-radius: 6px;
+}}
+QListWidget#settingsSearchResults::item:selected {{
+    background: {ACCENT};
+    color: #0b2418;
 }}
 QProgressBar#micLevelMeter {{
     background: {BG_CARD};
@@ -1552,6 +1646,8 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(settings_nav_button)
         self._settings_nav_button = settings_nav_button
         self._settings_close = None
+        self._settings_leave = None
+        self._settings_show_section = None
 
         body_row.addWidget(sidebar)
         body_row.addWidget(self._pages, stretch=1)
@@ -2357,7 +2453,12 @@ class MainWindow(QMainWindow):
         discards."""
         self._show_and_raise()
         if getattr(self, "_settings_close", None) is not None:
-            self._settings_close(False)
+            # Already open: jump to the requested section instead of
+            # rebuilding the page, so unsaved edits are not thrown away.
+            if self._settings_open_section:
+                self._settings_show_section(self._settings_open_section)
+            self._settings_open_section = 0
+            return
 
         dialog = QWidget()
         dialog.setObjectName("settingsPage")
@@ -2374,8 +2475,23 @@ class MainWindow(QMainWindow):
         header_title = QLabel("Settings")
         header_title.setObjectName("settingsPageTitle")
         header_row.addWidget(header_title)
+        search_edit = QLineEdit()
+        search_edit.setObjectName("settingsSearch")
+        search_edit.setPlaceholderText("Search settings  (Ctrl+F)")
+        search_edit.setClearButtonEnabled(True)
+        search_edit.setFixedWidth(280)
+        search_edit.setMinimumHeight(34)
+        header_row.addSpacing(14)
+        header_row.addWidget(search_edit)
         header_row.addStretch(1)
-        cancel_button = QPushButton("Cancel")
+        expand_button = QPushButton("Expand all")
+        expand_button.setObjectName("ghostButton")
+        expand_button.setCursor(Qt.PointingHandCursor)
+        header_row.addWidget(expand_button)
+        unsaved_chip = QLabel("")
+        unsaved_chip.setObjectName("settingsUnsaved")
+        header_row.addWidget(unsaved_chip)
+        cancel_button = QPushButton("Close")
         cancel_button.setObjectName("ghostButton")
         cancel_button.setCursor(Qt.PointingHandCursor)
         save_button = QPushButton("Save changes")
@@ -2424,7 +2540,7 @@ class MainWindow(QMainWindow):
             scroll.setFrameShape(QScrollArea.NoFrame)
             scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             page_content = QWidget()
-            page_content.setMaximumWidth(620)
+            page_content.setMaximumWidth(760)
             page_layout = QVBoxLayout(page_content)
             page_layout.setContentsMargins(28, 4, 28, 24)
             page_layout.setSpacing(14)
@@ -2463,6 +2579,7 @@ class MainWindow(QMainWindow):
         nav_layout.addStretch(1)
         _show_section(self._settings_open_section)
         self._settings_open_section = 0
+        self._settings_show_section = _show_section
 
         class _SectionProxy:
             """Lets the long builder below keep calling layout.addWidget /
@@ -2498,10 +2615,13 @@ class MainWindow(QMainWindow):
 
         license_benefits_label = QLabel(
             "What Pro adds:\n"
-            "- Snippets: say a short trigger phrase and VoxScribe types a full block of "
-            "text, with live {date}, {time} and {clipboard} variables.\n"
+            "- Fill a whole form by voice, and rewrite text by saying how.\n"
+            "- Paste a link and have the page read into your text.\n"
+            "- Snippets and fill-in templates with live {date}, {time} and {clipboard}.\n"
+            "- Per-app profiles, a second-language key and speaker labels on files.\n"
             "- Medium and Large Whisper models for higher accuracy (they need a faster PC).\n"
-            "Everything else stays free, with no account."
+            "Form fill, the assistant and links give you 3 free tries each. "
+            "Dictation and everything else stays free, with no account."
         )
         license_benefits_label.setWordWrap(True)
         license_benefits_label.setObjectName("settingsHint")
@@ -3274,6 +3394,19 @@ class MainWindow(QMainWindow):
         vocab_hint.setObjectName("settingsHint")
         vocab_hint.setWordWrap(True)
         layout.addWidget(vocab_hint)
+
+        window_context_checkbox = QCheckBox("Use names from the window I am typing into")
+        window_context_checkbox.setChecked(hotkey_settings.get_window_context_enabled())
+        layout.addWidget(window_context_checkbox)
+
+        window_context_hint = QLabel(
+            "Reads the title of the focused window, such as a file or project name, and "
+            "gives its names to the speech model as hints. The title is read on this PC "
+            "and never leaves it. Works with the Whisper models."
+        )
+        window_context_hint.setObjectName("settingsHint")
+        window_context_hint.setWordWrap(True)
+        layout.addWidget(window_context_hint)
 
         packs_label = QLabel("TERM PACKS")
         packs_label.setObjectName("settingsSectionLabel")
@@ -4236,6 +4369,15 @@ class MainWindow(QMainWindow):
                 hotkey_settings.set_spoken_formats_enabled(new_spoken)
                 changes.append("Spoken formats on." if new_spoken else "Spoken formats off.")
 
+            new_window_context = window_context_checkbox.isChecked()
+            if new_window_context != hotkey_settings.get_window_context_enabled():
+                hotkey_settings.set_window_context_enabled(new_window_context)
+                changes.append(
+                    "Window names will be used as hints."
+                    if new_window_context
+                    else "Window names will not be used as hints."
+                )
+
             new_unsure = unsure_checkbox.isChecked()
             if new_unsure != hotkey_settings.get_mark_unsure_words():
                 hotkey_settings.set_mark_unsure_words(new_unsure)
@@ -4521,6 +4663,297 @@ class MainWindow(QMainWindow):
                     4000,
                 )
 
+        # ---- Navigation aids: folded long hints, search, unsaved-changes state.
+        # Hints that are rewritten while the page is open keep their full text.
+        live_labels = {
+            license_status_label, license_benefits_label, license_compare_label,
+            model_hint, gpu_hint, packs_hint, teach_hint, snippets_hint,
+            templates_hint, assistant_status, word_lists_result, learn_result,
+            mic_test_status, stats_value, version_value,
+        }  # fmt: skip
+
+        class _Fold(QObject):
+            """Shows the first sentence of a long hint; a click shows the rest."""
+
+            def __init__(self, label: QLabel, short: str, full: str) -> None:
+                super().__init__(label)
+                self.label, self.short, self.full = label, short, full
+                self.open = False
+                label.setText(short)
+                label.setCursor(Qt.PointingHandCursor)
+                label.setToolTip("Click to read more")
+                label.installEventFilter(self)
+
+            def toggle(self, want: bool | None = None) -> None:
+                self.open = (not self.open) if want is None else want
+                self.label.setText(self.full if self.open else self.short)
+                self.label.setToolTip("Click to fold" if self.open else "Click to read more")
+
+            def eventFilter(self, obj, event) -> bool:  # noqa: ANN001, N802
+                if event.type() == QEvent.MouseButtonRelease:
+                    self.toggle()
+                    return True
+                return False
+
+        folds: dict[QLabel, _Fold] = {}
+        for hint in dialog.findChildren(QLabel, "settingsHint"):
+            full = hint.text()
+            if hint in live_labels or len(full) < 150 or "\n" in full:
+                continue
+            cut = full.find(". ", 30)
+            if cut == -1 or cut > 150:
+                cut = full.rfind(" ", 0, 110)
+                short = full[:cut].rstrip(",;:") + "..." if cut > 0 else full
+            else:
+                short = full[: cut + 1]
+            if short != full:
+                folds[hint] = _Fold(hint, short + "  More", full + "  Less")
+
+        # Collapsible groups: each small-caps heading folds the controls under it.
+        # On long pages only the first group starts open; search opens what it finds.
+        class _Group(QObject):
+            def __init__(self, label: QLabel, widgets: list[QWidget], is_open: bool) -> None:
+                super().__init__(label)
+                self.label, self.widgets = label, widgets
+                self.base = label.text()
+                self.everything: set[QWidget] = set()
+                for w in widgets:
+                    self.everything.add(w)
+                    self.everything.update(w.findChildren(QWidget))
+                self.hidden: set[QWidget] = set()
+                self.is_open = True
+                label.setCursor(Qt.PointingHandCursor)
+                label.installEventFilter(self)
+                self.set_open(is_open)
+
+            def set_open(self, want: bool) -> None:
+                if want == self.is_open and self.label.text() != self.base:
+                    return
+                self.is_open = want
+                if want:
+                    for w in self.hidden:
+                        w.show()
+                    self.hidden.clear()
+                else:
+                    for w in self.widgets:
+                        if not w.isHidden():
+                            self.hidden.add(w)
+                            w.hide()
+                self.label.setText(("▾  " if want else "▸  ") + self.base)
+                self.label.setToolTip("Click to fold" if want else "Click to open")
+                _sync_expand_button()
+
+            def eventFilter(self, obj, event) -> bool:  # noqa: ANN001, N802
+                if event.type() == QEvent.MouseButtonRelease:
+                    self.set_open(not self.is_open)
+                    return True
+                return False
+
+        def _widgets_of(item) -> list[QWidget]:  # noqa: ANN001
+            if item.widget() is not None:
+                return [item.widget()]
+            inner = item.layout()
+            found: list[QWidget] = []
+            if inner is not None:
+                for j in range(inner.count()):
+                    found += _widgets_of(inner.itemAt(j))
+            return found
+
+        groups_by_section: list[list[_Group]] = []
+
+        def _sync_expand_button() -> None:
+            current = section_stack.currentIndex()
+            if not 0 <= current < len(groups_by_section) or not groups_by_section[current]:
+                expand_button.hide()
+                return
+            expand_button.show()
+            all_open = all(g.is_open for g in groups_by_section[current])
+            expand_button.setText("Collapse all" if all_open else "Expand all")
+
+        def _toggle_all() -> None:
+            groups = groups_by_section[section_stack.currentIndex()]
+            want = not all(g.is_open for g in groups)
+            for g in groups:
+                g.set_open(want)
+
+        section_layouts = [
+            general_layout, speech_layout, audio_layout, text_layout,
+            pro_layout, files_layout, privacy_layout, about_layout,
+        ]  # fmt: skip
+        for page_layout in section_layouts:
+            heads: list[tuple[QLabel, list[QWidget]]] = []
+            for k in range(page_layout.count()):
+                item = page_layout.itemAt(k)
+                w = item.widget()
+                if w is not None and w.objectName() == "settingsSectionLabel":
+                    heads.append((w, []))
+                elif heads:
+                    heads[-1][1].extend(_widgets_of(item))
+            built: list[_Group] = []
+            if len(heads) >= 4:
+                for n, (head, members) in enumerate(heads):
+                    built.append(_Group(head, members, n == 0))
+            groups_by_section.append(built)
+        section_stack.currentChanged.connect(lambda _i: _sync_expand_button())
+        expand_button.clicked.connect(_toggle_all)
+        _sync_expand_button()
+
+        dirty = {"v": False}
+
+        def _set_dirty(value: bool) -> None:
+            dirty["v"] = value
+            save_button.setEnabled(value)
+            cancel_button.setText("Discard" if value else "Close")
+            unsaved_chip.setStyleSheet("")
+            unsaved_chip.setText("Unsaved changes" if value else "")
+
+        _set_dirty(False)
+
+        def _mark_dirty(*_args) -> None:  # noqa: ANN002
+            _set_dirty(True)
+
+        for widget in dialog.findChildren(QWidget):
+            if widget is search_edit or widget is license_key_edit:
+                continue
+            if isinstance(widget, QCheckBox):
+                widget.toggled.connect(_mark_dirty)
+            elif isinstance(widget, QComboBox):
+                widget.currentIndexChanged.connect(_mark_dirty)
+            elif isinstance(widget, QSpinBox):
+                widget.valueChanged.connect(_mark_dirty)
+            elif isinstance(widget, QLineEdit):
+                widget.textEdited.connect(_mark_dirty)
+            elif isinstance(widget, (QTextEdit, QPlainTextEdit)):
+                widget.textChanged.connect(_mark_dirty)
+
+        def _request_leave() -> bool:
+            """True when the page may close now. Asks first if edits are unsaved."""
+            if not dirty["v"]:
+                return True
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Icon.Question)
+            box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
+            box.setWindowTitle("Unsaved changes")
+            box.setText("You changed some settings and have not saved them.")
+            save_choice = box.addButton("Save changes", QMessageBox.ButtonRole.AcceptRole)
+            discard_choice = box.addButton("Discard", QMessageBox.ButtonRole.DestructiveRole)
+            box.addButton("Keep editing", QMessageBox.ButtonRole.RejectRole)
+            box.setDefaultButton(save_choice)
+            box.exec()
+            clicked = box.clickedButton()
+            if clicked is save_choice:
+                _apply()
+                _set_dirty(False)
+                return True
+            return clicked is discard_choice
+
+        self._settings_leave = _request_leave
+
+        # Search: type to list matching settings, Enter or a click jumps to one.
+        results = QListWidget(dialog)
+        results.setObjectName("settingsSearchResults")
+        results.setFocusPolicy(Qt.NoFocus)
+        results.hide()
+
+        def _search_index(query: str) -> list[tuple[int, QWidget, str]]:
+            found: list[tuple[int, QWidget, str]] = []
+            needle = query.lower()
+            for i in range(section_stack.count()):
+                area = section_stack.widget(i)
+                for w in area.findChildren(QWidget):
+                    if w in (search_edit, license_key_edit):
+                        continue
+                    if w.isHidden() and not any(
+                        w in g.everything and not g.is_open for g in groups_by_section[i]
+                    ):
+                        continue
+                    if isinstance(w, QLabel):
+                        if w.objectName() in ("settingsPageTitle", "settingsPageSubtitle"):
+                            continue
+                        text = folds[w].full if w in folds else w.text()
+                    elif isinstance(w, (QCheckBox, QPushButton)):
+                        text = w.text()
+                    else:
+                        continue
+                    flat = " ".join(text.split())
+                    if len(flat) > 2 and needle in flat.lower():
+                        found.append((i, w, flat))
+            # Setting names and controls first, long descriptions after.
+            found.sort(key=lambda row: (row[1].objectName() == "settingsHint", len(row[2])))
+            return found[:14]
+
+        def _refresh_results(query: str) -> None:
+            results.clear()
+            query = query.strip()
+            if len(query) < 2:
+                results.hide()
+                return
+            for i, w, flat in _search_index(query):
+                snippet = flat if len(flat) <= 78 else flat[:75] + "..."
+                results.addItem(f"{section_buttons[i].text()}  >  {snippet}")
+                results.item(results.count() - 1).setData(Qt.UserRole, (i, w))
+            if results.count() == 0:
+                results.addItem("No setting matches that.")
+                results.item(0).setFlags(Qt.NoItemFlags)
+            else:
+                results.setCurrentRow(0)
+            pos = search_edit.mapTo(dialog, search_edit.rect().bottomLeft())
+            results.setGeometry(pos.x(), pos.y() + 4, 520, min(40 * results.count() + 14, 420))
+            results.raise_()
+            results.show()
+
+        def _jump(item) -> None:  # noqa: ANN001
+            data = item.data(Qt.UserRole) if item is not None else None
+            if not data:
+                return
+            index, target = data
+            results.hide()
+            _show_section(index)
+            for g in groups_by_section[index]:
+                if target in g.everything and not g.is_open:
+                    g.set_open(True)
+            if target in folds:
+                folds[target].toggle(True)
+            area = section_stack.widget(index)
+            area.ensureWidgetVisible(target, 0, 120)
+            previous_style = target.styleSheet()
+            target.setStyleSheet(
+                f"background: rgba(62, 207, 142, 70); border-radius: 6px; {previous_style}"
+            )
+            QTimer.singleShot(1600, lambda: target.setStyleSheet(previous_style))
+
+        search_edit.textChanged.connect(_refresh_results)
+        results.itemClicked.connect(_jump)
+        search_edit.returnPressed.connect(lambda: _jump(results.currentItem()))
+
+        class _SearchKeys(QObject):
+            def eventFilter(self, obj, event) -> bool:  # noqa: ANN001, N802
+                if event.type() == QEvent.KeyPress and results.isVisible():
+                    key = event.key()
+                    if key in (Qt.Key_Down, Qt.Key_Up):
+                        step = 1 if key == Qt.Key_Down else -1
+                        row = max(0, min(results.count() - 1, results.currentRow() + step))
+                        results.setCurrentRow(row)
+                        return True
+                    if key == Qt.Key_Escape:
+                        search_edit.clear()
+                        return True
+                return False
+
+        search_keys = _SearchKeys(search_edit)
+        search_edit.installEventFilter(search_keys)
+
+        def _focus_search() -> None:
+            search_edit.setFocus()
+            search_edit.selectAll()
+
+        QShortcut(QKeySequence("Ctrl+F"), dialog, activated=_focus_search)
+        QShortcut(
+            QKeySequence("Ctrl+S"),
+            dialog,
+            activated=lambda: save_button.click() if dirty["v"] else None,
+        )
+
         # The page sits in the main window's stack and is rebuilt each time
         # Settings opens, so every control starts from the saved values.
         page_index = self._pages.addWidget(dialog)
@@ -4530,6 +4963,8 @@ class MainWindow(QMainWindow):
 
         def _close(accepted: bool) -> None:
             self._settings_close = None
+            self._settings_leave = None
+            self._settings_show_section = None
             _stop_mic_test()
             if accepted:
                 _apply()
@@ -4540,7 +4975,29 @@ class MainWindow(QMainWindow):
 
         self._settings_close = _close
         cancel_button.clicked.connect(lambda: _close(False))
-        save_button.clicked.connect(lambda: _close(True))
+        def _save_and_stay() -> None:
+            """Saves, then reopens Settings on the same page so the person is
+            not thrown out, with a short "Saved" note in the header."""
+            section = section_stack.currentIndex()
+            _close(True)
+            self._settings_open_section = section
+            self._open_settings_dialog()
+            fresh = self._pages.currentWidget()
+            chip = fresh.findChild(QLabel, "settingsUnsaved") if fresh is not None else None
+            if chip is not None:
+                chip.setText("✓  Saved")
+                chip.setStyleSheet(f"color: {ACCENT};")
+
+                def _clear_saved() -> None:
+                    try:
+                        if chip.text().endswith("Saved"):
+                            chip.setText("")
+                    except RuntimeError:  # the page was closed meanwhile
+                        pass
+
+                QTimer.singleShot(2200, _clear_saved)
+
+        save_button.clicked.connect(_save_and_stay)
         for btn in self._nav_buttons.values():
             btn.setChecked(False)
         self._settings_nav_button.setChecked(True)
@@ -5319,6 +5776,16 @@ class MainWindow(QMainWindow):
             hotkey_settings.get_auto_modes_enabled(),
             hotkey_license.is_pro(),
         )
+        # Names from the title of the window being typed into become hints for the
+        # speech model (core/screen_context.py); read here, on this PC only.
+        try:
+            self._context_terms = (
+                screen_context.terms_from_title(screen_context.window_title())
+                if hotkey_settings.get_window_context_enabled()
+                else []
+            )
+        except Exception:  # noqa: BLE001 -- a hint must never stop a dictation
+            self._context_terms = []
         self._chunks = []
         # Falls back to auto-detection if the user's chosen device (Settings
         # -> Microphone) has been unplugged/disconnected since it was picked.
@@ -5425,7 +5892,9 @@ class MainWindow(QMainWindow):
 
         params = (
             self._effective_language(),
-            hotkey_settings.custom_vocabulary_prompt(self._recording_profile.get("packs")),
+            hotkey_settings.custom_vocabulary_prompt(
+                self._recording_profile.get("packs"), getattr(self, "_context_terms", [])
+            ),
             "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
         )
         # Kept in memory only, for Try harder; dropped once the text is typed
@@ -5484,7 +5953,7 @@ class MainWindow(QMainWindow):
         menu.deleteLater()
 
     def _add_correction(self, heard: str) -> None:
-        replacement, accepted = QInputDialog.getText(
+        replacement, accepted = _ask_text(
             self,
             "Always correct this word",
             f'Whenever VoxScribe hears "{heard}", type this instead:',
@@ -6265,7 +6734,14 @@ class MainWindow(QMainWindow):
 
     def _switch_page(self, index: int) -> None:
         if getattr(self, "_settings_close", None) is not None:
-            # Leaving an open Settings page through the sidebar discards it.
+            # Leaving an open Settings page through the sidebar asks first
+            # when there are unsaved edits, then closes it.
+            leave = getattr(self, "_settings_leave", None)
+            if leave is not None and not leave():
+                for btn in self._nav_buttons.values():
+                    btn.setChecked(False)
+                self._settings_nav_button.setChecked(True)
+                return
             self._settings_close(False)
         self._pages.setCurrentIndex(index)
         for i, btn in self._nav_buttons.items():
@@ -7491,14 +7967,13 @@ class MainWindow(QMainWindow):
 
         clipboard = QApplication.clipboard().text().strip()
         suggested = clipboard if clipboard.lower().startswith(("http://", "https://")) else ""
-        text, accepted = QInputDialog.getText(
+        text, accepted = _ask_text(
             self,
             "Import from a link",
             "Paste a link to an audio or video file, or to a video on a site like YouTube.\n"
             "Only the download uses the internet. The audio is saved in "
             "Documents\\VoxScribe Links and transcribed on this PC with your own model "
             "and word lists.\nOnly use links you have the right to transcribe.",
-            QLineEdit.Normal,
             suggested,
         )
         if not accepted:

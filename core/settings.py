@@ -268,7 +268,9 @@ def set_custom_vocabulary(terms: list[str]) -> None:
     _settings().setValue("custom_vocabulary", ", ".join(t.strip() for t in terms if t.strip()))
 
 
-def custom_vocabulary_prompt(packs: list[str] | None = None) -> str | None:
+def custom_vocabulary_prompt(
+    packs: list[str] | None = None, context: list[str] | None = None
+) -> str | None:
     """The actual string to pass as faster-whisper's initial_prompt, or None
     if there's no custom vocabulary set. faster-whisper/Whisper treats this
     as prior context text -- listing the terms in a plain sentence-like
@@ -277,8 +279,24 @@ def custom_vocabulary_prompt(packs: list[str] | None = None) -> str | None:
     from core import term_packs
 
     return term_packs.hint_prompt(
-        get_enabled_packs() if packs is None else packs, get_custom_vocabulary()
+        get_enabled_packs() if packs is None else packs,
+        get_custom_vocabulary(),
+        context if get_window_context_enabled() else None,
     )
+
+
+def get_window_context_enabled() -> bool:
+    """Default True: names from the title of the window being typed into
+    (core/screen_context.py) are passed to the speech model as hints. The title
+    is read on this PC only."""
+    value = _settings().value("window_context_enabled", True)
+    if isinstance(value, str):
+        return value.lower() == "true"
+    return bool(value)
+
+
+def set_window_context_enabled(enabled: bool) -> None:
+    _settings().setValue("window_context_enabled", bool(enabled))
 
 
 def get_enabled_packs() -> list[str]:

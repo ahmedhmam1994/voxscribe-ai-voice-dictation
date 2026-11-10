@@ -229,3 +229,9 @@ def test_progress_helpers():
     assert li.percent(50, 200) == 25
     assert li.percent(5, None) is None
     assert li.describe_size(5 * 1024**2) == "5.0 MB"
+
+
+def test_long_name_keeps_the_video_id():
+    name = li.safe_name("A very long video title " * 6 + "[iYKXdt0LRs8].webm")
+    assert name.endswith(" [iYKXdt0LRs8].webm")
+    assert len(name) < 100

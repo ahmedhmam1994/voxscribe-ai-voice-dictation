@@ -104,7 +104,11 @@ def safe_name(name: str) -> str:
     name = urllib.parse.unquote(name).replace("\\", "/").split("/")[-1]
     name = re.sub(r'[<>:"|?*\x00-\x1f]', "_", name).strip(" .")
     stem, ext = os.path.splitext(name)
-    stem = stem[:80].strip(" .")
+    tag = re.search(r" \[[\w-]{6,}\]$", stem)  # the video id the helper appends
+    if tag and len(stem) > 80:
+        stem = stem[: max(1, 80 - len(tag.group()))].rstrip(" .") + tag.group()
+    else:
+        stem = stem[:80].strip(" .")
     if not stem or stem.upper() in {"CON", "PRN", "AUX", "NUL"} or re.fullmatch(
         r"(COM|LPT)\d", stem.upper()
     ):

@@ -427,12 +427,38 @@ class Transcriber:
         control: Callable[[], bool] | None,
         word_timestamps: bool,
     ) -> list[tuple[float, float, str, list[tuple[float, float, str]]]]:
+        out = self._file_pass(
+            model, path, language, initial_prompt, task, on_progress, control,
+            word_timestamps, vad_filter=True,
+        )  # fmt: skip
+        if not out:
+            # The voice filter heard no speech. Singing over a beat and talk
+            # under loud music often look like that to it, though the model can
+            # read the words; silence still comes back empty without the filter.
+            out = self._file_pass(
+                model, path, language, initial_prompt, task, on_progress, control,
+                word_timestamps, vad_filter=False,
+            )  # fmt: skip
+        return out
+
+    def _file_pass(
+        self,
+        model: WhisperModel,
+        path: str,
+        language: str | None,
+        initial_prompt: str | None,
+        task: str,
+        on_progress: Callable[[float], None] | None,
+        control: Callable[[], bool] | None,
+        word_timestamps: bool,
+        vad_filter: bool,
+    ) -> list[tuple[float, float, str, list[tuple[float, float, str]]]]:
         segments, info = model.transcribe(
             path,
             language=language,
             initial_prompt=initial_prompt,
             task=task,
-            vad_filter=True,
+            vad_filter=vad_filter,
             word_timestamps=word_timestamps,
         )
         duration = float(getattr(info, "duration", 0) or 0)

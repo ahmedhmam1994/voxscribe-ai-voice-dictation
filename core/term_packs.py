@@ -183,12 +183,19 @@ def combined_fuzzy_terms(enabled: list[str]) -> list[str]:
     return [t for pack_id in enabled for t in pack_fuzzy_terms(pack_id)]
 
 
-def hint_prompt(enabled: list[str], custom: list[str]) -> str | None:
-    """Whisper's initial prompt: the custom vocabulary in full, then as many
-    pack terms as fit, taking the first of each pack so that every enabled pack
-    is represented."""
+def hint_prompt(
+    enabled: list[str], custom: list[str], context: list[str] | None = None
+) -> str | None:
+    """Whisper's initial prompt: the custom vocabulary in full, then names from
+    the window being typed into (`context`), then as many pack terms as fit,
+    taking the first of each pack so that every enabled pack is represented."""
     parts = [t.strip() for t in custom if t.strip()]
     seen = {t.lower() for t in parts}
+    for term in context or []:
+        used = sum(len(t) + 2 for t in parts)
+        if term.lower() not in seen and used + len(term) + 2 <= PROMPT_CHARS:
+            seen.add(term.lower())
+            parts.append(term)
     per_pack = [pack_terms(pack_id) for pack_id in enabled]
     length = sum(len(t) + 2 for t in parts)
     index = 0
