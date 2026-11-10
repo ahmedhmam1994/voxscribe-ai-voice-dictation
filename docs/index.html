@@ -41,7 +41,7 @@
 <meta name="twitter:image:alt" content="VoxScribe: offline, open source dictation for your PC and your phone">
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "VoxScribe", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Windows 10, Windows 11", "description": "Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest", "softwareVersion": "1.8.3", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Windows"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Hold-to-talk dictation into any Windows app", "Speech recognition runs on your PC with Whisper, nothing is uploaded", "Types with keystrokes, so the clipboard is never touched", "Skips password fields", "Audio and video files to text and .srt captions", "Try harder key reruns the last dictation on a more careful model", "Dictation modes for chat, email, code and notes"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-transcript.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-ready.png"]}
+{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "VoxScribe", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Windows 10, Windows 11", "description": "Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest", "softwareVersion": "1.8.4", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Windows"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Hold-to-talk dictation into any Windows app", "Speech recognition runs on your PC with Whisper, nothing is uploaded", "Types with keystrokes, so the clipboard is never touched", "Skips password fields", "Audio and video files to text and .srt captions", "Try harder key reruns the last dictation on a more careful model", "Fill web and app forms by voice", "Rewrite a dictation by voice with a model on your PC", "Searchable library of everything you dictated or imported", "Dictation modes for chat, email, code and notes"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-transcript.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-ready.png"]}
 </script>
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}, {"@type": "Question", "name": "Which languages can I dictate in?", "acceptedAnswer": {"@type": "Answer", "text": "Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages."}}]}
@@ -190,6 +190,8 @@ h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-s
 .row h3{font-weight:800; font-size:clamp(25px,2.6vw,34px); line-height:1.14; letter-spacing:-.015em; margin:0 0 14px}
 .row p{margin:0; color:var(--soft)}
 .row img{border-radius:14px; box-shadow:0 20px 50px -26px #17352b59}
+.promo{margin:40px auto 0; max-width:960px}
+.promo video{display:block; width:100%; height:auto; border-radius:14px; box-shadow:0 20px 50px -26px #17352b59; background:#0b0d13}
 .phones{display:flex; justify-content:center; gap:22px}
 .phones img{width:min(42%,250px); border-radius:22px}
 
@@ -407,7 +409,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
         <a class="btn" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
         <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
       </div>
-      <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.3">v1.8.3</a></p>
+      <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.4">v1.8.4</a></p>
       <div class="listen">
         <button class="btn small hold" id="hold" type="button" aria-pressed="false">Hold <kbd>F9</kbd> to try</button>
         <button class="btn small" id="mic" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="mic-label">Talk to the meadow</span></button>
@@ -426,7 +428,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
       <li><b>$0</b><span>cost, forever</span></li>
       <li><b id="stat-downloads">100%</b><span id="stat-downloads-label">Local transcription</span></li>
       <li><b>MIT</b><span>open source license</span></li>
-      <li><b>v1.8.3</b><span>Windows, Android v1.1.4</span></li>
+      <li><b>v1.8.4</b><span>Windows, Android v1.1.4</span></li>
     </ul>
     <h2>It works with the internet off.</h2>
     <div class="switchrow">
@@ -505,12 +507,42 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
       <img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." loading="lazy">
     </div>
     <div class="row flip">
-      <div class="txt"><h3>Medicine, law and business words, spelled right.</h3><p>Term packs (333 medical, 212 law and 178 business terms) fix words like metformin and habeas corpus with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p></div>
+      <div class="txt"><h3>Medicine, law, business and software words, spelled right.</h3><p>Term packs (333 medical, 212 law, 178 business and 144 software terms) fix words like metformin, habeas corpus and Kubernetes with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p></div>
       <img src="assets/showcase-text-packs.webp" width="1100" height="814" alt="VoxScribe text settings showing medical, law and business term packs and word replacements." loading="lazy">
     </div>
     <div class="row">
       <div class="txt"><h3>Pick the speech engine that fits your language.</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast accurate English, Moonshine Arabic, and an optional NVIDIA GPU. Each model is downloaded only if you pick it.</p></div>
       <img src="assets/showcase-speech-engine.webp" width="1100" height="814" alt="VoxScribe speech settings listing Whisper and extra downloadable speech models." loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="new" data-time="noon">
+  <div class="wrap">
+    <h2>New: say it, and it does it.</h2>
+    <p class="lead">Fill forms, rewrite what you dictated, and keep your own spellings, all on your PC. Form fill, the rewrite assistant and link import are Pro features, each with 3 free tries.</p>
+    <figure class="promo" style="margin-left:auto;margin-right:auto">
+      <video controls preload="none" playsinline poster="assets/promo-184.jpg" width="1280" height="720" aria-label="An 88 second tour of VoxScribe 1.8.4: filling a form by voice, rewriting a dictation, learning a corrected name, the Library and link import. Music only, no narration."><source src="assets/promo-184.mp4" type="video/mp4"></video>
+    </figure>
+    <div class="row">
+      <div class="txt"><h3>Fill a whole form with one sentence.</h3><p>Say "name Sam Lee, phone 0100 123 4567, email sam at gmail dot com" and each part goes into the box with that label, in a browser or any Windows app. Dropdowns pick the option you say and date boxes take a spoken date. Password boxes are never touched.</p></div>
+      <img src="assets/showcase-form-fill.webp" width="1100" height="814" alt="A sign-up form with name, phone, email, country and date of birth filled in by voice, and the notice Filled 5 boxes." loading="lazy">
+    </div>
+    <div class="row flip">
+      <div class="txt"><h3>Say how to rewrite it.</h3><p>After a dictation, say "make it formal", "make it shorter", "bullet points" or "fix the grammar". A model on this PC rewrites the text in the same window, so nothing is uploaded. The model is an optional download.</p></div>
+      <img src="assets/showcase-rewrite.webp" width="1100" height="814" alt="A dictated email rewritten as bullet points after saying bullet points." loading="lazy">
+    </div>
+    <div class="row">
+      <div class="txt"><h3>Fix a word once. It stays fixed.</h3><p>Correct a spelling right after you dictate and VoxScribe applies it from then on. See and remove what it learned on the My words page. Short forms like ASAP, BTW and FYI are typed the way you write them, even when the speech model mishears them.</p></div>
+      <img src="assets/showcase-learned.webp" width="1100" height="814" alt="A dictated sentence with the name Kowalczyk spelled correctly and the notice Learned Kowalczyk." loading="lazy">
+    </div>
+    <div class="row flip">
+      <div class="txt"><h3>Search everything you said.</h3><p>The Library page lists every dictation, import, notes inbox line and meeting note in one place. Search it, open an item to read it, and choose how long dictations are kept. It all stays on this PC.</p></div>
+      <img src="assets/showcase-library.webp" width="1600" height="833" alt="The VoxScribe Library page searching for the word launch across dictations and imported files." loading="lazy">
+    </div>
+    <div class="row">
+      <div class="txt"><h3>Paste a link. Get the transcript.</h3><p>The Files page transcribes audio files, whole folders and web links. Paste a YouTube or other site link and VoxScribe uses the site's own captions when it has them, and tells you how long transcribing will take on this PC before it starts.</p></div>
+      <img src="assets/showcase-files.webp" width="1600" height="833" alt="The VoxScribe Files page with the Import from a link box open and a video link pasted in." loading="lazy">
     </div>
   </div>
 </section>
@@ -540,12 +572,15 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
       <li><span class="print" aria-hidden="true"></span><h3>Audio and video to captions</h3><p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Android app</h3><p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Meeting notes</h3><p>Start meeting records your microphone and what the PC plays, removes the echo, and writes a markdown note with action items, decisions and questions into a folder you choose, such as your Obsidian vault.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Term packs for medicine, law and business</h3><p>Words like MRI, metformin, habeas corpus and EBITDA are written correctly with any speech model. Import your own list as a plain text file.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Term packs for medicine, law, business and software</h3><p>Words like MRI, metformin, habeas corpus, EBITDA and Kubernetes are written correctly with any speech model. Import your own list as a plain text file.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Teach VoxScribe your voice</h3><p>Read a short script and VoxScribe finds the words it mishears in your voice or accent, then fixes them from then on. Recordings stay on your PC.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Spoken formats</h3><p>"One twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b).</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>More speech models, your choice</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast, accurate English, Moonshine Arabic, and optional NVIDIA GPU. Each is downloaded only if you pick it.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Notes inbox key</h3><p>Hold a key and speak, and the words are saved as a timestamped line in a markdown file instead of being typed.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Read it back, and unsure words</h3><p>Hear each dictation in Windows' own voice, and see the words the model was unsure about underlined. Both are off until you turn them on.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Fill forms by voice</h3><p>Say a label and a value for each box and VoxScribe fills them in a browser or any Windows app. Dropdowns, dates and phone numbers are handled, and password boxes are never touched. Pro, 3 free tries.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Rewrite by voice</h3><p>Say "make it formal", "make it shorter" or "bullet points" after a dictation and a model on your PC rewrites it. Pro, 3 free tries.</p></li>
+      <li><span class="print" aria-hidden="true"></span><h3>Library and My words</h3><p>Search everything you dictated or imported in one list, and see the spellings VoxScribe learned from your fixes.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Try harder, modes and snippets</h3><p>Press F8 to rerun a recording through a bigger model, switch between Chat, Email, Code and Notes, and expand short phrases into full text with Pro.</p></li>
     </ul>
   </div>
@@ -618,6 +653,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
         <tr><td class="first">Snippets and fill-in templates</td><td class="no">Not included</td><td class="yes">Included</td></tr>
         <tr><td class="first">Smart formatting and code dictation</td><td class="no">Not included</td><td class="yes">Included</td></tr>
         <tr><td class="first">Per-app profiles and a second language key</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+        <tr><td class="first">Fill forms by voice, rewrite assistant, links from the web</td><td>3 free tries each</td><td class="yes">No limit</td></tr>
         <tr><td class="first">Whole folders of files</td><td>2 free runs</td><td class="yes">No limit</td></tr>
         <tr><td class="first">Export formats</td><td>.txt and .srt</td><td class="yes">Also .vtt, .md and .docx, with speaker labels</td></tr>
       </table>
