@@ -1441,17 +1441,6 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     }
   })();
 
-  // Which download buttons get used: a Google Analytics event with the placement only.
-  document.addEventListener('click', function (e) {
-    var a = e.target.closest && e.target.closest('a[href*="/releases"], a[href*="android.html"]');
-    if (!a || typeof gtag !== 'function') return;
-    var place = a.id || (a.closest('nav') ? 'nav' : a.closest('footer') ? 'footer' : 'page');
-    gtag('event', 'download_click', {
-      platform: /releases\/tag\/android|android\.html/.test(a.href) ? 'android' : 'windows',
-      placement: place
-    });
-  });
-
   // Sticky download bar on phones: shown once the hero buttons are above the screen, hidden at the footer.
   (function () {
     var bar = document.getElementById('sticky-dl');
@@ -1567,5 +1556,6 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 })();
 </script>
 
+<script src="/assets/events.js" defer></script>
 </body>
 </html>
