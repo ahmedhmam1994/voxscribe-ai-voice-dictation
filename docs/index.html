@@ -133,7 +133,7 @@ nav .inner{display:flex; align-items:center; justify-content:space-between; gap:
 .hero,.end{position:relative; overflow:hidden; overflow:clip; min-height:100svh}
 .hero{min-height:calc(100svh - 68px)}
 .hero-in{display:grid; grid-template-columns:minmax(0,1.02fr) minmax(0,1fr); gap:48px; max-width:1240px; margin:0 auto; padding:5vh 28px 0}
-h1{font-weight:800; font-size:clamp(60px,8.4vw,96px); line-height:.98; letter-spacing:-.03em}
+h1{font-weight:800; font-size:clamp(46px,8.4vw,96px); line-height:.98; letter-spacing:-.03em}
 .caret{display:inline-block; width:.07em; height:.74em; margin-left:.08em; border-radius:99px; background:var(--accent); vertical-align:-.02em}
 .sub{max-width:34em; margin:24px 0 26px; color:var(--soft)}
 kbd{font:600 .85em Inter,sans-serif; padding:1px 8px 2px; border:1px solid var(--line); border-radius:7px; color:var(--ink)}
@@ -402,7 +402,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 <header class="hero" data-time="dawn">
   <div class="hero-in" id="top">
     <div class="copy">
-      <h1><span class="vh">Offline, open source dictation for your PC and your phone. </span><span id="talk">Talk.</span><br>It types.<span class="caret" aria-hidden="true"></span></h1>
+      <h1><span class="vh">Offline, open source dictation for your PC and your phone. </span><span id="talk">Whisper in,</span><br>words out.<span class="caret" aria-hidden="true"></span></h1>
       <p class="sub">On Android, names are spelled the way your screen spells them, fully offline. Open source dictation for your PC and your phone. On Windows, hold <kbd>F9</kbd>, speak, release. On Android, tap the floating button. Your words are transcribed on your own device and typed into any app. No cloud upload, no subscription.</p>
       <div class="cta">
         <a class="btn primary" id="dl-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg><span class="dl-label">Download for Windows</span></a>
@@ -716,7 +716,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 
 <section class="end" id="end" data-time="night" style="padding:0">
   <div class="end-in">
-    <h2>Talk. It types.</h2>
+    <h2>Whisper in, words out.</h2>
     <div class="cta" style="margin-top:26px">
       <a class="btn primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Download for Windows</a>
       <a class="btn" href="free-offline-voice-typing-android.html">Android app</a>
@@ -963,7 +963,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     });
   });
   var talk = document.getElementById('talk'), letters = [], bobbing = false;
-  talk.textContent.split('').forEach(function(ch){ var sp = document.createElement('span'); sp.textContent = ch; letters.push(sp); });
+  talk.textContent.split('').forEach(function(ch){ var sp = document.createElement('span'); sp.textContent = ch === ' ' ? ' ' : ch; letters.push(sp); });
   talk.textContent = ''; letters.forEach(function(sp){ talk.appendChild(sp); });
   /* A top layer for what floats over the page: the opening logo, petals, a butterfly, shooting stars. */
   var fx = document.getElementById('fx'), fc = fx.getContext('2d'), FW = 0, FH = 0;
