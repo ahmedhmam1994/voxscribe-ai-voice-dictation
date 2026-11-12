@@ -3,11 +3,25 @@
 # Everyday English words that are also tool names (react, rust, go, swift, spark,
 # flask, next, parakeet, whisper) are left out on purpose: the correction pass
 # would capitalise them in ordinary sentences.
+# The first dozen are the terms speech models mishear most (ONNX heard as "onx",
+# Qwen as "quen", Vite as "white"): only the first terms of each pack fit the hint,
+# so the order below is what decides which ones the model is told about.
+ONNX
+Qwen
+Vite
+Llama
+Mistral
+Claude
+Pinecone
+MMLU
+Nginx
+Ollama
+GGUF
+QLoRA
 Kubernetes
 GitHub
 Postgres
 Redis
-Nginx
 TypeScript
 GraphQL
 Terraform
@@ -45,7 +59,6 @@ GitLab
 Bitbucket
 kubectl
 Ansible
-Vite
 Babel
 ESLint
 pnpm
@@ -88,7 +101,6 @@ TensorFlow
 Anthropic
 DeepSeek
 LangChain
-Pinecone
 Weaviate
 SQLAlchemy
 CI pipeline
@@ -118,21 +130,12 @@ Pydantic
 pytest
 Matplotlib
 OpenAI
-Claude
 Gemini
-Llama
-Mistral
-Qwen
-Ollama
 ChatGPT
 Copilot
 LLMs
-QLoRA
 RAG
-MMLU
-ONNX
 CUDA
-GGUF
 tokenizer
 fine tuning
 Model Context Protocol

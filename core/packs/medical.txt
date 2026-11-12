@@ -2,7 +2,11 @@
 # The first terms matter most: they are the ones passed to the speech model as hints.
 # Terms between "# fuzzy: on" and "# fuzzy: off" (rare words such as drug names) may also be
 # repaired when the speech model spells them wrong; other terms only get their casing fixed.
+# The first terms are the hint: put first the words speech models mishear most.
+HbA1c
 # fuzzy: on
+gentamicin
+meningioma
 metformin
 lisinopril
 atorvastatin
@@ -186,7 +190,6 @@ EMG
 CBC
 ESR
 CRP
-HbA1c
 INR
 GFR
 TSH
