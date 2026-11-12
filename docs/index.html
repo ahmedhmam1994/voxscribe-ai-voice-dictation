@@ -44,7 +44,7 @@
 {"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "VoxScribe", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Windows 10, Windows 11", "description": "Free, open-source, offline voice dictation for Windows using Whisper. Hold a hotkey, talk, and the text is typed into any app.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest", "softwareVersion": "1.8.4", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "14", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Windows"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Hold-to-talk dictation into any Windows app", "Speech recognition runs on your PC with Whisper, nothing is uploaded", "Types with keystrokes, so the clipboard is never touched", "Skips password fields", "Audio and video files to text and .srt captions", "Try harder key reruns the last dictation on a more careful model", "Fill web and app forms by voice", "Rewrite a dictation by voice with a model on your PC", "Searchable library of everything you dictated or imported", "Dictation modes for chat, email, code and notes"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-transcript.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/screenshot-ready.png"]}
 </script>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}, {"@type": "Question", "name": "Which languages can I dictate in?", "acceptedAnswer": {"@type": "Answer", "text": "Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages."}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time Pro upgrade ($14 until 15 November 2026, $39 from then) for snippets and larger Whisper models, but dictation itself is fully free."}}, {"@type": "Question", "name": "Does it need an internet connection?", "acceptedAnswer": {"@type": "Answer", "text": "Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere."}}, {"@type": "Question", "name": "What platforms does it support?", "acceptedAnswer": {"@type": "Answer", "text": "Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet."}}, {"@type": "Question", "name": "Does it work with any microphone?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe auto-detects your default input device (including Bluetooth headsets) and adapts to its native sample rate."}}, {"@type": "Question", "name": "Why does Windows show a security warning when I install it?", "acceptedAnswer": {"@type": "Answer", "text": "Windows SmartScreen warns about apps from publishers it does not recognize yet. The installer is unsigned for now. The source code is public and the installer runs per user without admin rights. The Install section of this page explains exactly what to click."}}, {"@type": "Question", "name": "How accurate is the transcription?", "acceptedAnswer": {"@type": "Answer", "text": "It uses faster-whisper's \"small\" model, which offers a solid balance of speed and accuracy on CPU for everyday dictation."}}, {"@type": "Question", "name": "I lost my Pro license key. Can I get it back?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open a GitHub issue with the name or email you used to buy it, and I'll look it up and send it back to you."}}, {"@type": "Question", "name": "Which languages can I dictate in?", "acceptedAnswer": {"@type": "Answer", "text": "Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages."}}]}
 </script>
 <link rel="preload" href="assets/fonts/Nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
@@ -297,6 +297,10 @@ td.no{color:var(--soft)}
 .updates-status{min-height:1.5em; margin:12px 0 0; font-size:15.5px}
 .updates-status[data-state="error"]{font-weight:600}
 .updates-status[data-state="ok"]{color:var(--accent); font-weight:600}
+.hero-signup{margin-top:18px}
+.hero-signup input[type=email]{min-height:44px; flex-basis:200px}
+.hero-signup + .updates-status{min-height:0; margin:8px 0 0}
+.hero-signup-note{margin-top:6px}
 
 .install-list{counter-reset:s; display:grid; gap:20px; max-width:44em; margin:44px 0 0; padding:0; list-style:none}
 .install-list li{counter-increment:s; display:grid; grid-template-columns:44px minmax(0,1fr); gap:10px; align-items:baseline}
@@ -410,6 +414,13 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
         <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
       </div>
       <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.8.4">v1.8.4</a></p>
+      <form class="updates-form hero-signup" novalidate>
+        <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        <input type="email" name="email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address for big update and price news" required>
+        <button class="btn small" type="submit">Keep me posted</button>
+      </form>
+      <p class="updates-status" role="status" aria-live="polite"></p>
+      <p class="facts hero-signup-note">Optional. A short email when a big update ships or the price changes. No account. <a href="privacy.html">Privacy</a>.</p>
       <div class="listen">
         <button class="btn small hold" id="hold" type="button" aria-pressed="false">Hold <kbd>F9</kbd> to try</button>
         <button class="btn small" id="mic" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="mic-label">Talk to the meadow</span></button>
@@ -661,15 +672,15 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     <p class="fine">This table describes Windows. On Android the same key unlocks Snippets, smart formatting, code dictation, fill-in templates and per-app profiles.</p>
     <p class="deadline" id="deadline" hidden></p>
     <a class="btn primary" href="https://hmamster3.gumroad.com/l/tbsfom">Get VoxScribe Pro: $14</a>
-    <p class="fine"><strong>Launch price: $14 until 15 November 2026.</strong> From 15 November, Pro costs $39, still paid once with no subscription. Anyone who buys at $14 keeps their key for good.</p>
+    <p class="fine"><strong>The price goes up on 15 November 2026: $14 until then, $39 from then.</strong> Pro stays a one-time payment with no subscription. Anyone who buys at $14 keeps their key for good.</p>
     <p class="fine">One-time payment via Gumroad &middot; 7-day refund &middot; key delivered by email</p>
   </div>
 </section>
 
 <section id="updates" data-time="dusk">
   <div class="wrap">
-    <h2>Get one email when a big update ships</h2>
-    <p class="lead">Optional. Add your email if you would like a short note about major releases, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
+    <h2>Get one email when a big update ships or the price changes</h2>
+    <p class="lead">Optional. Add your email if you would like a short note about major releases or price changes, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
     <form class="updates-form" id="updates-form" novalidate>
       <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
       <input type="email" name="email" id="updates-email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" required>
@@ -701,7 +712,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
   <div class="wrap">
     <h2>Frequently asked questions</h2>
     <div class="faq">
-      <details open><summary><h3>Is it really free?</h3></summary><p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time $14 Pro upgrade for snippets and larger Whisper models, but dictation itself is fully free.</p></details>
+      <details open><summary><h3>Is it really free?</h3></summary><p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time Pro upgrade ($14 until 15 November 2026, $39 from then) for snippets and larger Whisper models, but dictation itself is fully free.</p></details>
       <details><summary><h3>Does it need an internet connection?</h3></summary><p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p></details>
       <details><summary><h3>Which languages can I dictate in?</h3></summary><p>Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages.</p></details>
       <details><summary><h3>What platforms does it support?</h3></summary><p>Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet.</p></details>
@@ -1389,7 +1400,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     var el = document.getElementById('deadline');
     var left = Math.ceil((new Date(2026,10,15) - new Date())/864e5);
     if (left <= 0) return;
-    el.textContent = left === 1 ? 'Last day at $14.' : '$14 for ' + left + ' more days.';
+    el.textContent = left === 1 ? 'Last day at $14. From 15 November it is $39.' : '$14 for ' + left + ' more days, then $39.';
     el.hidden = false;
   })();
 
@@ -1540,12 +1551,14 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 <script src="assets/try.js?v=3" defer></script>
 <script>
 (function () {
-  var form = document.getElementById('updates-form');
-  if (!form) return;
-  var email = document.getElementById('updates-email');
-  var button = document.getElementById('updates-button');
-  var status = document.getElementById('updates-status');
-  var removeLink = document.getElementById('updates-remove');
+  Array.prototype.forEach.call(document.querySelectorAll('.updates-form'), wire);
+
+  function wire(form) {
+  var email = form.querySelector('input[type=email]');
+  var button = form.querySelector('button');
+  var status = form.nextElementSibling;
+  var removeLink = form.id === 'updates-form' ? document.getElementById('updates-remove') : null;
+  if (!email || !button || !status) return;
 
   function say(text, state) {
     status.textContent = text;
@@ -1568,7 +1581,7 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
         if (response.ok && data.ok) {
-          say(remove ? 'Removed. You will not get any email from me.' : 'Thanks, you are on the list. I will only write for major updates.', 'ok');
+          say(remove ? 'Removed. You will not get any email from me.' : 'Thanks, you are on the list. I will only write for big updates and price changes.', 'ok');
           if (!remove) email.value = '';
         } else {
           say(data.error || 'Something went wrong. Please try again later.', 'error');
@@ -1585,10 +1598,11 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     event.preventDefault();
     send(false);
   });
-  removeLink.addEventListener('click', function (event) {
+  if (removeLink) removeLink.addEventListener('click', function (event) {
     event.preventDefault();
     send(true);
   });
+  }
 })();
 </script>
 

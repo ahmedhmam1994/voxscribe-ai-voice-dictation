@@ -1,5 +1,5 @@
 // Vercel serverless function: the optional "get one email when a big update
-// ships" box on the home page.
+// ships or the price changes" box on the home page.
 //
 // An address is kept only when the visitor types it in and presses the button.
 // It is stored in Upstash Redis (the same store as activate.js) as a sorted
