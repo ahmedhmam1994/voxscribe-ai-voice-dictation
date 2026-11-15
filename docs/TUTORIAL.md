@@ -333,11 +333,11 @@ Getting around Settings
 
 ## 26. Pro license
 
-Pro is a one-time $14 payment and covers two PCs and two phones. Everything else stays free, with no account.
+Pro is a one-time $39 payment and covers two PCs and two phones. Everything else stays free, with no account.
 
 What Pro adds: form fill, the rewrite assistant and link import (each with 3 free tries), Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels.
 
-1. Settings, Pro, **Get Pro ($14 once)**.
+1. Settings, Pro, **Get Pro**.
 2. Paste the license key and click **Unlock**.
 3. To move it to a new PC, click **Remove license** on the old one first.
 

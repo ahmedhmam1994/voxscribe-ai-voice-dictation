@@ -48,7 +48,7 @@ No account, no subscription. MIT licensed.
 
 New here? The [full tutorial](docs/TUTORIAL.md) walks through every feature step by step.
 
-**What Pro adds:** the optional one-time $14 unlock covers Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), fill-forms-by-voice, the rewrite assistant and link import beyond 3 free tries each, folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels. Everything else in this list is free.
+**What Pro adds:** the optional one-time $39 unlock covers Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), fill-forms-by-voice, the rewrite assistant and link import beyond 3 free tries each, folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels. Everything else in this list is free.
 
 - **Fill a form by voice (Pro):** say "name Sam Lee, phone 0100 123 4567, email sam at gmail dot com" and each part goes into the box with that label, in a browser or any Windows app. Dropdowns and date boxes work, password boxes are never touched
 - **Rewrite assistant (Pro):** after a dictation say "make it formal", "make it shorter" or "bullet points" and a model on your own PC rewrites it in the same window. The model is an optional download
