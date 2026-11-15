@@ -104,6 +104,15 @@ VoxScribe also has an Android app. A small floating button appears above your ke
 
 **Current version: 1.1.4.** Download `VoxScribe-Android-1.1.4.apk` from the [Android 1.1.4 release](https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.4) and open it. Android will ask you to allow installs from your browser or file manager. It is an APK only for now, not on the Play Store. Already have VoxScribe? Install the new APK over it: your settings and history are kept (add the Quick Settings tile again after updating).
 
+**If Play Protect says "App blocked to protect your device":** Play Protect blocks any app installed from outside the Play Store that asks for the Accessibility permission, whatever the app does. VoxScribe needs Accessibility because it is the only way Android lets an app type into other apps, so the block is about that permission, not about anything found in the app. To install it:
+
+1. Open the Play Store, tap your profile picture, then **Play Protect**, then the gear icon
+2. Turn off **Scan apps with Play Protect**
+3. Install the APK
+4. Turn **Scan apps with Play Protect** back on
+
+The menu names can differ a little by phone brand. To check the APK first, compare its SHA-256 with the one on the release page, or upload it to [VirusTotal](https://www.virustotal.com/).
+
 **New in 1.1.4:**
 
 - Dictating into a draft no longer erases it: your words are added at the cursor and the text you already wrote stays
