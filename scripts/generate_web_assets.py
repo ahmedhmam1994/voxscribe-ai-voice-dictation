@@ -19,6 +19,9 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication
 
+sys.path.insert(0, str(Path(__file__).parent))
+from brand_mark import app_icon, draw_mark  # noqa: E402
+
 ACCENT = "#10b981"
 ACCENT_HOVER = "#34d399"
 ACCENT_PRESSED = "#059669"
@@ -27,41 +30,15 @@ BG = "#06060f"
 
 
 def draw_wave_mark(painter: QPainter, x: float, y: float, size: float) -> None:
-    """Draws the V-shaped soundwave mark used as the nav brand mark: nine
-    gradient bars, tall-to-short-to-tall, reading unmistakably as a 'V'
-    monogram built from waveform bars. Replaces an earlier 5-bar version
-    that read too close to a generic audio-equalizer icon (and specifically
-    too close to a direct competitor's own 5-bar mark) -- more bars and a
-    steeper taper make the V shape the dominant read, not the bar-chart
-    genre in general."""
-    grad = QLinearGradient(QPointF(x, y), QPointF(x + size, y + size))
-    grad.setColorAt(0.0, QColor(ACCENT))
-    grad.setColorAt(0.55, QColor(ACCENT_HOVER))
-    grad.setColorAt(1.0, QColor(CYAN))
-    painter.setBrush(QBrush(grad))
-    painter.setPen(Qt.NoPen)
-
-    bar_w = size * 0.06
-    gap = size * 0.045
-    bottom = y + size * 0.82
-    heights = [0.64, 0.53, 0.42, 0.31, 0.20, 0.31, 0.42, 0.53, 0.64]
-    for i, h_frac in enumerate(heights):
-        bar_h = size * h_frac
-        bar_x = x + size * 0.05 + i * (bar_w + gap)
-        bar_y = bottom - bar_h
-        painter.drawRoundedRect(
-            QRectF(bar_x, bar_y, bar_w, bar_h), bar_w / 2, bar_w / 2
-        )
+    """The VoxScribe mark (sound bars turning into a text cursor), shared with
+    the app and Android icons through scripts/brand_mark.py."""
+    draw_mark(painter, x, y, size)
 
 
 def make_favicon(size: int) -> QPixmap:
-    pm = QPixmap(size, size)
-    pm.fill(Qt.transparent)
-    painter = QPainter(pm)
-    painter.setRenderHint(QPainter.Antialiasing)
-    draw_wave_mark(painter, 0, 0, size)
-    painter.end()
-    return pm
+    """The app icon tile, as on Windows and Android; tiny sizes get a thinner
+    margin so the mark stays readable."""
+    return app_icon(size, 0.12 if size <= 32 else 0.18)
 
 
 def make_og_image() -> QPixmap:
@@ -195,7 +172,9 @@ def main() -> None:
     make_favicon(32).save(str(out_dir / "favicon-32.png"), "PNG")
     make_favicon(16).save(str(out_dir / "favicon-16.png"), "PNG")
     make_favicon(180).save(str(out_dir / "apple-touch-icon.png"), "PNG")
-    make_favicon(256).save(str(out_dir / "favicon.ico"), "ICO")
+    from generate_icon import save_ico
+
+    save_ico(out_dir / "favicon.ico", (16, 32, 48))
     make_og_image().save(str(out_dir / "og-image.png"), "PNG")
 
     assets_dir = out_dir / "assets"
