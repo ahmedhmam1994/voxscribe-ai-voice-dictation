@@ -102,8 +102,17 @@ def get_input_device() -> int | None:
         return None
 
 
-def set_input_device(device: int | None) -> None:
+def get_input_device_name() -> str | None:
+    """The chosen device's name and host API (core.audio_capture.device_label),
+    which finds it again after device numbers shift. None for auto-detect, and
+    for a choice saved before names were kept."""
+    value = _settings().value("input_device_name", "")
+    return str(value) if value else None
+
+
+def set_input_device(device: int | None, name: str | None = None) -> None:
     _settings().setValue("input_device", "" if device is None else device)
+    _settings().setValue("input_device_name", "" if device is None or not name else name)
 
 
 DEFAULT_LANGUAGE = "en"
@@ -446,7 +455,9 @@ def use_batch_trial() -> int:
 
 # Pro features that can be tried a few times first. Each has its own counter.
 FREE_FEATURE_TRIALS = 3
-TRIAL_FEATURES = ("link_import", "summary", "assistant", "form_fill")
+TRIAL_FEATURES = (
+    "link_import", "summary", "assistant", "form_fill", "hands_free",
+)  # fmt: skip
 
 
 def get_feature_trials_left(feature: str) -> int:
@@ -738,6 +749,19 @@ def get_inbox_hotkey() -> str:
 
 def set_inbox_hotkey(key: str) -> None:
     _settings().setValue("inbox_hotkey", key)
+
+
+
+
+def get_hands_free_hotkey() -> str:
+    """The key that starts and stops a hands-free session (Pro), or "" for none.
+    A tap, not a hold: the point is not having to keep a key down."""
+    value = _settings().value("hands_free_hotkey", "")
+    return value if value in AVAILABLE_HOTKEYS else ""
+
+
+def set_hands_free_hotkey(key: str) -> None:
+    _settings().setValue("hands_free_hotkey", key)
 
 
 def get_inbox_path() -> str:

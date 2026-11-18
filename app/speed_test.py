@@ -246,7 +246,9 @@ class SpeedTestDialog(QDialog):
             self._stop_recording()
 
     def _start_recording(self) -> None:
-        device = resolve_input_device(hotkey_settings.get_input_device())
+        device = resolve_input_device(
+            hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+        )
         self._rate = device_native_samplerate(device)
         self._chunks = []
 

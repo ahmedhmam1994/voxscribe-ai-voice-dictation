@@ -9,6 +9,12 @@ could realistically be upgrading from.
 from __future__ import annotations
 
 WHATS_NEW: dict[str, str] = {
+    "1.9.0": (
+        "- New (Pro): hands-free mode. Start it from the tray, the Dictation page or a key "
+        "you choose in Settings, then talk without holding anything: each phrase is "
+        "typed when you pause, and spoken commands work as usual. Say \"stop listening\" "
+        "to end. Typing, clicks and coughs are not typed. 3 free sessions."
+    ),
     "1.8.4": (
         "- New (Pro): fill forms by voice. Say \"name Sam Lee, phone 0100 123 4567, "
         "email sam at gmail dot com\" and each part goes into the box with that label, "

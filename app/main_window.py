@@ -76,6 +76,7 @@ from PySide6.QtWidgets import (
 
 from app import theme
 from app.floating_indicator import FloatingIndicator
+from app.hands_free import HandsFreeThread
 from app.insights_page import InsightsPage
 from app.language_menu import LanguageMenu
 from app.meeting_controller import IDLE as MEETING_IDLE
@@ -104,6 +105,7 @@ from core import (
     form_fields,
     form_fill,
     gpu,
+    hands_free,
     history,
     inbox,
     learned_words,
@@ -133,7 +135,9 @@ from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
     RollingBuffer,
+    device_label,
     device_native_samplerate,
+    find_input_device,
     list_input_devices,
     peak_levels,
     resample_to_16k,
@@ -354,6 +358,8 @@ class HotkeyBridge(QObject):
     # The Try harder key (core/redo.py).
     redo_requested = Signal()
     redo_too_late = Signal()
+    # The hands-free key (core/hands_free.py): a tap starts or stops a session.
+    hands_free_requested = Signal()
     # Learning your words (core/learned_words.py): typing finished, and the
     # focused box was read on a background thread.
     typed_into = Signal(str, object)
@@ -1895,6 +1901,18 @@ class MainWindow(QMainWindow):
         self.meeting_button.clicked.connect(self._toggle_meeting)
         layout.addWidget(self.meeting_button)
 
+        self.hands_free_button = QPushButton("Start hands-free")
+        self.hands_free_button.setObjectName("meetingButton")
+        self.hands_free_button.setProperty("meetingRecording", False)
+        self.hands_free_button.setMinimumHeight(44)
+        self.hands_free_button.setCursor(Qt.PointingHandCursor)
+        self.hands_free_button.setToolTip(
+            "Talk without holding a key: each phrase is typed when you pause. "
+            'Say "stop listening" or press the dictation key to end. Pro.'
+        )
+        self.hands_free_button.clicked.connect(self._toggle_hands_free)
+        layout.addWidget(self.hands_free_button)
+
         options_row = QHBoxLayout()
         options_row.setSpacing(24)
         self.export_srt_checkbox = QCheckBox("Save .srt captions")
@@ -2130,6 +2148,7 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.inbox_press_requested.connect(self._handle_inbox_press)
         self._hotkey_bridge.inbox_release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.redo_requested.connect(self._try_harder)
+        self._hotkey_bridge.hands_free_requested.connect(self._toggle_hands_free)
         self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
         self._hotkey_bridge.typed_into.connect(self._start_learning_watch)
         self._hotkey_bridge.box_read.connect(self._on_box_read)
@@ -2176,6 +2195,9 @@ class MainWindow(QMainWindow):
         self._alt_press_hook = None
         self._inbox_press_hook = None
         self._inbox_release_hook = None
+        self._hands_free_hook = None
+        self._hands_free: HandsFreeThread | None = None
+        self._hands_free_params: tuple = (None, None, "transcribe")
         self._alt_release_hook = None
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
@@ -2249,7 +2271,9 @@ class MainWindow(QMainWindow):
         microphone ready" setting and the chosen device. Never touches a
         stream that is mid-recording."""
         want = hotkey_settings.get_keep_mic_ready_enabled()
-        device = resolve_input_device(hotkey_settings.get_input_device())
+        device = resolve_input_device(
+            hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+        )
         if self._ready_stream is not None and (not want or device != self._ready_device):
             if self.stream is self._ready_stream:
                 return
@@ -2299,6 +2323,7 @@ class MainWindow(QMainWindow):
             self._alt_release_hook,
             self._inbox_press_hook,
             self._inbox_release_hook,
+            self._hands_free_hook,
             self._redo_hook,
         ):
             if hook is not None:
@@ -2313,6 +2338,7 @@ class MainWindow(QMainWindow):
         self._alt_release_hook = None
         self._inbox_press_hook = None
         self._inbox_release_hook = None
+        self._hands_free_hook = None
         self._redo_hook = None
         self._hold_gate = None
         self._hotkey_registration_error = None
@@ -2365,8 +2391,15 @@ class MainWindow(QMainWindow):
                 self._inbox_release_hook = keyboard.on_release_key(
                     inbox_key, lambda e: self._hotkey_bridge.inbox_release_requested.emit()
                 )
+            hands_free_key = hotkey_settings.get_hands_free_hotkey()
+            if hands_free_key and hands_free_key not in (self._hotkey, second, inbox_key):
+                self._hands_free_hook = keyboard.on_press_key(
+                    hands_free_key, lambda e: self._hotkey_bridge.hands_free_requested.emit()
+                )
             redo_key = hotkey_settings.get_redo_hotkey()
-            if redo_key and redo_key not in (self._hotkey, second, inbox_key):
+            if redo_key and redo_key not in (
+                self._hotkey, second, inbox_key, hands_free_key
+            ):
                 self._redo_hook = keyboard.hook_key(redo_key, self._on_redo_key, suppress=True)
         except Exception as exc:  # noqa: BLE001
             # Global hooks can fail without admin rights on some systems;
@@ -2780,6 +2813,10 @@ class MainWindow(QMainWindow):
         for idx, name in list_input_devices():
             mic_combo.addItem(name, idx)
         current_device = hotkey_settings.get_input_device()
+        saved_name = hotkey_settings.get_input_device_name()
+        if saved_name:
+            # Device numbers shift as devices come and go; the name does not.
+            current_device = find_input_device(saved_name)
         for i in range(mic_combo.count()):
             if mic_combo.itemData(i) == current_device:
                 mic_combo.setCurrentIndex(i)
@@ -2864,7 +2901,8 @@ class MainWindow(QMainWindow):
                 _stop_mic_test("Test complete -- levels looked good.")
 
         def _start_mic_test() -> None:
-            device = resolve_input_device(mic_combo.currentData())
+            chosen = mic_combo.currentData()
+            device = resolve_input_device(chosen, device_label(chosen))
             mic_test_state["peak_seen"] = 0.0
             mic_level_bar.setValue(0)
             mic_level_bar.setProperty("clipping", False)
@@ -3921,6 +3959,30 @@ class MainWindow(QMainWindow):
 
         inbox_browse.clicked.connect(_browse_inbox)
 
+
+        hands_free_label = QLabel("HANDS-FREE KEY (PRO)")
+        hands_free_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(hands_free_label)
+        hands_free_key_combo = QComboBox()
+        hands_free_key_combo.addItem("Off", "")
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            if key not in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                hands_free_key_combo.addItem(key.upper(), key)
+        hands_free_key_combo.setCurrentIndex(
+            max(0, hands_free_key_combo.findData(hotkey_settings.get_hands_free_hotkey()))
+        )
+        layout.addWidget(hands_free_key_combo)
+        hands_free_hint = QLabel(
+            "Tap this key once and talk for as long as you like, without holding anything: "
+            "each phrase is typed when you pause. Spoken commands work as usual. Say "
+            "\"stop listening\", tap the key again or press the dictation key to end. Also in "
+            "the tray menu and on the Dictation page. Pro, with "
+            f"{hotkey_settings.FREE_FEATURE_TRIALS} free sessions."
+        )
+        hands_free_hint.setObjectName("settingsHint")
+        hands_free_hint.setWordWrap(True)
+        layout.addWidget(hands_free_hint)
+
         read_back_checkbox = QCheckBox("Read each dictation aloud")
         read_back_checkbox.setChecked(hotkey_settings.get_read_back_enabled())
         layout.addWidget(read_back_checkbox)
@@ -4295,7 +4357,7 @@ class MainWindow(QMainWindow):
 
             new_device = mic_combo.currentData()
             if new_device != current_device:
-                hotkey_settings.set_input_device(new_device)
+                hotkey_settings.set_input_device(new_device, device_label(new_device))
                 changes.append(
                     "Microphone set to auto-detect."
                     if new_device is None
@@ -4423,6 +4485,26 @@ class MainWindow(QMainWindow):
                     f"Notes inbox key set to {new_inbox_key.upper()}."
                     if new_inbox_key
                     else "Notes inbox key off."
+                )
+
+            new_hands_free_key = hands_free_key_combo.currentData()
+            taken = {
+                self._hotkey,
+                hotkey_settings.get_second_hotkey(),
+                hotkey_settings.get_inbox_hotkey(),
+                redo_key_combo.currentData(),
+            }
+            if new_hands_free_key and new_hands_free_key in taken:
+                changes.append(
+                    f"Hands-free key not changed: {new_hands_free_key.upper()} is already in use."
+                )
+            elif new_hands_free_key != hotkey_settings.get_hands_free_hotkey():
+                hotkey_settings.set_hands_free_hotkey(new_hands_free_key)
+                self._register_global_hotkey()
+                changes.append(
+                    f"Hands-free key set to {new_hands_free_key.upper()}."
+                    if new_hands_free_key
+                    else "Hands-free key off."
                 )
 
             new_gpu = gpu_checkbox.isChecked() and gpu.libs_ready()
@@ -5087,6 +5169,10 @@ class MainWindow(QMainWindow):
         self._meeting_action.triggered.connect(self._toggle_meeting)
         menu.addAction(self._meeting_action)
 
+        self._hands_free_action = QAction("Start hands-free", self)
+        self._hands_free_action.triggered.connect(self._toggle_hands_free)
+        menu.addAction(self._hands_free_action)
+
         redo_action = QAction("Try harder on the last dictation", self)
         redo_action.triggered.connect(self._try_harder)
         menu.addAction(redo_action)
@@ -5346,6 +5432,9 @@ class MainWindow(QMainWindow):
             if answer != QMessageBox.Yes:
                 return
         self._meeting.shutdown()
+        if self._hands_free is not None:
+            self._hands_free.request_stop()
+            self._hands_free.wait(3000)
         self._assistant.stop()
         if self._link_worker is not None and self._link_worker.isRunning():
             # The download stops at its next chunk and deletes its .part file.
@@ -5680,6 +5769,11 @@ class MainWindow(QMainWindow):
             # until a release is seen.
             return
         self._hotkey_key_down = True
+        if self._hands_free is not None:
+            # Any dictation key ends a hands-free session instead of starting a
+            # second recording on the same mic.
+            self._stop_hands_free()
+            return
         # Guard against starting a new recording while the previous one is
         # still transcribing on a background TranscribeThread: the on-screen
         # button is disabled during that window (see _stop_recording), but
@@ -5731,6 +5825,219 @@ class MainWindow(QMainWindow):
             self._hotkey_active_session = False
             self._stop_recording()
 
+    # -- hands-free sessions (core/hands_free.py, app/hands_free.py) ------
+
+    def _toggle_hands_free(self) -> None:
+        # A held key repeats its press; only the first tap of a burst counts.
+        now = time.monotonic()
+        if now - getattr(self, "_hands_free_toggled_at", 0.0) < 0.8:
+            return
+        self._hands_free_toggled_at = now
+        if self._hands_free is not None:
+            self._stop_hands_free()
+        else:
+            self._start_hands_free()
+
+    def _start_hands_free(self) -> None:
+        if self.transcriber is None:
+            self._indicator.flash_error(
+                "Model failed to load" if self._model_failed else "Still loading model...", 2000
+            )
+            return
+        worker_busy = self._worker is not None and self._worker.isRunning()
+        if self.stream is not None or worker_busy or self._import_active():
+            self._set_status("Finish the current dictation or import first", "error")
+            self._indicator.flash_error("Busy right now", 1800)
+            return
+        if self._meeting.busy:
+            self._set_status("A meeting is being recorded. Hands-free is paused.", "error")
+            self._indicator.flash_error("Meeting in progress", 1800)
+            return
+        is_pro = hotkey_license.is_pro()
+        if not is_pro and hotkey_settings.get_feature_trials_left("hands_free") <= 0:
+            self._set_status(
+                "Hands-free mode is a Pro feature. Your free sessions are used up.", "error"
+            )
+            self._indicator.flash_error("Hands-free is Pro")
+            return
+
+        self._stop_learning_watch()
+        read_aloud.stop()
+        self._clear_redo()
+        self._language_override = None
+        self._refresh_hands_free_options()
+        if self._ready_stream is None:
+            # Windows renumbers devices when a Bluetooth headset reconnects;
+            # the list PortAudio read at startup can then name devices that
+            # are gone. Nothing is open, so it is safe to read it again.
+            try:
+                sd._terminate()
+                sd._initialize()
+            except Exception:  # noqa: BLE001
+                pass
+        device = resolve_input_device(
+            hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+        )
+        self._hands_free_mic = device_label(device) or "the default microphone"
+        if hasattr(self.transcriber, "collect_confidence"):
+            self.transcriber.collect_confidence = hotkey_settings.get_mark_unsure_words()
+        worker = HandsFreeThread(
+            self.transcriber,
+            device,
+            lambda: self._hands_free_params,
+            level=self._indicator.feed_audio,
+        )
+        worker.state.connect(self._on_hands_free_state)
+        worker.phrase.connect(self._on_hands_free_phrase)
+        worker.failed.connect(self._on_hands_free_failed)
+        worker.ended.connect(self._on_hands_free_ended)
+        self._hands_free = worker
+        worker.start()
+
+        firstrun.feature("hands_free")
+        if not is_pro:
+            left = hotkey_settings.use_feature_trial("hands_free")
+            plural = "s" if left != 1 else ""
+            self._tray_notify(
+                "VoxScribe",
+                f"Hands-free is a Pro feature. {left} free session{plural} left after this one.",
+                QSystemTrayIcon.MessageIcon.Information,
+                4000,
+            )
+        _play_start_sound()
+        self._indicator.set_resting("listening")
+        self._indicator.show_status("listening")
+        self.record_button.setEnabled(False)
+        self._set_import_enabled(False)
+        self._set_hands_free_controls(True)
+        key = hotkey_settings.get_hotkey().upper()
+        self._set_status(
+            f"Hands-free, listening on {self._hands_free_mic}: talk, and each phrase is "
+            f'typed when you pause. Say "stop listening" or press {key} to end.',
+            "recording",
+        )
+
+    def _stop_hands_free(self) -> None:
+        if self._hands_free is not None:
+            self._hands_free.request_stop()
+            self._indicator.show_status("hands_free_typing", "finishing")
+
+    def _set_hands_free_controls(self, running: bool) -> None:
+        text = "Stop hands-free" if running else "Start hands-free"
+        self.hands_free_button.setText(text)
+        self.hands_free_button.setProperty("meetingRecording", running)
+        self.hands_free_button.style().unpolish(self.hands_free_button)
+        self.hands_free_button.style().polish(self.hands_free_button)
+        action = getattr(self, "_hands_free_action", None)
+        if action is not None:
+            action.setText(text)
+
+    def _refresh_hands_free_options(self) -> None:
+        """The mode, per-app profile and word hints for the window in front now.
+        Read for every phrase, since a session can move between apps."""
+        process = foreground_process_name()
+        self._recording_mode, self._recording_profile = modes.effective_options(
+            process,
+            app_profiles.profile_for(process),
+            hotkey_settings.get_mode(),
+            hotkey_settings.get_auto_modes_enabled(),
+            hotkey_license.is_pro(),
+        )
+        try:
+            self._context_terms = (
+                screen_context.terms_from_title(screen_context.window_title())
+                if hotkey_settings.get_window_context_enabled()
+                else []
+            )
+        except Exception:  # noqa: BLE001 -- a hint must never stop a dictation
+            self._context_terms = []
+        self._hands_free_params = (
+            self._effective_language(),
+            hotkey_settings.custom_vocabulary_prompt(
+                self._recording_profile.get("packs"), self._context_terms
+            ),
+            "translate" if hotkey_settings.get_translate_to_english_enabled() else "transcribe",
+        )
+
+    def _on_hands_free_state(self, state: str) -> None:
+        if self._hands_free is None or self._hands_free.stopping:
+            return
+        if state == "working":
+            self._indicator.show_status("hands_free_typing")
+        else:
+            self._indicator.show_status("listening")
+
+    def _on_hands_free_phrase(self, text: str, audio, speech_sec: float) -> None:  # noqa: ANN001
+        text = text.strip()
+        if not text or hands_free.is_phantom(text):
+            return
+        if hands_free.is_stop_command(text):
+            self.transcript_area.append("[hands-free: stop listening]")
+            self._stop_hands_free()
+            return
+        if speech_sec <= hands_free.COMMAND_MAX_SPEECH_SEC:
+            # A short phrase said on its own that is close to a command is that
+            # command, misheard ("New online." is "new line").
+            text = hands_free.match_command(text) or text
+        process = foreground_process_name()
+        if process and process in hotkey_settings.get_excluded_apps():
+            self._indicator.flash_error("Dictation is off in this app")
+            return
+        if text in ("new line", "new paragraph"):
+            # Said on its own there is no text for the line break to join, so
+            # the key is pressed. Shift+Enter breaks the line in chat boxes too,
+            # where Enter alone would send the message.
+            for _ in range(1 if text == "new line" else 2):
+                try:
+                    keyboard.send("shift+enter")
+                except Exception:  # noqa: BLE001
+                    pass
+            # "scratch that" must not Backspace across the line break.
+            self._last_typed_text = ""
+            self._last_typed_hwnd = None
+            self.transcript_area.append(f"[hands-free: {text}]")
+            return
+        # The window in front now is where the phrase belongs: there is no key
+        # release to mark the moment, and the user may have moved to another app.
+        self._recording_target_hwnd = foreground_window_handle()
+        self._refresh_hands_free_options()
+        self._last_audio = audio
+        self._last_audio_params = self._hands_free_params
+        self._last_recording_duration = len(audio) / SAMPLE_RATE
+        self._last_peak = float(np.max(np.abs(audio))) if len(audio) else 0.0
+        self._released_at = None
+        if self._hands_free is not None:
+            self._hands_free.note_typed(text)
+        self._on_transcribed(text)
+
+    def _on_hands_free_failed(self, message: str) -> None:
+        mic = getattr(self, "_hands_free_mic", "the microphone")
+        if "device" in message.lower():
+            # Never switch to another mic quietly: a far-off laptop mic hears
+            # the room, and Whisper turns that noise into words.
+            message = f"could not open {mic}. Choose your mic in Settings, Microphone"
+        self._set_status(f"Hands-free stopped: {message}", "error")
+        self._indicator.set_resting("")
+        self._indicator.flash_error("Hands-free stopped", 2500)
+
+    def _on_hands_free_ended(self, reason: str) -> None:
+        worker, self._hands_free = self._hands_free, None
+        if worker is not None:
+            worker.wait(2000)
+            worker.deleteLater()
+        self._indicator.set_resting("")
+        self._set_hands_free_controls(False)
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        if reason == "error":
+            return
+        _play_stop_sound()
+        if reason == "idle":
+            self._set_status("Hands-free ended after two minutes without speech.", "ready")
+        else:
+            self._set_status("Hands-free ended.", "ready")
+        self._indicator.flash_success("Hands-free ended", 1500)
+
     def _set_import_enabled(self, enabled: bool) -> None:
         self.import_button.setEnabled(enabled)
         self.import_folder_button.setEnabled(enabled)
@@ -5746,7 +6053,7 @@ class MainWindow(QMainWindow):
         )
 
     def _start_recording(self) -> None:
-        if self._import_active():
+        if self._import_active() or self._hands_free is not None:
             return
         if self._meeting.busy:
             self._hotkey_active_session = False
@@ -5789,7 +6096,9 @@ class MainWindow(QMainWindow):
         self._chunks = []
         # Falls back to auto-detection if the user's chosen device (Settings
         # -> Microphone) has been unplugged/disconnected since it was picked.
-        device = resolve_input_device(hotkey_settings.get_input_device())
+        device = resolve_input_device(
+            hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+        )
 
         if (
             self._ready_stream is not None
@@ -6494,7 +6803,9 @@ class MainWindow(QMainWindow):
     def _diagnostics_text(self) -> str:
         """The local report behind Settings > About > Copy diagnostics."""
         try:
-            device = resolve_input_device(hotkey_settings.get_input_device())
+            device = resolve_input_device(
+                hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+            )
             names = dict(list_input_devices())
             mic = names.get(device, "auto-detect") if device is not None else "auto-detect"
         except Exception:  # noqa: BLE001

@@ -114,15 +114,61 @@ def list_input_devices() -> list[tuple[int, str]]:
     return devices
 
 
-def resolve_input_device(preferred: int | None) -> int | None:
+def device_label(index: int | None) -> str | None:
+    """A device's name with its host API, "Headset (soundcore) (Windows WASAPI)".
+    Saved with the user's choice, because device numbers shift whenever a
+    device is connected or removed, and a saved number can end up pointing at
+    a different device (a headset's number turned into Stereo Mix's)."""
+    if index is None:
+        return None
+    try:
+        info = sd.query_devices(index)
+        return f"{info['name']} ({sd.query_hostapis(info['hostapi'])['name']})"
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def find_input_device(label: str) -> int | None:
+    """The current number of the input device saved as `label`, or None when
+    it is not connected now."""
+    try:
+        hostapis = sd.query_hostapis()
+        for idx, info in enumerate(sd.query_devices()):
+            if info["max_input_channels"] <= 0:
+                continue
+            if f"{info['name']} ({hostapis[info['hostapi']]['name']})" == label:
+                return idx
+    except Exception:  # noqa: BLE001
+        pass
+    return None
+
+
+def resolve_input_device(preferred: int | None, label: str | None = None) -> int | None:
     """The device to actually record with: the user's chosen device if it's
-    still present, otherwise falls back to auto-detection -- handles a
-    previously-selected device (e.g. a Bluetooth headset) being disconnected
-    or unplugged since it was chosen, rather than raising or silently
-    recording from nothing."""
+    still present and can be opened, otherwise auto-detection. Handles a
+    chosen device (e.g. a Bluetooth headset) being disconnected since it was
+    chosen, and a saved number that now points at another device, rather than
+    raising or silently recording from nothing."""
+    if label:
+        preferred = find_input_device(label)
+    elif preferred is not None:
+        # Saved before the name was kept: the number may have moved onto
+        # another device. A microphone choice never means system audio.
+        try:
+            if is_system_audio_device(sd.query_devices(preferred)["name"]):
+                preferred = None
+        except Exception:  # noqa: BLE001
+            preferred = None
     if preferred is not None:
         try:
-            if sd.query_devices(preferred)["max_input_channels"] > 0:
+            info = sd.query_devices(preferred)
+            if info["max_input_channels"] > 0:
+                sd.check_input_settings(
+                    device=preferred,
+                    channels=1,
+                    dtype="float32",
+                    samplerate=int(info["default_samplerate"]),
+                )
                 return preferred
         except Exception:  # noqa: BLE001
             pass

@@ -5,7 +5,9 @@ __pycache__/
 *.pyo
 .pytest_cache/
 *.egg-info/
-core/models/
+core/models/*
+# The hands-free speech detector is small (2 MB, MIT) and the build needs it.
+!core/models/silero_vad.onnx
 build/
 dist/
 installer_output/

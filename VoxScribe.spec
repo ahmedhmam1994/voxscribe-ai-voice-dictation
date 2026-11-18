@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 import glob
+import os
 
 from PyInstaller.utils.hooks import collect_all
 
@@ -48,6 +49,11 @@ datas = [('app/icon.ico', 'app')]
 datas += [(svg, 'app/icons') for svg in glob.glob('app/icons/*.svg')]
 datas += [(txt, 'core/packs') for txt in glob.glob('core/packs/*.txt')]
 datas += [(txt, 'core/data') for txt in glob.glob('core/data/*.txt')]
+# The speech detector for hands-free mode (core/vad.py). Git-ignored; fetch it with
+# scripts/download_vad_model.py before building.
+if not os.path.exists('core/models/silero_vad.onnx'):
+    raise SystemExit('core/models/silero_vad.onnx is missing: run scripts/download_vad_model.py')
+datas += [('core/models/silero_vad.onnx', 'core/models')]
 binaries = []
 hiddenimports = ['sounddevice']
 tmp_ret = collect_all('keyboard')

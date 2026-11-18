@@ -29,6 +29,11 @@ import onnxruntime as ort
 MODEL_PATH = Path(__file__).parent / "models" / "silero_vad.onnx"
 SAMPLE_RATE = 16_000
 FRAME_SIZE = 512  # samples per frame required by the model at 16kHz
+# The model (Silero v5) expects each frame to be fed with the last 64 samples of
+# the frame before it in front. Without them it scores even loud, clear speech
+# near 0 (0.003 on a real headset clip that scores 1.0 with them), which is why
+# this detector once looked unusable on the Bluetooth headset.
+CONTEXT_SIZE = 64
 # This user's Bluetooth headset mic (soundcore R50i NC over HFP) delivers a
 # very quiet signal with no OS-level boost option available. Pushing digital
 # gain much past ~15x starts clipping/distorting the waveform without
@@ -87,11 +92,13 @@ class SileroVAD:
         self._session = ort.InferenceSession(str(model_path), providers=["CPUExecutionProvider"])
         self._state = np.zeros((2, 1, 128), dtype=np.float32)
         self._sr = np.array(SAMPLE_RATE, dtype=np.int64)
+        self._context = np.zeros(CONTEXT_SIZE, dtype=np.float32)
 
     def reset(self) -> None:
         """Clear recurrent state (call when starting a new/unrelated stream)."""
         self._state = np.zeros((2, 1, 128), dtype=np.float32)
         self._agc_level = AGC_TARGET_LEVEL
+        self._context = np.zeros(CONTEXT_SIZE, dtype=np.float32)
 
     def speech_probability(self, frame: np.ndarray) -> float:
         """Run one frame through the model, return the speech probability (0-1).
@@ -101,7 +108,9 @@ class SileroVAD:
         if frame.shape != (FRAME_SIZE,):
             raise ValueError(f"expected a frame of shape ({FRAME_SIZE},), got {frame.shape}")
 
-        x = frame.reshape(1, -1).astype(np.float32)
+        frame = frame.astype(np.float32)
+        x = np.concatenate([self._context, frame]).reshape(1, -1)
+        self._context = frame[-CONTEXT_SIZE:]
         if self.use_agc:
             frame_level = float(np.mean(np.abs(frame)))
             self._agc_level = AGC_SMOOTHING * self._agc_level + (1 - AGC_SMOOTHING) * frame_level

@@ -64,6 +64,8 @@ _DOT_COLORS = {
     "model_failed": _RED,
     "busy": _AMBER,
     "redo": _AMBER,
+    "listening": _GREEN,
+    "hands_free_typing": _AMBER,
 }
 _LABELS = {
     "recording": "Recording",
@@ -72,6 +74,8 @@ _LABELS = {
     "model_failed": "Model failed to load",
     "busy": "Busy with file import",
     "redo": "Trying harder",
+    "listening": "Listening",
+    "hands_free_typing": "Typing",
 }
 
 _BAR_COUNT = 11
@@ -230,6 +234,9 @@ class FloatingIndicator(QWidget):
         layout.addWidget(self._bars)
 
         self._kind = ""
+        # A status the pill goes back to instead of hiding, while a hands-free
+        # session runs (set_resting).
+        self._resting = ""
         self._animate = True
         # Written from the audio callback thread, read and reset on the Qt
         # thread each tick. A lost update only costs one frame of the meter.
@@ -289,7 +296,7 @@ class FloatingIndicator(QWidget):
 
     def feed_audio(self, chunk: np.ndarray) -> None:
         """Called from the mic callback thread with each captured chunk."""
-        if self._kind != "recording":
+        if self._kind not in ("recording", "listening"):
             return
         level = chunk_level(chunk)
         if level > self._pending_level:
@@ -302,7 +309,7 @@ class FloatingIndicator(QWidget):
         self._hide_timer.stop()
         self._shake_started = None
         self._check_started = None
-        if kind == "recording" and self._kind != "recording":
+        if kind in ("recording", "listening") and self._kind != kind:
             self._bars.levels.extend([0.0] * _BAR_COUNT)
             self._smoothed_level = 0.0
             self._pending_level = 0.0
@@ -312,8 +319,10 @@ class FloatingIndicator(QWidget):
         self._icon.color = QColor(color)
         self._icon.glow = 1.0
         self._icon.progress = 1.0
-        self._bars.setVisible(kind in ("recording", "transcribing", "redo"))
-        self._bars.mode = "level" if kind == "recording" else "working"
+        self._bars.setVisible(
+            kind in ("recording", "transcribing", "redo", "listening", "hands_free_typing")
+        )
+        self._bars.mode = "level" if kind in ("recording", "listening") else "working"
         self._bars.color = QColor(color)
         label = _LABELS.get(kind, kind)
         self._show_with_text(f"{label} \u00b7 {detail}" if detail else label)
@@ -328,9 +337,17 @@ class FloatingIndicator(QWidget):
         if self._flash("error", _RED, text, ms):
             self._shake_started = time.monotonic() if self._animate else None
 
+    def set_resting(self, kind: str) -> None:
+        """While set, the pill shows this status instead of hiding (after a
+        "Typed" flash, for example). "" turns it off; hide_indicator() then hides."""
+        self._resting = kind
+
     def hide_indicator(self) -> None:
         """Fades and slides the pill away (or hides it at once with
         animations off). Showing a new status meanwhile cancels the fade."""
+        if self._resting:
+            self.show_status(self._resting)
+            return
         self._hide_timer.stop()
         self._kind = ""
         if self.isVisible() and _animations_enabled():
@@ -394,7 +411,7 @@ class FloatingIndicator(QWidget):
 
     def _tick(self) -> None:
         now = time.monotonic()
-        if self._kind == "recording":
+        if self._kind in ("recording", "listening"):
             target = self._pending_level
             self._pending_level = 0.0
             if target > self._smoothed_level:
@@ -403,7 +420,7 @@ class FloatingIndicator(QWidget):
                 self._smoothed_level = self._smoothed_level * 0.78 + target * 0.22
             self._bars.levels.append(self._smoothed_level)
             self._bars.update()
-        elif self._kind in ("transcribing", "redo"):
+        elif self._kind in ("transcribing", "redo", "hands_free_typing"):
             if self._animate:
                 self._bars.phase += 0.2
                 self._icon.glow = 0.55 + 0.45 * math.sin((now - self._started) * 4.0)

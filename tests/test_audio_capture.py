@@ -130,3 +130,32 @@ def test_system_audio_devices_are_labelled(monkeypatch):
     labels = [name for _, name in audio_capture.list_input_devices()]
     assert labels[0] == "Internal Microphone (Windows WASAPI)"
     assert labels[1].endswith("(system audio)")
+
+
+from core import audio_capture  # noqa: E402
+
+
+def _fake_named(monkeypatch, names):
+    hostapis = [{"name": "Windows WASAPI", "devices": list(range(len(names))), "default_input_device": 0}]
+    devices = [{"name": n, "hostapi": 0, "max_input_channels": 1, "default_samplerate": 48000} for n in names]
+    monkeypatch.setattr(audio_capture.sd, "query_hostapis", lambda i=None: hostapis if i is None else hostapis[i])
+    monkeypatch.setattr(audio_capture.sd, "query_devices", lambda i=None: devices if i is None else devices[i])
+    monkeypatch.setattr(audio_capture.sd, "check_input_settings", lambda **kw: None)
+
+
+def test_saved_mic_is_found_by_name_after_numbers_shift(monkeypatch):
+    _fake_named(monkeypatch, ["Internal Mic", "Stereo Mix", "Headset"])
+    label = audio_capture.device_label(2)
+    assert label == "Headset (Windows WASAPI)"
+    _fake_named(monkeypatch, ["Internal Mic", "Headset", "Stereo Mix"])
+    assert audio_capture.resolve_input_device(2, label) == 1
+
+
+def test_old_saved_number_on_system_audio_falls_back(monkeypatch):
+    _fake_named(monkeypatch, ["Internal Mic", "Stereo Mix"])
+    assert audio_capture.resolve_input_device(1) == 0
+
+
+def test_saved_mic_not_connected_falls_back(monkeypatch):
+    _fake_named(monkeypatch, ["Internal Mic"])
+    assert audio_capture.resolve_input_device(3, "Headset (Windows WASAPI)") == 0
