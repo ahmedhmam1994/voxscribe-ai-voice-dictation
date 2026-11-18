@@ -2429,16 +2429,16 @@ class MainWindow(QMainWindow):
                 )
             ask_key = hotkey_settings.get_ask_hotkey()
             if ask_key and ask_key not in (self._hotkey, second, inbox_key):
-                self._ask_press_hook = keyboard.on_press_key(
-                    ask_key, lambda e: self._hotkey_bridge.ask_press_requested.emit()
-                )
-                self._ask_release_hook = keyboard.on_release_key(
-                    ask_key, lambda e: self._hotkey_bridge.ask_release_requested.emit()
+                # Kept from the app in front: F6 held there moves the focus
+                # (browsers, Word), which drops the selection the answer replaces.
+                self._ask_press_hook = keyboard.hook_key(
+                    ask_key, self._on_ask_key_event, suppress=True
                 )
             hands_free_key = hotkey_settings.get_hands_free_hotkey()
             if hands_free_key and hands_free_key not in (self._hotkey, second, inbox_key, ask_key):
-                self._hands_free_hook = keyboard.on_press_key(
-                    hands_free_key, lambda e: self._hotkey_bridge.hands_free_requested.emit()
+                # Kept from the app too (F4 repeats the last action in Word).
+                self._hands_free_hook = keyboard.hook_key(
+                    hands_free_key, self._on_hands_free_key_event, suppress=True
                 )
             redo_key = hotkey_settings.get_redo_hotkey()
             if redo_key and redo_key not in (
@@ -6732,6 +6732,19 @@ class MainWindow(QMainWindow):
                 self._hotkey_bridge.redo_requested.emit()
             return False
         self._redo_key_down = False
+        return False
+
+    def _on_ask_key_event(self, event) -> bool:  # noqa: ANN001
+        """Runs on the keyboard hook's thread; the key never reaches the app."""
+        if event.event_type == "down":
+            self._hotkey_bridge.ask_press_requested.emit()
+        else:
+            self._hotkey_bridge.ask_release_requested.emit()
+        return False
+
+    def _on_hands_free_key_event(self, event) -> bool:  # noqa: ANN001
+        if event.event_type == "down":
+            self._hotkey_bridge.hands_free_requested.emit()
         return False
 
     def _redo_too_late(self) -> None:
