@@ -5890,7 +5890,7 @@ class MainWindow(QMainWindow):
         Library). That reading took 23 s on a 4-core laptop; done now, it
         overlaps the speech instead of following it."""
         if not self._ask_grabber.done:
-            if tries < 20:
+            if tries < 40:
                 QTimer.singleShot(60, lambda: self._warm_ask_when_grabbed(tries + 1))
             return
         feature = "ask_edit" if self._ask_grabber.text else "ask_library"

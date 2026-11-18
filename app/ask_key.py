@@ -50,7 +50,12 @@ LINE_COPY_EDITORS = frozenset(
 )  # fmt: skip
 
 _POLL_MS = 60
-_POLL_TRIES = 10  # about 600 ms: Word and some browsers are slow to copy
+_POLL_TRIES = 25  # about 1.5 s: Word and some browsers are slow to copy
+# A Ctrl+C that lands while the window is still busy (a page just loaded, a
+# key still settling) is sometimes dropped, so it is sent once more if the
+# clipboard has not moved by then. A second copy of the same selection is
+# harmless.
+_RESEND_AT = 8  # about 0.5 s
 
 
 def _clipboard_sequence() -> int:
@@ -83,6 +88,7 @@ class SelectionGrabber(QObject):
         self._process = ""
         self._saved: QMimeData | None = None
         self._tries = 0
+        self._resent = False
         self._timer = QTimer(self)
         self._timer.setInterval(_POLL_MS)
         self._timer.timeout.connect(self._poll)
@@ -104,6 +110,7 @@ class SelectionGrabber(QObject):
             return
         self.done = False
         self._tries = 0
+        self._resent = False
         self._timer.start()
 
     def _poll(self) -> None:
@@ -124,6 +131,12 @@ class SelectionGrabber(QObject):
             self._timer.stop()
             self._saved = None
             self.done = True
+        elif self._tries >= _RESEND_AT and not self._resent:
+            self._resent = True
+            try:
+                keyboard.send("ctrl+c")
+            except Exception:  # noqa: BLE001 -- the first copy may still land
+                pass
 
 
 def _source_line(source: ask_library.Source) -> str:
