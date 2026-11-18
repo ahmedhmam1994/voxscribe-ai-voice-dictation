@@ -288,7 +288,7 @@ def custom_vocabulary_prompt(
     from core import term_packs
 
     return term_packs.hint_prompt(
-        get_enabled_packs() if packs is None else packs,
+        _with_pro(get_enabled_packs() if packs is None else packs),
         get_custom_vocabulary(),
         context if get_window_context_enabled() else None,
     )
@@ -321,6 +321,18 @@ def set_enabled_packs(pack_ids: list[str]) -> None:
     _settings().setValue("enabled_term_packs", ",".join(p.strip() for p in pack_ids if p.strip()))
 
 
+def _with_pro(packs: list[str]) -> list[str]:
+    """The packs plus their longer Pro lists when Pro is unlocked
+    (core/term_packs.py, PRO_EXTENSIONS)."""
+    from core import license, term_packs
+
+    try:
+        pro = license.is_pro()
+    except Exception:  # noqa: BLE001 -- a license problem must not stop dictation
+        pro = False
+    return term_packs.with_pro(packs, pro)
+
+
 def correction_terms(packs: list[str] | None = None) -> list[str]:
     """Custom vocabulary plus the enabled packs, for the correction pass over
     finished text (works with every speech model, not only Whisper). `packs`
@@ -328,7 +340,7 @@ def correction_terms(packs: list[str] | None = None) -> list[str]:
     from core import term_packs
 
     return term_packs.combined_terms(
-        get_enabled_packs() if packs is None else packs, get_custom_vocabulary()
+        _with_pro(get_enabled_packs() if packs is None else packs), get_custom_vocabulary()
     )
 
 
@@ -337,7 +349,9 @@ def correction_fuzzy_terms(packs: list[str] | None = None) -> list[str]:
     speech model misspells them; see core/term_packs.py."""
     from core import term_packs
 
-    return term_packs.combined_fuzzy_terms(get_enabled_packs() if packs is None else packs)
+    return term_packs.combined_fuzzy_terms(
+        _with_pro(get_enabled_packs() if packs is None else packs)
+    )
 
 
 DEFAULT_TALK_MODE = "hold"
@@ -456,7 +470,7 @@ def use_batch_trial() -> int:
 # Pro features that can be tried a few times first. Each has its own counter.
 FREE_FEATURE_TRIALS = 3
 TRIAL_FEATURES = (
-    "link_import", "summary", "assistant", "form_fill", "hands_free",
+    "link_import", "summary", "assistant", "form_fill", "ask_edit", "ask_library", "hands_free",
 )  # fmt: skip
 
 
@@ -751,6 +765,16 @@ def set_inbox_hotkey(key: str) -> None:
     _settings().setValue("inbox_hotkey", key)
 
 
+def get_ask_hotkey() -> str:
+    """Pro: a hold-to-talk key for the assistant. With text selected, what you
+    say is done to that text; with nothing selected, it is a question answered
+    from the Library (core/ask_library.py). Empty means off, like the inbox key."""
+    value = _settings().value("ask_hotkey", "")
+    return value if value in AVAILABLE_HOTKEYS and value not in HOLD_DELAY_HOTKEYS else ""
+
+
+def set_ask_hotkey(key: str) -> None:
+    _settings().setValue("ask_hotkey", key)
 
 
 def get_hands_free_hotkey() -> str:

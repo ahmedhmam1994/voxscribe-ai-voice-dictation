@@ -3,7 +3,7 @@
 ; this with ISCC.exe to produce a single setup.exe installer in installer_output\.
 
 #define MyAppName "VoxScribe"
-#define MyAppVersion "1.8.4"
+#define MyAppVersion "1.9.0"
 #define MyAppExeName "VoxScribe.exe"
 
 [Setup]

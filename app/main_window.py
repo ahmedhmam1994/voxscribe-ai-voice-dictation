@@ -75,6 +75,7 @@ from PySide6.QtWidgets import (
 )
 
 from app import theme
+from app.ask_key import SelectionGrabber, show_answer_dialog
 from app.floating_indicator import FloatingIndicator
 from app.hands_free import HandsFreeThread
 from app.insights_page import InsightsPage
@@ -92,6 +93,7 @@ from app.whats_new import whats_new_text
 from core import (
     app_profiles,
     arabic_terms,
+    ask_library,
     assistant,
     batch,
     code_dictation,
@@ -355,6 +357,12 @@ class HotkeyBridge(QObject):
     # The notes inbox key (core/inbox.py).
     inbox_press_requested = Signal()
     inbox_release_requested = Signal()
+    # The Pro Ask key (app/ask_key.py, core/ask_library.py).
+    ask_press_requested = Signal()
+    ask_release_requested = Signal()
+    # The Ask key's model work finished on a worker thread:
+    # (kind "edit" or "ask", result tuple or None, error message or None).
+    ask_done = Signal(str, object, object)
     # The Try harder key (core/redo.py).
     redo_requested = Signal()
     redo_too_late = Signal()
@@ -1556,6 +1564,14 @@ class MainWindow(QMainWindow):
         # and taken by the recording it starts; _inbox_session is that recording.
         self._inbox_pending = False
         self._inbox_session = False
+        # The Pro Ask key, same pending/session pattern as the inbox key. The
+        # selection is read with Ctrl+C when the key goes down.
+        self._ask_pending = False
+        self._ask_session = False
+        self._ask_grabber = SelectionGrabber(self)
+        self._ask_selection = ""
+        self._ask_hwnd = None
+        self._ask_trial_feature = ""
         # Words Whisper was unsure about in the dictation being delivered.
         self._unsure_words: list[str] = []
         self._startup_box: QMessageBox | None = None
@@ -2147,6 +2163,9 @@ class MainWindow(QMainWindow):
         self._hotkey_bridge.alt_release_requested.connect(self._handle_hotkey_release)
         self._hotkey_bridge.inbox_press_requested.connect(self._handle_inbox_press)
         self._hotkey_bridge.inbox_release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_bridge.ask_press_requested.connect(self._handle_ask_press)
+        self._hotkey_bridge.ask_release_requested.connect(self._handle_hotkey_release)
+        self._hotkey_bridge.ask_done.connect(self._on_ask_done)
         self._hotkey_bridge.redo_requested.connect(self._try_harder)
         self._hotkey_bridge.hands_free_requested.connect(self._toggle_hands_free)
         self._hotkey_bridge.redo_too_late.connect(self._redo_too_late)
@@ -2195,6 +2214,8 @@ class MainWindow(QMainWindow):
         self._alt_press_hook = None
         self._inbox_press_hook = None
         self._inbox_release_hook = None
+        self._ask_press_hook = None
+        self._ask_release_hook = None
         self._hands_free_hook = None
         self._hands_free: HandsFreeThread | None = None
         self._hands_free_params: tuple = (None, None, "transcribe")
@@ -2328,6 +2349,8 @@ class MainWindow(QMainWindow):
             self._alt_release_hook,
             self._inbox_press_hook,
             self._inbox_release_hook,
+            self._ask_press_hook,
+            self._ask_release_hook,
             self._hands_free_hook,
             self._redo_hook,
         ):
@@ -2343,6 +2366,8 @@ class MainWindow(QMainWindow):
         self._alt_release_hook = None
         self._inbox_press_hook = None
         self._inbox_release_hook = None
+        self._ask_press_hook = None
+        self._ask_release_hook = None
         self._hands_free_hook = None
         self._redo_hook = None
         self._hold_gate = None
@@ -2396,14 +2421,22 @@ class MainWindow(QMainWindow):
                 self._inbox_release_hook = keyboard.on_release_key(
                     inbox_key, lambda e: self._hotkey_bridge.inbox_release_requested.emit()
                 )
+            ask_key = hotkey_settings.get_ask_hotkey()
+            if ask_key and ask_key not in (self._hotkey, second, inbox_key):
+                self._ask_press_hook = keyboard.on_press_key(
+                    ask_key, lambda e: self._hotkey_bridge.ask_press_requested.emit()
+                )
+                self._ask_release_hook = keyboard.on_release_key(
+                    ask_key, lambda e: self._hotkey_bridge.ask_release_requested.emit()
+                )
             hands_free_key = hotkey_settings.get_hands_free_hotkey()
-            if hands_free_key and hands_free_key not in (self._hotkey, second, inbox_key):
+            if hands_free_key and hands_free_key not in (self._hotkey, second, inbox_key, ask_key):
                 self._hands_free_hook = keyboard.on_press_key(
                     hands_free_key, lambda e: self._hotkey_bridge.hands_free_requested.emit()
                 )
             redo_key = hotkey_settings.get_redo_hotkey()
             if redo_key and redo_key not in (
-                self._hotkey, second, inbox_key, hands_free_key
+                self._hotkey, second, inbox_key, ask_key, hands_free_key
             ):
                 self._redo_hook = keyboard.hook_key(redo_key, self._on_redo_key, suppress=True)
         except Exception as exc:  # noqa: BLE001
@@ -2653,12 +2686,14 @@ class MainWindow(QMainWindow):
 
         license_benefits_label = QLabel(
             "What Pro adds:\n"
+            "- The Ask key: select text anywhere and say what to do with it, or ask "
+            "what you said before and get the answer from your own Library.\n"
             "- Fill a whole form by voice, and rewrite text by saying how.\n"
             "- Paste a link and have the page read into your text.\n"
             "- Snippets and fill-in templates with live {date}, {time} and {clipboard}.\n"
             "- Per-app profiles, a second-language key and speaker labels on files.\n"
             "- Medium and Large Whisper models for higher accuracy (they need a faster PC).\n"
-            "Form fill, the assistant and links give you 3 free tries each. "
+            "The Ask key, form fill, the assistant and links give you 3 free tries each. "
             "Dictation and everything else stays free, with no account."
         )
         license_benefits_label.setWordWrap(True)
@@ -2667,13 +2702,13 @@ class MainWindow(QMainWindow):
 
         license_compare_label = QLabel(
             "Other dictation tools charge a yearly or monthly subscription, "
-            "often well into the hundreds per year. VoxScribe Pro is $14 once."
+            "often well into the hundreds per year. VoxScribe Pro is a one-time payment."
         )
         license_compare_label.setWordWrap(True)
         license_compare_label.setObjectName("settingsHint")
         layout.addWidget(license_compare_label)
 
-        license_buy_button = QPushButton("Get Pro ($14 once)")
+        license_buy_button = QPushButton("Get Pro (one-time payment)")
         license_buy_button.setObjectName("primaryOutlineButton")
         license_buy_button.setCursor(Qt.PointingHandCursor)
         def _open_buy_page() -> None:
@@ -2701,10 +2736,18 @@ class MainWindow(QMainWindow):
         layout.addLayout(license_button_row)
 
         def _refresh_license_ui() -> None:
+            stored_key = hotkey_license.get_license_key() or ""
+            expires = hotkey_license.license_expiry(stored_key) if stored_key else None
             if hotkey_license.is_pro():
-                license_status_label.setText(
-                    "✓ Pro unlocked -- thank you for supporting VoxScribe."
-                )
+                if expires:
+                    license_status_label.setText(
+                        f"✓ Pro unlocked until {expires:%d %B %Y} -- thank you for supporting "
+                        "VoxScribe. Renew on Gumroad and paste the new key before then."
+                    )
+                else:
+                    license_status_label.setText(
+                        "✓ Pro unlocked -- thank you for supporting VoxScribe."
+                    )
                 license_benefits_label.hide()
                 license_compare_label.hide()
                 license_buy_button.hide()
@@ -2712,10 +2755,16 @@ class MainWindow(QMainWindow):
                 license_unlock_button.hide()
                 license_remove_button.show()
             else:
-                license_status_label.setText(
-                    "Free tier. Paste a Pro license key below to unlock Snippets. "
-                    "Needs internet once, to activate."
-                )
+                if stored_key and hotkey_license.is_expired(stored_key):
+                    license_status_label.setText(
+                        f"Your Pro key expired on {expires:%d %B %Y}. Dictation stays free. "
+                        "Renew Pro and paste the new key below to unlock Pro again."
+                    )
+                else:
+                    license_status_label.setText(
+                        "Free tier. Paste a Pro license key below to unlock Snippets. "
+                        "Needs internet once, to activate."
+                    )
                 license_benefits_label.show()
                 license_compare_label.show()
                 license_buy_button.show()
@@ -3474,7 +3523,14 @@ class MainWindow(QMainWindow):
             pack_checks.clear()
             for pack_id, label, count in term_packs.available_packs():
                 row = QHBoxLayout()
-                check = QCheckBox(f"{label} ({count} terms)")
+                extra = term_packs.pro_term_count(pack_id)
+                if not extra:
+                    shown = f"{label} ({count} terms)"
+                elif hotkey_license.is_pro():
+                    shown = f"{label} ({count + extra} terms with Pro)"
+                else:
+                    shown = f"{label} ({count} terms, {extra} more with Pro)"
+                check = QCheckBox(shown)
                 check.setChecked(pack_id in enabled_packs)
                 pack_checks[pack_id] = check
                 row.addWidget(check)
@@ -3964,6 +4020,30 @@ class MainWindow(QMainWindow):
 
         inbox_browse.clicked.connect(_browse_inbox)
 
+        ask_label = QLabel("ASK KEY (PRO)")
+        ask_label.setObjectName("settingsSectionLabel")
+        layout.addWidget(ask_label)
+        ask_key_combo = QComboBox()
+        ask_key_combo.addItem("Off", "")
+        for key in hotkey_settings.AVAILABLE_HOTKEYS:
+            if key not in hotkey_settings.HOLD_DELAY_HOTKEYS:
+                ask_key_combo.addItem(key.upper(), key)
+        ask_key_combo.setCurrentIndex(
+            max(0, ask_key_combo.findData(hotkey_settings.get_ask_hotkey()))
+        )
+        layout.addWidget(ask_key_combo)
+        ask_hint = QLabel(
+            "Select text in any app, hold this key and say what to do: \"make this "
+            "shorter\", \"translate this to Spanish\", \"reply saying Thursday works\". "
+            "The result replaces the selection. With nothing selected, ask your past self: "
+            "\"what did I tell John about the budget last week?\" is answered from your "
+            "Library, with the notes it came from. Uses the rewrite assistant on this PC; "
+            "nothing is sent anywhere. Pro, with "
+            f"{hotkey_settings.FREE_FEATURE_TRIALS} free tries of each."
+        )
+        ask_hint.setObjectName("settingsHint")
+        ask_hint.setWordWrap(True)
+        layout.addWidget(ask_hint)
 
         hands_free_label = QLabel("HANDS-FREE KEY (PRO)")
         hands_free_label.setObjectName("settingsSectionLabel")
@@ -4478,7 +4558,11 @@ class MainWindow(QMainWindow):
 
             new_inbox_key = inbox_key_combo.currentData()
             new_inbox_path = inbox_path_edit.text().strip() or str(inbox.default_path())
-            reserved_keys = {self._hotkey, hotkey_settings.get_second_hotkey()}
+            reserved_keys = {
+                self._hotkey,
+                hotkey_settings.get_second_hotkey(),
+                hotkey_settings.get_ask_hotkey(),
+            }
             if new_inbox_key and new_inbox_key in reserved_keys:
                 changes.append(f"Inbox key not changed: {new_inbox_key.upper()} is already in use.")
             elif (
@@ -4494,11 +4578,30 @@ class MainWindow(QMainWindow):
                     else "Notes inbox key off."
                 )
 
+            new_ask_key = ask_key_combo.currentData()
+            taken = {
+                self._hotkey,
+                hotkey_settings.get_second_hotkey(),
+                hotkey_settings.get_inbox_hotkey(),
+                redo_key_combo.currentData(),
+            }
+            if new_ask_key and new_ask_key in taken:
+                changes.append(f"Ask key not changed: {new_ask_key.upper()} is already in use.")
+            elif new_ask_key != hotkey_settings.get_ask_hotkey():
+                hotkey_settings.set_ask_hotkey(new_ask_key)
+                self._register_global_hotkey()
+                if new_ask_key:
+                    firstrun.feature("ask_key")
+                changes.append(
+                    f"Ask key set to {new_ask_key.upper()}." if new_ask_key else "Ask key off."
+                )
+
             new_hands_free_key = hands_free_key_combo.currentData()
             taken = {
                 self._hotkey,
                 hotkey_settings.get_second_hotkey(),
                 hotkey_settings.get_inbox_hotkey(),
+                hotkey_settings.get_ask_hotkey(),
                 redo_key_combo.currentData(),
             }
             if new_hands_free_key and new_hands_free_key in taken:
@@ -5765,6 +5868,16 @@ class MainWindow(QMainWindow):
         # turn the next, ordinary recording into an inbox note.
         self._inbox_pending = False
 
+    def _handle_ask_press(self) -> None:
+        """Pro: the Ask key. Reads the selection first (Ctrl+C, clipboard put
+        back), then records what to do with it, or a question for the Library."""
+        if not self._hotkey_key_down and self.stream is None:
+            self._language_override = None
+            self._ask_pending = True
+            self._ask_grabber.grab()
+        self._handle_hotkey_press()
+        self._ask_pending = False
+
     def _handle_alt_press(self) -> None:
         """Pro: the second key dictates in its own language."""
         if not self._hotkey_key_down:
@@ -6186,6 +6299,7 @@ class MainWindow(QMainWindow):
         self._stop_learning_watch()
         firstrun.step("first_press", once=True)
         self._inbox_session, self._inbox_pending = self._inbox_pending, False
+        self._ask_session, self._ask_pending = self._ask_pending, False
         read_aloud.stop()
         # A new dictation starts: the previous one can no longer be redone.
         self._clear_redo()
@@ -6423,6 +6537,12 @@ class MainWindow(QMainWindow):
 
     def _on_transcribed(self, text: str, form_checked: bool = False) -> None:
         self._send_after_typing = False
+        if self._ask_session:
+            # The Ask key: an instruction for the selection or a question for
+            # the Library, never typed as dictation.
+            self._ask_session = False
+            self._on_ask_spoken(text)
+            return
         self._unsure_words = (
             unsure.unsure_words(
                 getattr(self.transcriber, "last_words", []) or [],
@@ -8269,6 +8389,150 @@ class MainWindow(QMainWindow):
             lambda old: new if old == original else None, status, self._hands_free_block_text()
         )
 
+    # -- The Ask key (app/ask_key.py, core/ask_library.py) -------------------
+
+    def _on_ask_spoken(self, text: str) -> None:
+        """What was said while holding the Ask key. With text selected it is an
+        instruction for that text; with nothing selected, a question answered
+        from the Library. Pro, with a few free tries of each."""
+        self.record_button.setEnabled(True)
+        self._set_import_enabled(True)
+        text = (text or "").strip()
+        if not text:
+            self._set_status("No speech recognized", "ready")
+            self._indicator.flash_error("Didn't catch that")
+            return
+        if not self._ask_grabber.done:
+            # The app is still copying; try again in a moment.
+            QTimer.singleShot(150, lambda: self._on_ask_spoken(text))
+            return
+        selection = self._ask_grabber.text
+        target = self._ask_grabber.hwnd
+        feature = "ask_edit" if selection else "ask_library"
+        self.transcript_area.append(
+            f"[Ask key, {'on the selection' if selection else 'your Library'}] {text}"
+        )
+        is_pro = hotkey_license.is_pro()
+        if not is_pro and hotkey_settings.get_feature_trials_left(feature) <= 0:
+            self._set_status("The Ask key is a Pro feature", "error")
+            self._indicator.flash_error("The Ask key is Pro")
+            return
+        if not assistant.is_ready():
+            self._set_status("Download the rewrite assistant in Settings > Speech first", "error")
+            self._indicator.flash_error("Assistant not downloaded")
+            return
+        if self._assistant_busy:
+            self._set_status("Still working on the last one", "ready")
+            return
+        firstrun.feature(feature)
+        self._assistant_busy = True
+        self._ask_trial_feature = "" if is_pro else feature
+        bridge = self._hotkey_bridge
+        worker = self._assistant
+
+        if selection:
+            self._set_status("Working on the selection...", "transcribing")
+            self._indicator.show_status("Working on it...")
+
+            def _edit() -> None:
+                try:
+                    edited = worker.edit(selection, text)
+                    bridge.ask_done.emit("edit", (selection, edited, target), None)
+                except assistant.AssistantError as exc:
+                    bridge.ask_done.emit("edit", None, str(exc))
+                except Exception:  # noqa: BLE001 -- never let a model problem crash dictation
+                    bridge.ask_done.emit("edit", None, "The assistant failed")
+
+            threading.Thread(target=_edit, daemon=True).start()
+            return
+
+        self._set_status("Looking in your Library...", "transcribing")
+        self._indicator.show_status("Looking it up...")
+
+        def _ask() -> None:
+            try:
+                sources, _window = ask_library.find_sources(library.all_items(), text)
+                if not sources:
+                    bridge.ask_done.emit("ask", (text, None, [], False), None)
+                    return
+                reply = worker.answer(ask_library.build_messages(text, sources))
+                bridge.ask_done.emit(
+                    "ask", (text, ask_library.read_answer(reply), sources, True), None
+                )
+            except assistant.AssistantError as exc:
+                bridge.ask_done.emit("ask", None, str(exc))
+            except Exception:  # noqa: BLE001
+                bridge.ask_done.emit("ask", None, "Could not search your Library")
+
+        threading.Thread(target=_ask, daemon=True).start()
+
+    def _use_ask_trial(self) -> str:
+        """Counts a free try when one was used; the note to show, or ''."""
+        feature, self._ask_trial_feature = self._ask_trial_feature, ""
+        if not feature:
+            return ""
+        left = hotkey_settings.use_feature_trial(feature)
+        return (
+            f"{left} free tr{'ies' if left != 1 else 'y'} left. The Ask key is a Pro feature."
+            if left
+            else "Last free try used. The Ask key is a Pro feature."
+        )
+
+    def _on_ask_done(self, kind: str, result, error) -> None:  # noqa: ANN001
+        self._assistant_busy = False
+        self._indicator.hide_indicator()
+        if error or result is None:
+            self._ask_trial_feature = ""
+            self._set_status(error or "The assistant failed", "error")
+            self._indicator.flash_error(error or "The assistant failed")
+            return
+        if kind == "ask":
+            question, answer, sources, asked_model = result
+            # A free try counts only when it found an answer.
+            note = self._use_ask_trial() if asked_model and answer else ""
+            self._ask_trial_feature = ""
+            self._set_status(
+                "Answered from your Library" if answer else "Not in your Library", "ready"
+            )
+            show_answer_dialog(
+                self, question, answer, sources, note, SETTINGS_DIALOG_STYLESHEET
+            )
+            return
+
+        original, new, target = result
+        if new.strip() == original.strip():
+            self._ask_trial_feature = ""
+            self._set_status("Already fine, nothing changed", "ready")
+            return
+        if target is None or foreground_window_handle() != target:
+            self._ask_trial_feature = ""
+            self._set_status("Not typed: the active window changed", "error")
+            self._indicator.flash_error("Not typed, window changed")
+            return
+        if focused_is_password():
+            self._ask_trial_feature = ""
+            self._set_status("Not typed: the box is a password field", "error")
+            return
+        note = self._use_ask_trial()
+        # The selection is still selected, so typing replaces it. The last
+        # dictation is no longer where "scratch that" or "make it formal" expect
+        # it, so those stop applying to it.
+        self._last_typed_text = ""
+        self._last_typed_hwnd = None
+        self._clear_redo()
+        typing_delay = hotkey_settings.get_typing_delay_ms() / 1000
+
+        def _type() -> None:
+            with self._typing_lock:
+                try:
+                    keyboard.write(new, delay=typing_delay)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        threading.Thread(target=_type, daemon=True).start()
+        self._set_status(f"Done. {note}".strip(), "ready")
+        self._indicator.flash_success("Done")
+
     # -- Form fill (core/form_fill.py, core/form_fields.py) -----------------
 
     def _form_fill_wanted(self, text: str) -> bool:
@@ -8797,7 +9061,7 @@ class MainWindow(QMainWindow):
             "is part of VoxScribe Pro, and your 2 free batch runs are used up."
         )
         box.setInformativeText(
-            "You can still import one file at a time for free, or get Pro once for $14."
+            "You can still import one file at a time for free, or get Pro with a one-time payment."
         )
         box.setStyleSheet(MESSAGE_BOX_STYLESHEET)
         pro_button = box.addButton("Get Pro", QMessageBox.AcceptRole)

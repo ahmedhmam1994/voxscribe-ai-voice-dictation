@@ -1,0 +1,176 @@
+# Software and AI Pro: used along with the Software and AI pack once VoxScribe Pro is unlocked.
+# One term per line. Lines starting with # are notes.
+# The first terms matter most: they are passed to the speech model as hints.
+Istio
+Argo CD
+Pulumi
+OpenTelemetry
+Jaeger
+Zipkin
+HashiCorp Vault
+etcd
+containerd
+Podman
+Helm chart
+Kustomize
+kubeconfig
+CoreDNS
+Traefik
+HAProxy
+Memcached
+CockroachDB
+ClickHouse
+BigQuery
+Databricks
+Apache Spark
+Apache Airflow
+Apache Flink
+dbt
+Delta Lake
+Protobuf
+Protocol Buffers
+OpenAPI
+tRPC
+SvelteKit
+Nuxt
+Tailwind CSS
+shadcn
+Zustand
+Redux
+TanStack Query
+React Native
+Jetpack Compose
+SwiftUI
+Xcode
+Gradle
+Tauri
+WebGPU
+WebRTC
+Server-Sent Events
+idempotent
+idempotency key
+eventual consistency
+CAP theorem
+sharding
+read replica
+connection pooling
+PgBouncer
+write-ahead log
+MVCC
+two-phase commit
+saga pattern
+CQRS
+event sourcing
+dead letter queue
+backpressure
+rate limiting
+circuit breaker
+exponential backoff
+blue-green deployment
+canary release
+feature flag
+trunk-based development
+semantic versioning
+SemVer
+Dependabot
+pre-commit hook
+GitHub Actions
+GitLab CI
+SBOM
+SAST
+DAST
+OWASP
+CVE
+XSS
+CSRF
+SSRF
+SQL injection
+mTLS
+OIDC
+SAML
+SCIM
+RBAC
+ABAC
+zero trust
+secrets manager
+KMS
+IAM role
+VPC
+NAT gateway
+load balancer
+CDN
+edge function
+serverless
+AWS Lambda
+Cloud Run
+Azure Functions
+Fargate
+EKS
+GKE
+AKS
+ECS
+SQS
+SNS
+EventBridge
+CloudWatch
+SageMaker
+Vertex AI
+Azure OpenAI
+mixture of experts
+MoE
+RLHF
+GRPO
+PPO
+KV cache
+self-attention
+positional encoding
+context window
+speculative decoding
+FlashAttention
+vLLM
+AWQ
+GPTQ
+bitsandbytes
+safetensors
+byte pair encoding
+BPE
+SentencePiece
+cross-entropy loss
+gradient descent
+AdamW
+learning rate scheduler
+overfitting
+LayerNorm
+softmax
+logits
+top-p sampling
+nucleus sampling
+beam search
+word error rate
+WER
+perplexity
+F1 score
+confusion matrix
+embedding model
+cosine similarity
+HNSW
+FAISS
+Qdrant
+pgvector
+reranker
+agentic
+tool calling
+function calling
+structured output
+JSON schema
+system prompt
+few-shot prompting
+chain of thought
+CTranslate2
+sherpa-onnx
+diarization
+voice activity detection
+VAD
+text-to-speech
+TTS
+ASR

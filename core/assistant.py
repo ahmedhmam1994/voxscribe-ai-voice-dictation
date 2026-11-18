@@ -337,8 +337,32 @@ def clean_reply(reply: str) -> str:
 _NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)?")
 
 
-def _numbers(text: str) -> set[str]:
-    return {n.replace(",", ".").lstrip("0") or "0" for n in _NUMBER_RE.findall(text)}
+_NUMBER_WORDS = {
+    word: str(value)
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+        "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+    )
+}
+_NUMBER_WORD_RE = re.compile(r"\b(?:" + "|".join(_NUMBER_WORDS) + r")\b", re.IGNORECASE)
+
+
+def _numbers(text: str, words: bool = False) -> set[str]:
+    """The numbers in `text`. With `words`, a small number written as a word
+    counts too, so "2 bugs" made formal as "two bugs" is not a change. Only a
+    reply is read that way: "no one" in the dictation is not a number to keep."""
+    found = {n.replace(",", ".").lstrip("0") or "0" for n in _NUMBER_RE.findall(text)}
+    if words:
+        found |= {_NUMBER_WORDS[w.casefold()] for w in _NUMBER_WORD_RE.findall(text)}
+    return found
+
+
+def missing_numbers(original: str, reply: str) -> list[str]:
+    """Numbers of `original` that `reply` lost, as written in `original`."""
+    lost = _numbers(original) - _numbers(reply, words=True)
+    return [
+        n for n in _NUMBER_RE.findall(original) if (n.replace(",", ".").lstrip("0") or "0") in lost
+    ]
 
 
 def check_reply(original: str, reply: str) -> str | None:
@@ -347,11 +371,58 @@ def check_reply(original: str, reply: str) -> str | None:
         return "The assistant gave no answer"
     if _PLACEHOLDER_RE.search(reply):
         return "The assistant added a placeholder"
-    missing = _numbers(original) - _numbers(reply)
+    missing = _numbers(original) - _numbers(reply, words=True)
     if missing:
         return "The assistant changed a number, so nothing was typed"
     if len(reply) > max(400, len(original) * 3):
         return "The assistant wrote far more than you said"
+    return None
+
+
+# -- Ask key: any spoken instruction on selected text (Pro) -------------------
+
+EDIT_SYSTEM_PROMPT = (
+    "The user selected some text and told you what to do with it. Do it and reply "
+    "with the resulting text only, ready to replace the selection.\n"
+    "Rules:\n"
+    "- Keep every name, number, date, time, dose and unit exactly as given, unless the "
+    "instruction says to change it.\n"
+    "- Never add facts, greetings, sign-offs or placeholders like [Your Name] that the "
+    "instruction or the text do not give.\n"
+    "- When asked to translate, translate everything and keep the meaning.\n"
+    "- When asked to reply or answer, write the reply in the user's voice from what the "
+    "instruction says.\n"
+    "- No quotes, notes or explanations around the result."
+)
+
+# Instructions that write something new from the selection, where the
+# selection's numbers need not appear in the result.
+_WRITES_NEW_RE = re.compile(
+    r"^(?:please )?(?:reply|answer|respond|write|draft|compose)\b", re.IGNORECASE
+)
+MAX_SELECTION_CHARS = 6000
+
+
+def build_edit_messages(text: str, instruction: str) -> list[dict[str, str]]:
+    user = f"Instruction: {instruction.strip()}\n\nSelected text:\n{text}"
+    return [
+        {"role": "system", "content": EDIT_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+
+
+def check_edit(original: str, instruction: str, reply: str) -> str | None:
+    """Like check_reply, for an instruction on selected text. A reply or a new
+    text written from the selection may leave its numbers out."""
+    if not reply.strip():
+        return "The assistant gave no answer"
+    if _PLACEHOLDER_RE.search(reply):
+        return "The assistant added a placeholder"
+    writes_new = bool(_WRITES_NEW_RE.match(instruction.strip()))
+    if not writes_new and missing_numbers(original, reply):
+        return "The assistant changed a number, so nothing was typed"
+    if len(reply) > max(800, len(original) * 4):
+        return "The assistant wrote far more than expected"
     return None
 
 
@@ -565,6 +636,28 @@ class Assistant:
         if problem:
             raise AssistantError(problem)
         return result
+
+    def edit(self, text: str, instruction: str) -> str:
+        """Selected text with a spoken instruction applied ("make this
+        shorter", "translate this to Spanish"), checked."""
+        if len(text) > MAX_SELECTION_CHARS:
+            raise AssistantError("The selection is too long, select less text")
+        tokens = max(384, len(text) // 2 + 256)
+        result = clean_reply(self._complete(build_edit_messages(text, instruction), tokens))
+        lost = missing_numbers(text, result)
+        if lost and not _WRITES_NEW_RE.match(instruction.strip()):
+            # Small models drop a number now and then; one more try, told which.
+            keep = ", ".join(dict.fromkeys(lost))
+            again = f"{instruction.strip()}. Keep these numbers exactly as written: {keep}"
+            result = clean_reply(self._complete(build_edit_messages(text, again), tokens))
+        problem = check_edit(text, instruction, result)
+        if problem:
+            raise AssistantError(problem)
+        return result
+
+    def answer(self, messages: list[dict[str, str]]) -> str:
+        """The raw answer to a question built by core/ask_library.py."""
+        return self._complete(messages, 300)
 
     def stop_if_idle(self) -> None:
         if self.running() and time.monotonic() - self._last_used > IDLE_STOP_SECONDS:

@@ -175,3 +175,29 @@ def test_transcribe_speed_is_learned_per_model(monkeypatch, tmp_path):
     other = next(c for c, _ in settings.AVAILABLE_MODEL_SIZES if c != settings.get_model_size())
     settings.set_model_size(other)
     assert settings.get_transcribe_speed() is None
+
+
+def test_pack_terms_grow_with_pro(monkeypatch, tmp_path):
+    from core import license
+
+    _use_temp_settings(monkeypatch, tmp_path)
+    settings.set_enabled_packs(["medical"])
+    monkeypatch.setattr(license, "is_pro", lambda: False)
+    free = settings.correction_terms()
+    free_fuzzy = settings.correction_fuzzy_terms()
+    monkeypatch.setattr(license, "is_pro", lambda: True)
+    pro = settings.correction_terms()
+    assert len(pro) > len(free) and "dexmedetomidine" in settings.correction_fuzzy_terms()
+    assert "dexmedetomidine" not in free_fuzzy
+
+
+def test_pack_terms_stay_free_when_license_check_breaks(monkeypatch, tmp_path):
+    from core import license
+
+    def broken():
+        raise RuntimeError("bad license file")
+
+    _use_temp_settings(monkeypatch, tmp_path)
+    settings.set_enabled_packs(["medical"])
+    monkeypatch.setattr(license, "is_pro", broken)
+    assert "dexmedetomidine" not in settings.correction_fuzzy_terms()

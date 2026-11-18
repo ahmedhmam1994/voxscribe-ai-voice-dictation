@@ -209,3 +209,63 @@ def test_software_pack_repairs_rare_names_and_leaves_everyday_words_alone():
     )
     for word in ("suppose", "posters", "react", "rust", "go", "swift"):
         assert term_packs.correct_text(word, terms, fuzzy) == word
+
+
+# --- Pro lists (core/packs/*_pro.txt) ---
+
+PRO_IDS = list(term_packs.PRO_EXTENSIONS.values())
+
+
+def test_every_pro_list_loads_and_is_large():
+    for pro_id in PRO_IDS:
+        assert len(term_packs.pack_terms(pro_id)) > 100, pro_id
+
+
+def test_pro_lists_never_repeat_a_free_term():
+    for base, pro_id in term_packs.PRO_EXTENSIONS.items():
+        free = {t.lower() for t in term_packs.pack_terms(base)}
+        repeats = [t for t in term_packs.pack_terms(pro_id) if t.lower() in free]
+        assert repeats == [], (pro_id, repeats)
+
+
+def test_pro_lists_are_not_offered_as_their_own_packs():
+    ids = {pack_id for pack_id, _, _ in term_packs.available_packs()}
+    assert not ids & set(PRO_IDS)
+
+
+def test_with_pro_adds_each_list_after_its_pack():
+    assert term_packs.with_pro(["medical", "legal"], True) == [
+        "medical", "medical_pro", "legal", "legal_pro",
+    ]
+    assert term_packs.with_pro(["medical", "legal"], False) == ["medical", "legal"]
+
+
+def test_with_pro_drops_stray_pro_ids_and_keeps_user_packs():
+    assert term_packs.with_pro(["medical_pro", "user:mine"], True) == ["user:mine"]
+    assert term_packs.with_pro(["medical_pro"], False) == []
+
+
+def test_pro_term_count():
+    assert term_packs.pro_term_count("medical") == len(term_packs.pack_terms("medical_pro"))
+    assert term_packs.pro_term_count("user:mine") == 0
+
+
+def test_pro_medical_repairs_a_misspelled_rare_drug():
+    fuzzy = term_packs.combined_fuzzy_terms(["medical", "medical_pro"])
+    terms = term_packs.combined_terms(["medical", "medical_pro"], [])
+    assert "dexmedetomidine" in fuzzy
+    assert correct_text("started dexmedetomidene drip", terms, fuzzy) == "started dexmedetomidine drip"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "We need it just in time for the launch.",
+        "She has bled a little since Monday.",
+        "I want to bid on the house.",
+        "The faster whisper model is fine.",
+    ],
+)
+def test_pro_lists_leave_everyday_phrases_alone(text):
+    terms = term_packs.combined_terms(PRO_IDS, [])
+    assert correct_text(text, terms, term_packs.combined_fuzzy_terms(PRO_IDS)) == text

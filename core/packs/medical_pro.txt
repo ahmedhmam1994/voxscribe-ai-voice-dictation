@@ -1,0 +1,467 @@
+# Medical Pro: used along with the Medical pack once VoxScribe Pro is unlocked.
+# One term per line. Lines starting with # are notes.
+# The first terms matter most: they are passed to the speech model as hints.
+# Terms between "# fuzzy: on" and "# fuzzy: off" (rare drug names) may also be repaired
+# when the speech model spells them wrong; other terms only get their casing fixed.
+# fuzzy: on
+sacubitril
+ticagrelor
+dabigatran
+edoxaban
+fondaparinux
+tenecteplase
+alteplase
+piperacillin
+tazobactam
+meropenem
+ceftriaxone
+cefazolin
+vancomycin
+clindamycin
+metronidazole
+nitrofurantoin
+trimethoprim
+sulfamethoxazole
+levofloxacin
+linezolid
+daptomycin
+fluconazole
+voriconazole
+amphotericin
+acyclovir
+valacyclovir
+oseltamivir
+remdesivir
+nirmatrelvir
+dexmedetomidine
+propofol
+midazolam
+rocuronium
+succinylcholine
+sugammadex
+norepinephrine
+epinephrine
+vasopressin
+phenylephrine
+dobutamine
+milrinone
+nitroglycerin
+labetalol
+hydralazine
+nicardipine
+clevidipine
+diltiazem
+verapamil
+glycopyrrolate
+flumazenil
+buprenorphine
+hydromorphone
+ketorolac
+celecoxib
+pregabalin
+duloxetine
+mirtazapine
+trazodone
+bupropion
+vortioxetine
+paroxetine
+clozapine
+haloperidol
+lurasidone
+brexpiprazole
+lisdexamfetamine
+methylphenidate
+atomoxetine
+donepezil
+memantine
+rivastigmine
+carbidopa
+pramipexole
+ropinirole
+topiramate
+lacosamide
+zonisamide
+oxcarbazepine
+phenytoin
+sumatriptan
+rizatriptan
+erenumab
+ocrelizumab
+natalizumab
+tirzepatide
+dulaglutide
+sitagliptin
+linagliptin
+glimepiride
+glipizide
+pioglitazone
+canagliflozin
+alendronate
+denosumab
+teriparatide
+calcitriol
+cholecalciferol
+febuxostat
+infliximab
+etanercept
+ustekinumab
+secukinumab
+dupilumab
+tofacitinib
+upadacitinib
+baricitinib
+vedolizumab
+mesalamine
+azathioprine
+mycophenolate
+tacrolimus
+cyclosporine
+sirolimus
+nivolumab
+ipilimumab
+atezolizumab
+durvalumab
+bevacizumab
+cetuximab
+imatinib
+osimertinib
+palbociclib
+olaparib
+letrozole
+exemestane
+enzalutamide
+abiraterone
+leuprolide
+goserelin
+capecitabine
+fluorouracil
+oxaliplatin
+cisplatin
+carboplatin
+paclitaxel
+docetaxel
+gemcitabine
+doxorubicin
+cyclophosphamide
+vincristine
+lenalidomide
+bortezomib
+filgrastim
+pegfilgrastim
+darbepoetin
+idarucizumab
+phytonadione
+desmopressin
+octreotide
+terlipressin
+lactulose
+rifaximin
+ursodiol
+fluticasone
+salmeterol
+formoterol
+ipratropium
+umeclidinium
+roflumilast
+benralizumab
+mepolizumab
+omalizumab
+tezepelumab
+hydroxyzine
+cetirizine
+loratadine
+fexofenadine
+diphenhydramine
+promethazine
+prochlorperazine
+scopolamine
+famotidine
+sucralfate
+misoprostol
+bisacodyl
+loperamide
+oxybutynin
+mirabegron
+solifenacin
+dutasteride
+bumetanide
+torsemide
+chlorthalidone
+eplerenone
+ivabradine
+ranolazine
+dofetilide
+flecainide
+propafenone
+dronedarone
+evolocumab
+alirocumab
+inclisiran
+fenofibrate
+pheochromocytoma
+cholangiocarcinoma
+glioblastoma
+rhabdomyolysis
+esophagogastroduodenoscopy
+# fuzzy: off
+insulin lispro
+insulin aspart
+insulin degludec
+insulin detemir
+zoledronic acid
+tranexamic acid
+epoetin alfa
+andexanet alfa
+iron sucrose
+ferric carboxymaltose
+polyethylene glycol
+isosorbide mononitrate
+icosapent ethyl
+subarachnoid hemorrhage
+intracerebral hemorrhage
+subdural hematoma
+epidural hematoma
+STEMI
+NSTEMI
+acute coronary syndrome
+aortic stenosis
+mitral regurgitation
+tricuspid regurgitation
+hypertrophic cardiomyopathy
+dilated cardiomyopathy
+ejection fraction
+left ventricular hypertrophy
+pericardial effusion
+cardiac tamponade
+aortic dissection
+abdominal aortic aneurysm
+peripheral arterial disease
+chronic obstructive pulmonary disease
+COPD
+acute respiratory distress syndrome
+ARDS
+pulmonary fibrosis
+pleural effusion
+bronchiectasis
+sarcoidosis
+obstructive sleep apnea
+diabetic ketoacidosis
+DKA
+hyperosmolar hyperglycemic state
+acute kidney injury
+AKI
+chronic kidney disease
+CKD
+nephrotic syndrome
+hyperkalemia
+hypokalemia
+hyponatremia
+hypernatremia
+hypocalcemia
+hypercalcemia
+hypomagnesemia
+metabolic acidosis
+respiratory alkalosis
+thrombocytopenia
+neutropenia
+pancytopenia
+disseminated intravascular coagulation
+heparin-induced thrombocytopenia
+thrombotic thrombocytopenic purpura
+sickle cell disease
+thalassemia
+hemochromatosis
+myelodysplastic syndrome
+multiple myeloma
+Hodgkin lymphoma
+non-Hodgkin lymphoma
+hepatocellular carcinoma
+adenocarcinoma
+squamous cell carcinoma
+basal cell carcinoma
+ductal carcinoma in situ
+esophageal varices
+hepatic encephalopathy
+spontaneous bacterial peritonitis
+portal hypertension
+nonalcoholic fatty liver disease
+Clostridioides difficile
+Helicobacter pylori
+Barrett's esophagus
+irritable bowel syndrome
+celiac disease
+small bowel obstruction
+Guillain-Barré syndrome
+myasthenia gravis
+amyotrophic lateral sclerosis
+trigeminal neuralgia
+Bell's palsy
+status epilepticus
+normal pressure hydrocephalus
+carpal tunnel syndrome
+ankylosing spondylitis
+psoriatic arthritis
+polymyalgia rheumatica
+giant cell arteritis
+Sjögren's syndrome
+systemic sclerosis
+Hashimoto's thyroiditis
+Graves' disease
+Cushing's syndrome
+Addison's disease
+hyperparathyroidism
+diabetes insipidus
+SIADH
+placenta previa
+placental abruption
+postpartum hemorrhage
+HELLP syndrome
+ectopic pregnancy
+hyperemesis gravidarum
+Apgar score
+MRSA
+Staphylococcus aureus
+Pseudomonas aeruginosa
+Escherichia coli
+Klebsiella pneumoniae
+Streptococcus pneumoniae
+Candida albicans
+Mycobacterium tuberculosis
+herpes zoster
+infectious mononucleosis
+osteomyelitis
+necrotizing fasciitis
+endocarditis
+septic shock
+cardiogenic shock
+anaphylactic shock
+Glasgow Coma Scale
+GCS
+NIH Stroke Scale
+NIHSS
+CHA2DS2-VASc
+Wells score
+CURB-65
+qSOFA
+SOAP note
+chief complaint
+history of present illness
+HPI
+review of systems
+past medical history
+PMH
+vital signs
+SpO2
+capillary refill
+jugular venous distension
+JVD
+rhonchi
+stridor
+Babinski sign
+Kernig's sign
+Brudzinski's sign
+Murphy's sign
+McBurney's point
+rebound tenderness
+pitting edema
+lymphadenopathy
+hepatomegaly
+splenomegaly
+hepatosplenomegaly
+nystagmus
+diplopia
+photophobia
+aphasia
+dysarthria
+hemiparesis
+hemiplegia
+paresthesia
+ataxia
+orthopnea
+paroxysmal nocturnal dyspnea
+troponin
+BNP
+NT-proBNP
+D-dimer
+procalcitonin
+creatinine
+blood urea nitrogen
+eGFR
+alkaline phosphatase
+bilirubin
+lipase
+amylase
+ferritin
+transferrin
+arterial blood gas
+ABG
+PaO2
+PaCO2
+anion gap
+urinalysis
+aPTT
+fibrinogen
+lipid panel
+LDL
+HDL
+triglycerides
+free T4
+TID
+QID
+QHS
+DNR
+EHR
+EMR
+percutaneous coronary intervention
+PCI
+coronary artery bypass graft
+CABG
+transcatheter aortic valve replacement
+TAVR
+cardioversion
+implantable cardioverter-defibrillator
+ICD-10
+central venous catheter
+PICC line
+arterial line
+nasogastric tube
+Foley catheter
+chest tube
+thrombectomy
+craniotomy
+ventriculostomy
+ERCP
+EGD
+colectomy
+Whipple procedure
+nephrectomy
+cystoscopy
+lithotripsy
+hemodialysis
+peritoneal dialysis
+debridement
+total knee arthroplasty
+total hip arthroplasty
+open reduction internal fixation
+ORIF
+rotator cuff repair
+anterior cruciate ligament
+spinal fusion
+discectomy
+kyphoplasty
+tonsillectomy
+myringotomy
+vitrectomy
+dilation and curettage
+salpingectomy
+oophorectomy
+amniocentesis
+epidural anesthesia
+rapid sequence intubation
+mechanical ventilation
+noninvasive ventilation
+BiPAP
+CPAP
+FiO2
+ECMO
+ROSC

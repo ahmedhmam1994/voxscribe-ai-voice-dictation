@@ -1,0 +1,124 @@
+# Business Pro: used along with the Business pack once VoxScribe Pro is unlocked.
+# One term per line. Lines starting with # are notes.
+# The first terms matter most: they are passed to the speech model as hints.
+EV/EBITDA
+WACC
+discounted cash flow
+DCF
+internal rate of return
+IRR
+net present value
+NPV
+enterprise value
+price-to-earnings ratio
+P/E ratio
+earnings per share
+EPS
+free cash flow
+FCF
+unit economics
+contribution margin
+payback period
+net revenue retention
+NRR
+gross revenue retention
+annual contract value
+ACV
+total contract value
+TCV
+average revenue per user
+ARPU
+monthly active users
+MAU
+DAU
+cohort analysis
+deferred revenue
+recognized revenue
+ASC 606
+IFRS 15
+GAAP
+IFRS
+accrued liabilities
+prepaid expenses
+goodwill impairment
+intangible assets
+fair value
+mark-to-market
+hedging
+forward contract
+basis points
+debt covenant
+leveraged buyout
+LBO
+mezzanine financing
+SAFE note
+post-money valuation
+pre-money valuation
+liquidation preference
+pro rata rights
+option pool
+409A valuation
+secondary sale
+tender offer
+bridge round
+down round
+Series C
+growth equity
+carried interest
+management fee
+limited partner
+general partner
+fund of funds
+assets under management
+AUM
+dry powder
+Net Promoter Score
+customer acquisition cost
+lifetime value
+ideal customer profile
+ICP
+buyer persona
+jobs to be done
+blue ocean strategy
+Porter's five forces
+BCG matrix
+Ansoff matrix
+balanced scorecard
+RACI matrix
+Gantt chart
+critical path
+Six Sigma
+kaizen
+economic order quantity
+EOQ
+days sales outstanding
+DSO
+days payable outstanding
+inventory turnover
+cash conversion cycle
+Incoterms
+bill of lading
+letter of credit
+3PL
+last-mile delivery
+drop shipping
+MOQ
+lead time
+product-led growth
+PLG
+account-based marketing
+ABM
+MQL
+SDR
+BDR
+quota attainment
+win rate
+sales cycle
+pipeline coverage
+churn rate
+expansion revenue
+land and expand
+North Star metric
+A/B test
+attribution model
+CPL

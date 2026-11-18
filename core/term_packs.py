@@ -43,6 +43,15 @@ BUILTIN_PACKS: tuple[tuple[str, str], ...] = (
     ("software", "Software and AI"),
 )
 USER_PREFIX = "user:"
+# Pro: a longer list of harder terms and expressions for each built-in pack,
+# used along with that pack once Pro is unlocked. Not a pack of its own in
+# Settings; see with_pro().
+PRO_EXTENSIONS: dict[str, str] = {
+    "medical": "medical_pro",
+    "legal": "legal_pro",
+    "business": "business_pro",
+    "software": "software_pro",
+}
 
 MAX_TERMS = 6000
 MAX_TERM_LENGTH = 60
@@ -104,7 +113,7 @@ def _pack_path(pack_id: str) -> Path | None:
     if pack_id.startswith(USER_PREFIX):
         name = pack_id[len(USER_PREFIX) :]
         path = USER_DIR / f"{name}.txt"
-    elif any(pack_id == known for known, _ in BUILTIN_PACKS):
+    elif any(pack_id == known for known, _ in BUILTIN_PACKS) or pack_id in PRO_EXTENSIONS.values():
         path = BUILTIN_DIR / f"{pack_id}.txt"
     else:
         return None
@@ -137,6 +146,26 @@ def available_packs() -> list[tuple[str, str, int]]:
             pack_id = f"{USER_PREFIX}{path.stem}"
             packs.append((pack_id, path.stem, len(pack_terms(pack_id))))
     return [pack for pack in packs if pack[2] > 0]
+
+
+def with_pro(enabled: list[str], pro: bool) -> list[str]:
+    """The enabled packs, each built-in one followed by its Pro list when
+    `pro`. Ids stay as they are otherwise, so spoken formats and per-app
+    profiles keep working on the plain pack ids."""
+    packs: list[str] = []
+    for pack_id in enabled:
+        if pack_id in PRO_EXTENSIONS.values():
+            continue
+        packs.append(pack_id)
+        if pro and pack_id in PRO_EXTENSIONS:
+            packs.append(PRO_EXTENSIONS[pack_id])
+    return packs
+
+
+def pro_term_count(pack_id: str) -> int:
+    """How many terms Pro adds to a built-in pack, 0 for others."""
+    extension = PRO_EXTENSIONS.get(pack_id)
+    return len(pack_terms(extension)) if extension else 0
 
 
 def import_pack(source: Path) -> tuple[str, str, int]:

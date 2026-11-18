@@ -1,0 +1,215 @@
+# Law Pro: used along with the Law pack once VoxScribe Pro is unlocked.
+# One term per line. Lines starting with # are notes.
+# The first terms matter most: they are passed to the speech model as hints.
+res ipsa loquitur
+nunc pro tunc
+forum non conveniens
+mutatis mutandis
+obiter dictum
+ratio decidendi
+functus officio
+lis pendens
+locus standi
+sine die
+sui generis
+inter vivos
+donatio mortis causa
+cestui que trust
+contra proferentem
+ejusdem generis
+noscitur a sociis
+volenti non fit injuria
+novus actus interveniens
+restitutio in integrum
+pacta sunt servanda
+rebus sic stantibus
+res gestae
+corpus delicti
+doli incapax
+nulla poena sine lege
+qui tam
+de minimis
+de novo
+en banc
+in limine
+in forma pauperis
+pendente lite
+ex post facto
+ex gratia
+ex officio
+audi alteram partem
+jus cogens
+erga omnes
+opinio juris
+persona non grata
+scienter
+mala fide
+malum in se
+malum prohibitum
+a fortiori
+arguendo
+coram nobis
+subpoena duces tecum
+subpoena ad testificandum
+habendum clause
+seriatim
+remittitur
+additur
+in personam
+in rem
+motion for summary judgment
+motion to compel
+protective order
+temporary restraining order
+preliminary injunction
+declaratory judgment
+writ of execution
+writ of mandamus
+notice of appeal
+statement of claim
+particulars of claim
+letter before action
+without prejudice
+with prejudice
+Calderbank offer
+Part 36 offer
+case management conference
+pretrial conference
+evidentiary hearing
+burden of proof
+preponderance of the evidence
+beyond a reasonable doubt
+clear and convincing evidence
+standard of review
+abuse of discretion
+harmless error
+chain of custody
+Miranda rights
+Brady material
+plea bargain
+Alford plea
+grand jury
+petit jury
+peremptory challenge
+challenge for cause
+jury instructions
+directed verdict
+JNOV
+collateral estoppel
+issue preclusion
+claim preclusion
+equitable estoppel
+promissory estoppel
+laches
+unclean hands
+unjust enrichment
+constructive trust
+resulting trust
+spendthrift trust
+revocable living trust
+irrevocable trust
+testamentary trust
+per stirpes
+holographic will
+letters testamentary
+letters of administration
+personal representative
+fee simple absolute
+fee simple
+life estate
+remainderman
+adverse possession
+quiet title
+easement appurtenant
+easement in gross
+restrictive covenant
+right of first refusal
+right of first offer
+tenancy in common
+joint tenancy
+tenancy by the entirety
+deed of trust
+quitclaim deed
+warranty deed
+title insurance
+mechanic's lien
+foreclosure
+deficiency judgment
+material adverse change
+representations and warranties
+condition precedent
+condition subsequent
+limitation of liability
+consequential damages
+best endeavours
+reasonable endeavours
+commercially reasonable efforts
+most favored nation
+change of control
+drag-along rights
+tag-along rights
+anti-dilution
+pre-emption rights
+shareholders' agreement
+share purchase agreement
+asset purchase agreement
+disclosure letter
+escrow agent
+earn-out
+piercing the corporate veil
+business judgment rule
+duty of loyalty
+duty of care
+derivative action
+Sarbanes-Oxley
+Foreign Corrupt Practices Act
+FCPA
+Rule 10b-5
+Hart-Scott-Rodino
+CCPA
+HIPAA
+data processing agreement
+standard contractual clauses
+data protection impact assessment
+DPIA
+legitimate interest
+subject access request
+Uniform Commercial Code
+UCC
+Chapter 11
+Chapter 7
+debtor in possession
+automatic stay
+proof of claim
+fraudulent conveyance
+preferential transfer
+administrative receivership
+winding up
+aggravated assault
+grievous bodily harm
+actual bodily harm
+involuntary manslaughter
+voluntary manslaughter
+felony murder
+accessory after the fact
+aiding and abetting
+entrapment
+duress
+diminished responsibility
+insanity defense
+M'Naghten rules
+suppression hearing
+exclusionary rule
+probable cause
+reasonable suspicion
+search warrant
+arrest warrant
+bench warrant
+recognizance
+custodial sentence
+suspended sentence
+consecutive sentences
+concurrent sentences
+restitution order
+expungement
+recidivism

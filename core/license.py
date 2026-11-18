@@ -10,10 +10,19 @@ private key that never ships (see scripts/generate_license_key.py and
 .gitignore's note on license_signing_key.raw) -- this module can only
 verify keys, never mint them.
 
-Key format: base32(license_id[8 bytes] || Ed25519 signature[64 bytes]),
-grouped into dash-separated blocks for readability. There's no expiry
-baked into the key itself -- a valid key is a perpetual unlock, matching
-a one-time-purchase Pro tier rather than a subscription.
+Key format: base32 of one of two layouts, grouped into dash-separated
+blocks for readability:
+
+  * perpetual (the original $14 one-time keys, 72 bytes):
+    license_id[8] || Ed25519 signature[64], signed over license_id.
+  * yearly (74 bytes): license_id[8] || expiry[2] || signature[64], signed
+    over license_id || expiry. expiry is a big-endian count of days since
+    1970-01-01, and the key works through the end of that day.
+
+The length tells the two apart, so every key sold at the one-time price keeps
+working for good. A yearly key stops unlocking Pro once its date passes; the
+free dictation features never depend on a key. Expiry is checked against the
+local clock, a light deterrent in the same spirit as the activation check.
 
 **activate_online()** is the one deliberate exception to "fully offline":
 without it, a valid key string can be typed into any number of machines
@@ -35,6 +44,7 @@ import os
 import subprocess
 import urllib.error
 import urllib.request
+from datetime import date, timedelta
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
@@ -49,7 +59,9 @@ ACTIVATION_ENDPOINT = "https://getvoxscribe.vercel.app/api/activate"
 _PUBLIC_KEY_HEX = "3c99649247537fb1a3ecd9e7ba0987ee1c3bdae92b911dae9eeb58095b3e2edc"
 
 _LICENSE_ID_LEN = 8
+_EXPIRY_LEN = 2
 _SIGNATURE_LEN = 64
+_EPOCH = date(1970, 1, 1)
 
 _public_key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(_PUBLIC_KEY_HEX))
 
@@ -59,48 +71,87 @@ def _settings() -> QSettings:
 
 
 def format_key(raw: bytes) -> str:
-    """raw = license_id (8 bytes) + signature (64 bytes) -> a
-    human-typeable, dash-grouped key. Used by the (dev-only) key generator;
-    kept here so the format is defined in exactly one place."""
+    """raw = the key's bytes (a perpetual key's license_id + signature, or a
+    yearly key's license_id + expiry + signature) -> a human-typeable,
+    dash-grouped key. Used by the (dev-only) key generator; kept here so the
+    format is defined in exactly one place."""
     encoded = base64.b32encode(raw).decode("ascii").rstrip("=")
     return "-".join(encoded[i : i + 8] for i in range(0, len(encoded), 8))
 
 
-def verify_license_key(key: str) -> bool:
-    """True if `key` is a validly signed license key. Purely a signature
-    check -- no network call, no account, works offline."""
+def expiry_to_bytes(expires: date) -> bytes:
+    """The 2 bytes that carry a yearly key's last valid day."""
+    return (expires - _EPOCH).days.to_bytes(_EXPIRY_LEN, "big")
+
+
+def _decode_key(key: str) -> bytes | None:
     cleaned = key.strip().replace("-", "").replace(" ", "").upper()
     padded = cleaned + "=" * (-len(cleaned) % 8)
     try:
-        raw = base64.b32decode(padded)
+        return base64.b32decode(padded)
     except (ValueError, base64.binascii.Error):  # noqa: BLE001
-        return False
+        return None
 
-    if len(raw) != _LICENSE_ID_LEN + _SIGNATURE_LEN:
-        return False
 
-    license_id, signature = raw[:_LICENSE_ID_LEN], raw[_LICENSE_ID_LEN:]
+def parse_license_key(key: str) -> tuple[bytes, date | None] | None:
+    """(license_id, expiry) for a validly signed key, else None. expiry is
+    None for a perpetual key. Purely a signature check -- no network call, no
+    account, works offline, and says nothing about whether the date has
+    passed (see is_expired)."""
+    raw = _decode_key(key)
+    if raw is None:
+        return None
+
+    if len(raw) == _LICENSE_ID_LEN + _SIGNATURE_LEN:
+        license_id, signature = raw[:_LICENSE_ID_LEN], raw[_LICENSE_ID_LEN:]
+        message, expires = license_id, None
+    elif len(raw) == _LICENSE_ID_LEN + _EXPIRY_LEN + _SIGNATURE_LEN:
+        license_id = raw[:_LICENSE_ID_LEN]
+        expiry_bytes = raw[_LICENSE_ID_LEN : _LICENSE_ID_LEN + _EXPIRY_LEN]
+        signature = raw[_LICENSE_ID_LEN + _EXPIRY_LEN :]
+        message = license_id + expiry_bytes
+        expires = _EPOCH + timedelta(days=int.from_bytes(expiry_bytes, "big"))
+    else:
+        return None
+
     try:
-        _public_key.verify(signature, license_id)
+        _public_key.verify(signature, message)
     except InvalidSignature:
-        return False
-    return True
+        return None
+    return license_id, expires
+
+
+def verify_license_key(key: str) -> bool:
+    """True if `key` is a validly signed license key, expired or not."""
+    return parse_license_key(key) is not None
+
+
+def license_expiry(key: str) -> date | None:
+    """The last day a yearly key works, or None for a perpetual (or invalid) key."""
+    parsed = parse_license_key(key)
+    return parsed[1] if parsed else None
+
+
+def is_expired(key: str, today: date | None = None) -> bool:
+    """True if `key` is a validly signed yearly key whose last day has passed."""
+    expires = license_expiry(key)
+    return expires is not None and (today or date.today()) > expires
 
 
 def is_pro() -> bool:
-    """Whether a valid Pro license key is currently stored. Cheap enough
-    (one Ed25519 verify, no I/O beyond QSettings) to call freely rather
-    than caching -- avoids a stale-cache class of bug if the key ever
+    """Whether a valid, unexpired Pro license key is currently stored. Cheap
+    enough (one Ed25519 verify, no I/O beyond QSettings) to call freely
+    rather than caching -- avoids a stale-cache class of bug if the key ever
     changes mid-session."""
     stored = _settings().value("license_key", "")
-    return bool(stored) and verify_license_key(stored)
+    return bool(stored) and verify_license_key(stored) and not is_expired(stored)
 
 
 def set_license_key(key: str) -> bool:
-    """Validates and stores `key`. Returns whether it was valid -- an
-    invalid key is never persisted, so a typo can't silently "unlock"
-    nothing while looking saved."""
-    if not verify_license_key(key):
+    """Validates and stores `key`. Returns whether it was valid and not
+    expired -- a bad or expired key is never persisted, so a typo can't
+    silently "unlock" nothing while looking saved."""
+    if not verify_license_key(key) or is_expired(key):
         return False
     _settings().setValue("license_key", key.strip())
     return True
@@ -164,6 +215,9 @@ def activate_online(key: str, timeout: float = 8.0) -> tuple[bool, str]:
     """
     if not verify_license_key(key):
         return False, "That key isn't valid -- check for typos and try again."
+    if is_expired(key):
+        expired_on = license_expiry(key)
+        return False, f"That key expired on {expired_on:%d %B %Y}. Renew Pro to get a new key."
     return _post_activation({"key": key.strip(), "hardware_id": _hardware_id()}, timeout)
 
 

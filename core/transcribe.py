@@ -65,6 +65,45 @@ SILENCE_PEAK_FLOOR = 0.002
 CLEAR_SPEECH_PEAK = 0.03
 # How much louder the loud frames must be than the quiet ones (about 10 dB).
 MIN_SPEECH_TO_NOISE = 3.0
+# Whisper's built-in silence filter (Silero) defaults to a threshold of 0.5. Speech
+# squeezed into a narrow band, like a Bluetooth headset in call mode, scores low on
+# it and gets cut out of the recording. A looser threshold keeps that speech.
+STRICT_VAD_THRESHOLD = 0.5
+LOOSE_VAD_THRESHOLD = 0.3
+# Use the looser setting only when it finds at least this much more speech than the
+# strict one (a ratio) and at least this many more seconds of it.
+LOOSE_VAD_MIN_RATIO = 1.3
+LOOSE_VAD_MIN_EXTRA_SECONDS = 0.5
+# ...and it must find speech across most of the recording. Band-limited speech does
+# (85 to 100% of the clips tested); a gust of room noise that the loose filter
+# mistakes for speech covers about a fifth of it.
+LOOSE_VAD_MIN_SHARE = 0.6
+
+
+def loose_vad_threshold(audio: np.ndarray) -> float:
+    """The silence-filter threshold to decode this recording with: the default 0.5
+    unless a looser one finds clearly more speech in it. Measured on the audio
+    itself, in milliseconds, so there is no second decode. Ordinary dictation keeps
+    the default, so nothing changes for it."""
+    from faster_whisper.vad import VadOptions, get_speech_timestamps
+
+    def speech_samples(threshold: float) -> int:
+        spans = get_speech_timestamps(audio, VadOptions(threshold=threshold))
+        return sum(s["end"] - s["start"] for s in spans)
+
+    try:
+        strict = speech_samples(STRICT_VAD_THRESHOLD)
+        loose = speech_samples(LOOSE_VAD_THRESHOLD)
+    except Exception:  # noqa: BLE001 -- never let this check stop a dictation
+        return STRICT_VAD_THRESHOLD
+    extra = loose - strict
+    if (
+        loose >= LOOSE_VAD_MIN_RATIO * strict
+        and extra >= LOOSE_VAD_MIN_EXTRA_SECONDS * 16_000
+        and loose >= LOOSE_VAD_MIN_SHARE * len(audio)
+    ):
+        return LOOSE_VAD_THRESHOLD
+    return STRICT_VAD_THRESHOLD
 
 
 def looks_like_speech(audio: np.ndarray) -> bool:
@@ -326,27 +365,32 @@ class Transcriber:
             audio = audio * (0.5 / peak)
 
         def work(model: WhisperModel) -> str:
-            segments, _info = model.transcribe(
-                audio,
-                language=language,
-                initial_prompt=initial_prompt,
-                task=task,
-                beam_size=beam_size,
-                # Let faster-whisper's own bundled VAD trim leading/trailing
-                # silence within the clip -- useful now that recording is
-                # manually started/stopped (push-to-talk) rather than gated by
-                # our own real-time VAD.
-                vad_filter=True,
-                word_timestamps=self.collect_confidence,
-            )
-            texts: list[str] = []
-            words: list[tuple[str, float]] = []
-            for seg in segments:
-                texts.append(seg.text.strip())
-                if self.collect_confidence:
-                    words.extend((w.word, float(w.probability)) for w in seg.words or [])
+            def decode(vad_parameters: dict | None) -> tuple[str, list[tuple[str, float]]]:
+                segments, _info = model.transcribe(
+                    audio,
+                    language=language,
+                    initial_prompt=initial_prompt,
+                    task=task,
+                    beam_size=beam_size,
+                    # Let faster-whisper's own bundled VAD trim leading/trailing
+                    # silence within the clip -- useful now that recording is
+                    # manually started/stopped (push-to-talk) rather than gated by
+                    # our own real-time VAD.
+                    vad_filter=True,
+                    vad_parameters=vad_parameters,
+                    word_timestamps=self.collect_confidence,
+                )
+                texts: list[str] = []
+                words: list[tuple[str, float]] = []
+                for seg in segments:
+                    texts.append(seg.text.strip())
+                    if self.collect_confidence:
+                        words.extend((w.word, float(w.probability)) for w in seg.words or [])
+                return " ".join(texts).strip(), words
+
+            text, words = decode({"threshold": loose_vad_threshold(audio)})
             self.last_words = words
-            return " ".join(texts).strip()
+            return text
 
         self.last_words = []
         return self._run(work)  # type: ignore[return-value]
