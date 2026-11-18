@@ -251,3 +251,11 @@ def test_a_real_sentence_is_decoded_once():
     thread.note_typed("Hello there.")
     assert thread._transcribe(np.zeros(16000, np.float32)) == "Change Tuesday to Friday."
     assert len(t.prompts) == 1
+
+
+def test_change_command_when_to_is_heard_as_through():
+    # Seen live, five times in a row, on a laptop mic.
+    assert hf.change_command("Change Tuesday through Friday.") == ("Tuesday", "Friday")
+    assert hf.change_command("Changed Tuesday through Friday") == ("Tuesday", "Friday")
+    assert hf.change_command("Change Tuesday too Friday.") == ("Tuesday", "Friday")
+    assert hf.change_command("Change Tuesday into Friday.") == ("Tuesday", "Friday")

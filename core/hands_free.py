@@ -298,7 +298,11 @@ def looks_unfinished(text: str) -> bool:
 # simpler for the team" stays a sentence unless it really names typed words.
 # The first word is often misheard ("Fange Tuesday to Friday."), so it only
 # has to sound like "change"; the caller still checks the words were typed.
-_CHANGE_RE = re.compile(r"^([a-z']+)\s+(.+?)\s+to\s+(.+?)[.!?]*$", re.IGNORECASE)
+# "to" is often heard as "through", "too", "two" or "into": "Tuesday to
+# Friday" reads to the speech model like "Tuesday through Friday".
+_CHANGE_RE = re.compile(
+    r"^([a-z']+)\s+(.+?)\s+(?:to|too|two|through|thru|into)\s+(.+?)[.!?]*$", re.IGNORECASE
+)
 CHANGE_MAX_WORDS = 4
 CHANGE_MAX_SPEECH_SEC = 3.5
 
