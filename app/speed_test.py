@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
+    RateMeter,
     chunk_level,
     device_native_samplerate,
     resample_to_16k,
@@ -251,8 +252,10 @@ class SpeedTestDialog(QDialog):
         )
         self._rate = device_native_samplerate(device)
         self._chunks = []
+        meter = self._rate_meter = RateMeter(self._rate, device)
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
+            meter.add(frames)
             chunk = indata[:, 0].copy()
             self._chunks.append(chunk)
             level = chunk_level(chunk)
@@ -284,7 +287,7 @@ class SpeedTestDialog(QDialog):
         except Exception:  # noqa: BLE001
             pass
         audio = np.concatenate(self._chunks) if self._chunks else np.zeros(0, np.float32)
-        audio = resample_to_16k(audio, self._rate)
+        audio = resample_to_16k(audio, self._rate_meter.rate())
         self._chunks = []
         if len(audio) < SAMPLE_RATE:
             self._record_button.setText("Start recording")

@@ -6,8 +6,10 @@ at 16kHz, sized for the Silero VAD ONNX model (512-sample frames = 32ms).
 
 from __future__ import annotations
 
+import math
 import queue
 import threading
+import time
 from collections.abc import Generator
 
 import numpy as np
@@ -203,6 +205,68 @@ def device_native_samplerate(device: int | None) -> int:
         return int(round(sd.query_devices(device)["default_samplerate"]))
     except Exception:  # noqa: BLE001
         return SAMPLE_RATE
+
+
+# Some drivers deliver more samples per second than the rate they report: a
+# laptop's built-in Conexant mic sent about 88,000 a second at a reported
+# 44,100 (and 96,000 at 48,000), on every host API. Trusting the reported
+# rate then plays the voice back at half speed, an octave low, and Whisper
+# writes words that were never said. So each recording also counts what
+# really arrives and resamples from that.
+# A wrong rate has so far been a whole multiple of the reported one.
+_RATE_RATIOS = (1 / 4, 1 / 3, 1 / 2, 1.0, 2.0, 3.0, 4.0)
+_RATE_TOLERANCE = 0.25  # clock drift and burst delivery stay well inside this
+_MEASURE_SEC = 0.4
+_true_rates: dict[str, int] = {}
+
+
+def true_rate(reported: int, measured: float) -> int:
+    """`reported`, unless `measured` is clearly off; then `reported` times the
+    whole ratio nearest to what really arrived."""
+    if reported <= 0 or measured <= 0 or abs(measured - reported) <= _RATE_TOLERANCE * reported:
+        return reported
+    ratio = min(_RATE_RATIOS, key=lambda r: abs(math.log(measured / reported / r)))
+    return round(reported * ratio)
+
+
+class RateMeter:
+    """Counts the samples a stream delivers against the clock. add() is
+    called from the audio callback; rate() gives the rate to resample from."""
+
+    def __init__(self, reported: int, device: int | None = None) -> None:
+        self.reported = reported
+        self._key = device_label(device) if device is not None else None
+        self._first: float | None = None
+        self._last: float | None = None
+        self._frames = 0
+
+    def add(self, frames: int, now: float | None = None) -> None:
+        now = time.monotonic() if now is None else now
+        if self._first is None:
+            # The clock starts at the first block, so its own samples (which
+            # arrived before it) are not counted.
+            self._first = now
+            return
+        self._frames += frames
+        self._last = now
+
+    @property
+    def measured(self) -> bool:
+        if self._first is None or self._last is None:
+            return False
+        return self._last - self._first >= _MEASURE_SEC
+
+    def rate(self) -> int:
+        """The real rate once measured, else what was seen on this device
+        before, else the reported rate."""
+        if self.measured:
+            rate = true_rate(self.reported, self._frames / (self._last - self._first))
+            if self._key:
+                _true_rates[self._key] = rate
+            return rate
+        if self._key and self._key in _true_rates:
+            return _true_rates[self._key]
+        return self.reported
 
 
 def chunk_level(chunk: np.ndarray, floor_db: float = -55.0, ceil_db: float = -15.0) -> float:

@@ -19,7 +19,7 @@ import sounddevice as sd
 from PySide6.QtCore import QThread, Signal
 
 from core import hands_free
-from core.audio_capture import device_native_samplerate
+from core.audio_capture import RateMeter, device_native_samplerate
 from core.crash_reporter import LOG_DIR
 from core.vad import SileroVAD
 
@@ -80,8 +80,11 @@ class HandsFreeThread(QThread):
 
     def run(self) -> None:
         audio_q: queue.Queue[np.ndarray] = queue.Queue()
+        meter: RateMeter | None = None
 
         def callback(indata, frames, time_info, status) -> None:  # noqa: ANN001
+            if meter is not None:
+                meter.add(frames)
             chunk = indata[:, 0].copy()
             audio_q.put(chunk)
             if self._level is not None:
@@ -89,14 +92,18 @@ class HandsFreeThread(QThread):
 
         try:
             vad = SileroVAD(threshold=hands_free.VAD_THRESHOLD, use_agc=True)
-            rate, stream = self._open(self._device, callback)
+            meter = RateMeter(device_native_samplerate(self._device), self._device)
+            _rate, stream = self._open(self._device, callback)
         except Exception as exc:  # noqa: BLE001
             self._log_failure(exc)
             self.failed.emit(str(exc) or type(exc).__name__)
             self.ended.emit("error")
             return
 
-        resampler = hands_free.Resampler(rate)
+        # The first half second waits for the meter: some drivers send twice
+        # the samples they report, and the resampler needs the real rate.
+        resampler: hands_free.Resampler | None = None
+        early: list[np.ndarray] = []
         segmenter = hands_free.Segmenter(vad.is_speech)
         hold_frames = round(hands_free.HOLD_SEC / hands_free.FRAME_SEC)
         reason = "stopped"
@@ -108,6 +115,13 @@ class HandsFreeThread(QThread):
                     chunk = audio_q.get(timeout=0.1)
                 except queue.Empty:
                     continue
+                if resampler is None:
+                    early.append(chunk)
+                    if not meter.measured:
+                        continue
+                    resampler = hands_free.Resampler(meter.rate())
+                    chunk = np.concatenate(early)
+                    early = []
                 for frame in resampler.frames(chunk):
                     events = segmenter.push(frame)
                     if self._handle(events):

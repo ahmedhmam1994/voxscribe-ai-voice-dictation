@@ -159,3 +159,38 @@ def test_old_saved_number_on_system_audio_falls_back(monkeypatch):
 def test_saved_mic_not_connected_falls_back(monkeypatch):
     _fake_named(monkeypatch, ["Internal Mic"])
     assert audio_capture.resolve_input_device(3, "Headset (Windows WASAPI)") == 0
+
+
+def test_true_rate_keeps_a_rate_that_is_about_right():
+    from core.audio_capture import true_rate
+
+    assert true_rate(48000, 47100) == 48000
+    assert true_rate(44100, 45500) == 44100
+
+
+def test_true_rate_catches_a_driver_that_sends_twice_as_much():
+    from core.audio_capture import true_rate
+
+    # The laptop mic this was found on: 44,100 reported, about 86,500 arriving.
+    assert true_rate(44100, 86539) == 88200
+    assert true_rate(48000, 95805) == 96000
+    assert true_rate(48000, 16100) == 16000
+
+
+def test_rate_meter_measures_from_the_callbacks():
+    from core.audio_capture import RateMeter
+
+    meter = RateMeter(44100)
+    assert meter.rate() == 44100 and not meter.measured
+    for i in range(60):  # 0.6 s of 10 ms blocks, twice the reported rate
+        meter.add(882, now=i * 0.01)
+    assert meter.measured and meter.rate() == 88200
+
+
+def test_rate_meter_trusts_the_device_until_it_has_heard_enough():
+    from core.audio_capture import RateMeter
+
+    meter = RateMeter(48000)
+    for i in range(10):
+        meter.add(960, now=i * 0.01)
+    assert not meter.measured and meter.rate() == 48000

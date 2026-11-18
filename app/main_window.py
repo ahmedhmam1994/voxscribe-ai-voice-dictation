@@ -136,6 +136,7 @@ from core import license as hotkey_license
 from core import settings as hotkey_settings
 from core.audio_capture import (
     SAMPLE_RATE,
+    RateMeter,
     RollingBuffer,
     device_label,
     device_native_samplerate,
@@ -1521,6 +1522,7 @@ class MainWindow(QMainWindow):
         self.stream: sd.InputStream | None = None
         self._chunks: list[np.ndarray] = []
         self._record_rate: int = SAMPLE_RATE
+        self._rate_meter: RateMeter | None = None
         self._last_recording_duration: float = 0.0
         # The window the user was dictating into, captured when recording
         # stops -- transcription runs in the background and finishes after a
@@ -1593,6 +1595,7 @@ class MainWindow(QMainWindow):
         self._ready_stream: sd.InputStream | None = None
         self._ready_buffer: RollingBuffer | None = None
         self._ready_rate: int = SAMPLE_RATE
+        self._ready_meter: RateMeter | None = None
         self._ready_device: int | None = None
         self._capturing = False
 
@@ -2315,8 +2318,10 @@ class MainWindow(QMainWindow):
 
         rate = device_native_samplerate(device)
         buffer = RollingBuffer(int(rate * 0.5))
+        meter = RateMeter(rate, device)
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
+            meter.add(frames)
             chunk = indata[:, 0].copy()
             if self._capturing:
                 self._chunks.append(chunk)
@@ -2335,6 +2340,7 @@ class MainWindow(QMainWindow):
         self._ready_stream = stream
         self._ready_buffer = buffer
         self._ready_rate = rate
+        self._ready_meter = meter
         self._ready_device = device
 
     def _register_global_hotkey(self) -> None:
@@ -6389,6 +6395,7 @@ class MainWindow(QMainWindow):
             # Keep-ready mode: the stream is already open, so start from the
             # last fraction of a second it already heard.
             self._record_rate = self._ready_rate
+            self._rate_meter = self._ready_meter
             self._chunks = self._ready_buffer.drain()
             self._capturing = True
             self.stream = self._ready_stream
@@ -6406,8 +6413,10 @@ class MainWindow(QMainWindow):
         # when a Bluetooth headset isn't connected) reject a forced 16kHz
         # request outright. Resample down to 16kHz for Whisper after capture.
         self._record_rate = device_native_samplerate(device)
+        meter = self._rate_meter = RateMeter(self._record_rate, device)
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
+            meter.add(frames)
             chunk = indata[:, 0].copy()
             self._chunks.append(chunk)
             self._indicator.feed_audio(chunk)
@@ -6474,7 +6483,9 @@ class MainWindow(QMainWindow):
         self._indicator.show_status("transcribing")
 
         audio = np.concatenate(self._chunks) if self._chunks else np.zeros(0, dtype=np.float32)
-        audio = resample_to_16k(audio, self._record_rate)
+        # The rate the samples really came at (see RateMeter), not the one reported.
+        rate = self._rate_meter.rate() if self._rate_meter is not None else self._record_rate
+        audio = resample_to_16k(audio, rate)
         self._chunks = []
         self._last_recording_duration = len(audio) / SAMPLE_RATE
         self._last_peak = float(np.max(np.abs(audio))) if len(audio) else 0.0

@@ -100,20 +100,29 @@ class SoundDeviceMic:
     """The microphone, through sounddevice (the same library dictation uses)."""
 
     def __init__(self, device: int | None) -> None:
-        from core.audio_capture import device_native_samplerate, resolve_input_device
+        from core.audio_capture import RateMeter, device_native_samplerate, resolve_input_device
 
         self._device = resolve_input_device(device)
-        self.rate = device_native_samplerate(self._device)
+        self._open_rate = device_native_samplerate(self._device)
+        self._meter = RateMeter(self._open_rate, self._device)
         self._stream = None
+
+    @property
+    def rate(self) -> int:
+        """The rate the samples really arrive at (see RateMeter): read per chunk,
+        so a driver that sends twice what it reports is corrected within a
+        fraction of a second."""
+        return self._meter.rate()
 
     def start(self, push: Callable[[np.ndarray], None]) -> None:
         import sounddevice as sd
 
         def callback(indata, frames, time_info, status):  # noqa: ANN001
+            self._meter.add(frames)
             push(indata[:, 0].copy())
 
         self._stream = sd.InputStream(
-            samplerate=self.rate, channels=1, dtype="float32", device=self._device,
+            samplerate=self._open_rate, channels=1, dtype="float32", device=self._device,
             callback=callback,
         )
         self._stream.start()
