@@ -300,6 +300,7 @@ def looks_unfinished(text: str) -> bool:
 # has to sound like "change"; the caller still checks the words were typed.
 _CHANGE_RE = re.compile(r"^([a-z']+)\s+(.+?)\s+to\s+(.+?)[.!?]*$", re.IGNORECASE)
 CHANGE_MAX_WORDS = 4
+CHANGE_MAX_SPEECH_SEC = 3.5
 
 
 def change_command(text: str) -> tuple[str, str] | None:
@@ -358,6 +359,36 @@ class Block:
 
     def pop(self) -> tuple[str, str] | None:
         return self.pieces.pop() if self.pieces else None
+
+
+# Whisper is given the end of what was typed as its prompt (context_prompt),
+# and on a short phrase it sometimes writes that end out again before the new
+# words: "Change Tuesday to Friday." came back as "Me on Tuesday at noon to go
+# over the last two bugs. Change Tuesday to Friday." Nothing is cut out by
+# guesswork (the user may really have said those words): such a phrase is only
+# decoded once more without the typed text in the prompt.
+ECHO_MIN_WORDS = 4
+
+
+def repeats_typed_end(text: str, typed: list[str]) -> bool:
+    """True when `text` starts with the last ECHO_MIN_WORDS or more words of what
+    was typed (its first word may be clipped: "Me" for "meet")."""
+    tail = _words(" ".join(typed))[-60:]
+    heard = _words(text)
+    if len(tail) < ECHO_MIN_WORDS or len(heard) < ECHO_MIN_WORDS:
+        return False
+    for skip in (0, 1):
+        rest = heard[skip:]
+        for k in range(min(len(rest), len(tail)), ECHO_MIN_WORDS - 1, -1):
+            if rest[:k] != tail[-k:]:
+                continue
+            if not skip:
+                return True
+            before = tail[-k - 1] if len(tail) > k else ""
+            if before and heard[0] in before:
+                return True
+            break
+    return False
 
 
 def context_prompt(vocabulary: str | None, typed: list[str]) -> str | None:

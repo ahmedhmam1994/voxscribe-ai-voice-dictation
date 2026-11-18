@@ -180,3 +180,74 @@ def test_block_joins_pieces_and_follows_edits():
 def test_change_command_takes_a_misheard_verb():
     assert hf.change_command("Fange Tuesday to Friday.") == ("Tuesday", "Friday")
     assert hf.change_command("I want to go.") is None
+
+
+TYPED = ["Hi Sam, quick update on the launch.", "Let's meet on Tuesday at noon to go over the last two bugs"]
+
+
+def test_the_prompt_written_out_again_is_noticed():
+    # Seen live: "Change Tuesday to Friday." came back with the typed end before it.
+    echo = "Me on Tuesday at noon to go over the last two bugs. Change Tuesday to Friday."
+    assert hf.repeats_typed_end(echo, TYPED)
+    assert hf.repeats_typed_end("Go over the last two bugs. Change Tuesday to Friday.", TYPED)
+
+
+def test_new_words_are_not_taken_for_a_repeat():
+    assert not hf.repeats_typed_end("Change Tuesday to Friday.", TYPED)
+    assert not hf.repeats_typed_end("Please bring the notes from last week.", TYPED)
+    assert not hf.repeats_typed_end("Bugs.", TYPED)
+
+
+class _Says:
+    def __init__(self, text):
+        self.text, self.calls = text, 0
+
+    def transcribe(self, audio, language=None, initial_prompt=None, task="transcribe"):
+        self.calls += 1
+        return self.text
+
+
+def test_a_sentence_that_really_starts_with_the_typed_end_keeps_every_word():
+    # Looks like a repeat, so it is decoded a second time, and nothing is cut.
+    from app.hands_free import HandsFreeThread
+
+    said = "The last two bugs are fixed now."
+    t = _Says(said)
+    thread = HandsFreeThread(t, None, lambda: ("en", None, "transcribe"))
+    for text in TYPED:
+        thread.note_typed(text)
+    assert thread._transcribe(np.zeros(16000, np.float32)) == said
+
+
+class _EchoOnce:
+    """Writes the prompt's end out again when given it, like Whisper did."""
+
+    def __init__(self):
+        self.prompts = []
+
+    def transcribe(self, audio, language=None, initial_prompt=None, task="transcribe"):
+        self.prompts.append(initial_prompt)
+        if initial_prompt and "two bugs" in initial_prompt:
+            return "Me on Tuesday at noon to go over the last two bugs. Change Tuesday to Friday."
+        return "Change Tuesday to Friday."
+
+
+def test_a_repeat_is_decoded_again_without_the_typed_text():
+    from app.hands_free import HandsFreeThread
+
+    t = _EchoOnce()
+    thread = HandsFreeThread(t, None, lambda: ("en", "Maya", "transcribe"))
+    for text in TYPED:
+        thread.note_typed(text)
+    assert thread._transcribe(np.zeros(16000, np.float32)) == "Change Tuesday to Friday."
+    assert t.prompts[-1] == "Maya"
+
+
+def test_a_real_sentence_is_decoded_once():
+    from app.hands_free import HandsFreeThread
+
+    t = _EchoOnce()
+    thread = HandsFreeThread(t, None, lambda: ("en", None, "transcribe"))
+    thread.note_typed("Hello there.")
+    assert thread._transcribe(np.zeros(16000, np.float32)) == "Change Tuesday to Friday."
+    assert len(t.prompts) == 1

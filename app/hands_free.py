@@ -167,7 +167,15 @@ class HandsFreeThread(QThread):
             initial_prompt=hands_free.context_prompt(vocabulary, self._typed),
             task=task,
         )
-        return (text or "").strip()
+        text = (text or "").strip()
+        if hands_free.repeats_typed_end(text, self._typed):
+            # Most likely the prompt written out again, not speech: decode once
+            # more without the typed text (see core/hands_free.py).
+            text = self._transcriber.transcribe(
+                audio, language=language, initial_prompt=vocabulary or None, task=task
+            )
+            text = (text or "").strip()
+        return text
 
     def _emit_pending(self) -> None:
         if self._pending is not None:
@@ -192,8 +200,13 @@ class HandsFreeThread(QThread):
     def _on_phrase(self, audio: np.ndarray, speech_sec: float) -> None:
         held = self._pending
         short = speech_sec <= hands_free.COMMAND_MAX_SPEECH_SEC
-        text = self._transcribe(audio) if held is None or short else ""
-        command = short and hands_free.match_command(text) is not None
+        # "Change Tuesday to Friday" is a few words longer than the other
+        # commands, so it gets a little more time.
+        maybe_change = speech_sec <= hands_free.CHANGE_MAX_SPEECH_SEC
+        text = self._transcribe(audio) if held is None or short or maybe_change else ""
+        command = (short and hands_free.match_command(text) is not None) or (
+            maybe_change and hands_free.change_command(text) is not None
+        )
         if text and (hands_free.is_stop_command(text) or command):
             # A command is never joined to the words before it: those are typed
             # first, as they were heard, then the command acts on them.
