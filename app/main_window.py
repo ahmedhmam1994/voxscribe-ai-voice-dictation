@@ -8525,7 +8525,13 @@ class MainWindow(QMainWindow):
         def _type() -> None:
             with self._typing_lock:
                 try:
-                    keyboard.write(new, delay=typing_delay)
+                    # Line breaks as Shift+Enter: in a chat box Enter alone
+                    # sends the message, so bullet points went out one per line.
+                    for i, line in enumerate(new.replace("\r\n", "\n").split("\n")):
+                        if i:
+                            keyboard.send("shift+enter")
+                        if line:
+                            keyboard.write(line, delay=typing_delay)
                 except Exception:  # noqa: BLE001
                     pass
 
