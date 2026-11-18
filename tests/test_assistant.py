@@ -90,3 +90,35 @@ def test_assistant_needs_a_download_first(store):
     assistant.set_folder(store / "llm")
     with pytest.raises(assistant.AssistantError, match="Download"):
         assistant.Assistant().rewrite("hello", "formal")
+
+
+def test_every_model_says_when_to_pick_it():
+    from core import assistant as a
+
+    assert set(a.MODEL_ADVICE) == set(a.MODELS)
+    for text in a.MODEL_ADVICE.values():
+        assert text.strip() and "\u2014" not in text and "\u2013" not in text
+
+
+def test_tidy_edit_adds_a_capital_and_a_full_stop():
+    from core.assistant import tidy_edit
+
+    ask = "Can you join the call on the 12th at 3?"
+    assert tidy_edit(ask, "reply saying yes", "yes Thursday works better") == (
+        "Yes Thursday works better."
+    )
+    spoken = "their going to by 3 apples"
+    fixed = tidy_edit(spoken, "fix the spelling", "They're going to buy 3 apples")
+    assert fixed == "They're going to buy 3 apples."
+
+
+def test_tidy_edit_leaves_the_rest_alone():
+    from core.assistant import tidy_edit
+
+    bullets = "- Push the launch\n- Fix 2 bugs"
+    assert tidy_edit("x", "turn this into bullet points", bullets) == bullets
+    assert tidy_edit("x.", "rewrite", "iPhone sales are up") == "iPhone sales are up."
+    assert tidy_edit("Hello there.", "make it lowercase", "hello there") == "hello there"
+    assert tidy_edit("hi tom", "translate to Spanish", "hola tom") == "Hola tom"
+    assert tidy_edit("x", "fix the spelling", "they're here now") == "They're here now."
+    assert tidy_edit("Fine.", "shorter", "Done!") == "Done!"

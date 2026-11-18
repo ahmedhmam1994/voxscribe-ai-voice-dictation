@@ -130,6 +130,20 @@ MODELS: dict[str, Download] = {
 }
 DEFAULT_MODEL = "qwen3.5-9b"
 
+# Shown under the model choice in Settings: when to pick which.
+MODEL_ADVICE: dict[str, str] = {
+    "qwen3.5-9b": (
+        "Best results. Choose it on a PC with a graphics card of 8 GB or more, where it "
+        "fits whole and is quick. On a laptop or a smaller card it still works, but "
+        "each edit can take 10 to 20 seconds, and the first one after a start longer."
+    ),
+    "gemma-4-e4b": (
+        "2 to 4 times faster, nearly as good. Choose it on a laptop, a graphics card "
+        "under 8 GB or no graphics card at all, or if the Ask key and rewrites feel "
+        "slow. Pick the most accurate one when the wording must be exactly right."
+    ),
+}
+
 
 def get_folder() -> Path:
     """Where the runtime and model live. Can be moved off the system drive."""
@@ -411,6 +425,30 @@ def build_edit_messages(text: str, instruction: str) -> list[dict[str, str]]:
     ]
 
 
+_TIDY_SKIP_RE = re.compile(r"\b(lower ?case|small letters|no punctuation)\b", re.IGNORECASE)
+_TIDY_SENTENCE_RE = re.compile(
+    r"\b(fix|grammar|spelling|punctuation|formal|professional|polite|friendly|reply|answer|"
+    r"rewrite|rephrase|shorter|longer|clear)\w*",
+    re.IGNORECASE,
+)
+
+
+def tidy_edit(original: str, instruction: str, reply: str) -> str:
+    """A capital letter and a full stop where a smaller model left them out
+    ("yes Thursday works better" for a reply). Only on one line of prose:
+    bullets, code and words like "iPhone" are left alone."""
+    text = reply.strip()
+    if not text or "\n" in text or _TIDY_SKIP_RE.search(instruction):
+        return reply
+    first = text.split()[0]
+    if first.replace("'", "").isalpha() and first.islower():
+        text = text[0].upper() + text[1:]
+    wants_sentence = original.rstrip()[-1:] in ".!?" or _TIDY_SENTENCE_RE.search(instruction)
+    if wants_sentence and len(text.split()) >= 3 and text[-1].isalnum():
+        text += "."
+    return text
+
+
 def check_edit(original: str, instruction: str, reply: str) -> str | None:
     """Like check_reply, for an instruction on selected text. A reply or a new
     text written from the selection may leave its numbers out."""
@@ -616,14 +654,14 @@ class Assistant:
         except (KeyError, IndexError, TypeError) as exc:
             raise AssistantError("The assistant gave no answer") from exc
 
-    def warm_up(self) -> None:
+    def warm_up(self, messages: list[dict[str, str]] | None = None) -> None:
         """Starts the model ahead of the first command, so a hands-free "make
         that shorter" is not kept waiting for it to load. Never raises."""
         try:
             # The first rewrite after a start is several times slower than the
             # next ones (37 s against 7 s, measured), because the long rules
             # prompt is read once and then reused. One tiny rewrite reads it now.
-            self._complete(build_messages("OK.", "shorter"), 1)
+            self._complete(messages or build_messages("OK.", "shorter"), 1)
         except Exception:  # noqa: BLE001
             pass
 
@@ -650,6 +688,7 @@ class Assistant:
             keep = ", ".join(dict.fromkeys(lost))
             again = f"{instruction.strip()}. Keep these numbers exactly as written: {keep}"
             result = clean_reply(self._complete(build_edit_messages(text, again), tokens))
+        result = tidy_edit(text, instruction, result)
         problem = check_edit(text, instruction, result)
         if problem:
             raise AssistantError(problem)

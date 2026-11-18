@@ -3167,6 +3167,10 @@ class MainWindow(QMainWindow):
             assistant_combo.addItem(f"{model.label} ({model.size / 1e9:.1f} GB)", model_id)
         assistant_combo.setCurrentIndex(max(0, assistant_combo.findData(assistant.get_model_id())))
         layout.addWidget(assistant_combo)
+        assistant_advice = QLabel(assistant.MODEL_ADVICE.get(assistant.get_model_id(), ""))
+        assistant_advice.setObjectName("settingsHint")
+        assistant_advice.setWordWrap(True)
+        layout.addWidget(assistant_advice)
 
         assistant_row = QHBoxLayout()
         assistant_status = QLabel()
@@ -3199,6 +3203,7 @@ class MainWindow(QMainWindow):
         def _pick_assistant_model() -> None:
             self._assistant.stop()
             assistant.set_model_id(assistant_combo.currentData())
+            assistant_advice.setText(assistant.MODEL_ADVICE.get(assistant.get_model_id(), ""))
             _refresh_assistant_row()
 
         def _on_assistant_button() -> None:
@@ -5875,8 +5880,30 @@ class MainWindow(QMainWindow):
             self._language_override = None
             self._ask_pending = True
             self._ask_grabber.grab()
+            self._warm_ask_when_grabbed()
         self._handle_hotkey_press()
         self._ask_pending = False
+
+    def _warm_ask_when_grabbed(self, tries: int = 0) -> None:
+        """While the user is still talking, starts the model and has it read
+        the instructions it will need (editing, or answering from the
+        Library). That reading took 23 s on a 4-core laptop; done now, it
+        overlaps the speech instead of following it."""
+        if not self._ask_grabber.done:
+            if tries < 20:
+                QTimer.singleShot(60, lambda: self._warm_ask_when_grabbed(tries + 1))
+            return
+        feature = "ask_edit" if self._ask_grabber.text else "ask_library"
+        if not assistant.is_ready() or self._assistant_busy:
+            return
+        if not hotkey_license.is_pro() and hotkey_settings.get_feature_trials_left(feature) <= 0:
+            return
+        messages = (
+            assistant.build_edit_messages("OK.", "OK")
+            if self._ask_grabber.text
+            else ask_library.build_messages("OK", [])
+        )
+        threading.Thread(target=self._assistant.warm_up, args=(messages,), daemon=True).start()
 
     def _handle_alt_press(self) -> None:
         """Pro: the second key dictates in its own language."""
