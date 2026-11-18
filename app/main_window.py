@@ -2198,6 +2198,11 @@ class MainWindow(QMainWindow):
         self._hands_free_hook = None
         self._hands_free: HandsFreeThread | None = None
         self._hands_free_params: tuple = (None, None, "transcribe")
+        self._warned_missing_mic: str | None = None
+        # What the session typed since the last line break (core/hands_free.py).
+        self._hf_block = hands_free.Block()
+        # Phrases said while a rewrite is still running, typed after it in order.
+        self._hf_waiting: list[tuple[str, object, float]] = []
         self._alt_release_hook = None
         self._hotkey_press_hook = None
         self._hotkey_release_hook = None
@@ -3974,7 +3979,9 @@ class MainWindow(QMainWindow):
         layout.addWidget(hands_free_key_combo)
         hands_free_hint = QLabel(
             "Tap this key once and talk for as long as you like, without holding anything: "
-            "each phrase is typed when you pause. Spoken commands work as usual. Say "
+            "each phrase is typed when you pause. Spoken commands work as usual, and "
+            "\"make that shorter\" or \"change Tuesday to Friday\" edit everything said "
+            "since the last new line. Say "
             "\"stop listening\", tap the key again or press the dictation key to end. Also in "
             "the tray menu and on the Dictation page. Pro, with "
             f"{hotkey_settings.FREE_FEATURE_TRIALS} free sessions."
@@ -5459,6 +5466,8 @@ class MainWindow(QMainWindow):
     # -- status helpers -----------------------------------------------
 
     def _set_status(self, text: str, kind: str) -> None:
+        if getattr(self, "_hands_free", None) is not None:
+            self._hands_free_log(f"status: {text}")
         self.status_pill.set_status(text, kind)
         self.files_status_pill.set_status(text, kind)
 
@@ -5875,6 +5884,17 @@ class MainWindow(QMainWindow):
                 sd._initialize()
             except Exception:  # noqa: BLE001
                 pass
+        missing = self._missing_mic()
+        if missing:
+            # Listening on the laptop's own mic instead hears the whole room,
+            # and Whisper turns that into words nobody said.
+            self._set_status(
+                f"Hands-free not started: {missing} is not connected. Connect it, or "
+                "choose another mic in Settings, Microphone",
+                "error",
+            )
+            self._indicator.flash_error("Your mic is not connected", 3000)
+            return
         device = resolve_input_device(
             hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
         )
@@ -5892,6 +5912,19 @@ class MainWindow(QMainWindow):
         worker.failed.connect(self._on_hands_free_failed)
         worker.ended.connect(self._on_hands_free_ended)
         self._hands_free = worker
+        self._hf_block.clear()
+        try:
+            (CRASH_LOG_DIR / "hands_free_session.log").unlink(missing_ok=True)
+        except OSError:
+            pass
+        self._hands_free_log(f"start, mic: {self._hands_free_mic}")
+        self._hf_waiting = []
+        if (is_pro or hotkey_settings.get_feature_trials_left("assistant") > 0) and (
+            assistant.is_ready()
+        ):
+            # The model takes a while to load; start it now, not at the first
+            # "make that shorter".
+            threading.Thread(target=self._assistant.warm_up, daemon=True).start()
         worker.start()
 
         firstrun.feature("hands_free")
@@ -5967,7 +6000,27 @@ class MainWindow(QMainWindow):
         else:
             self._indicator.show_status("listening")
 
+    def _missing_mic(self) -> str | None:
+        """The chosen mic's name when it is not connected now, else None."""
+        name = hotkey_settings.get_input_device_name()
+        if not name or find_input_device(name) is not None:
+            return None
+        # "Headset (soundcore R50i NC Hands-Free AG Audio) (Windows WASAPI)"
+        return name.rsplit(" (", 1)[0]
+
+    def _hands_free_log(self, line: str) -> None:
+        """The last session, phrase by phrase, in the local logs folder: what
+        was heard and what was done with it. Never sent anywhere; replaced at
+        the start of each session."""
+        try:
+            CRASH_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            with open(CRASH_LOG_DIR / "hands_free_session.log", "a", encoding="utf-8") as f:
+                f.write(f"{time.strftime('%H:%M:%S')} {line}\n")
+        except Exception:  # noqa: BLE001 -- logging must never break dictation
+            pass
+
     def _on_hands_free_phrase(self, text: str, audio, speech_sec: float) -> None:  # noqa: ANN001
+        self._hands_free_log(f"heard ({speech_sec:.1f} s): {text!r}")
         text = text.strip()
         if not text or hands_free.is_phantom(text):
             return
@@ -5975,6 +6028,29 @@ class MainWindow(QMainWindow):
             self.transcript_area.append("[hands-free: stop listening]")
             self._stop_hands_free()
             return
+        if self._assistant_busy or self._hf_waiting:
+            # A rewrite is still running on the text so far: what comes next
+            # waits for it, or it would land in the middle of the rewrite.
+            self._hf_waiting.append((text, audio, speech_sec))
+            if len(self._hf_waiting) == 1:
+                self._set_status("Rewriting... keep talking, it is typed after", "transcribing")
+                QTimer.singleShot(200, self._drain_hands_free_waiting)
+            return
+        self._handle_hands_free_phrase(text, audio, speech_sec)
+
+    def _drain_hands_free_waiting(self) -> None:
+        if self._assistant_busy or self._typing_lock.locked():
+            QTimer.singleShot(200, self._drain_hands_free_waiting)
+            return
+        # One at a time, with a moment between them for the typing to start,
+        # so a "scratch that" waiting behind a sentence acts on that sentence.
+        text, audio, speech_sec = self._hf_waiting[0]
+        self._handle_hands_free_phrase(text, audio, speech_sec)
+        del self._hf_waiting[0]
+        if self._hf_waiting:
+            QTimer.singleShot(300, self._drain_hands_free_waiting)
+
+    def _handle_hands_free_phrase(self, text: str, audio, speech_sec: float) -> None:  # noqa: ANN001
         if speech_sec <= hands_free.COMMAND_MAX_SPEECH_SEC:
             # A short phrase said on its own that is close to a command is that
             # command, misheard ("New online." is "new line").
@@ -5984,19 +6060,16 @@ class MainWindow(QMainWindow):
             self._indicator.flash_error("Dictation is off in this app")
             return
         if text in ("new line", "new paragraph"):
-            # Said on its own there is no text for the line break to join, so
-            # the key is pressed. Shift+Enter breaks the line in chat boxes too,
-            # where Enter alone would send the message.
-            for _ in range(1 if text == "new line" else 2):
-                try:
-                    keyboard.send("shift+enter")
-                except Exception:  # noqa: BLE001
-                    pass
-            # "scratch that" must not Backspace across the line break.
-            self._last_typed_text = ""
-            self._last_typed_hwnd = None
             self.transcript_area.append(f"[hands-free: {text}]")
+            self._after_typing(lambda: self._hands_free_line_break(text == "new paragraph"))
             return
+        change = hands_free.change_command(text)
+        if change is not None:
+            self._after_typing(lambda: self._hands_free_change(text, change, audio, speech_sec))
+            return
+        self._type_hands_free_phrase(text, audio, speech_sec)
+
+    def _type_hands_free_phrase(self, text: str, audio, speech_sec: float) -> None:  # noqa: ANN001
         # The window in front now is where the phrase belongs: there is no key
         # release to mark the moment, and the user may have moved to another app.
         self._recording_target_hwnd = foreground_window_handle()
@@ -6009,6 +6082,48 @@ class MainWindow(QMainWindow):
         if self._hands_free is not None:
             self._hands_free.note_typed(text)
         self._on_transcribed(text)
+
+    def _hands_free_line_break(self, paragraph: bool) -> None:
+        """Said on its own there is no text for the line break to join, so the
+        key is pressed. Shift+Enter breaks the line in chat boxes too, where
+        Enter alone would send the message."""
+        for _ in range(2 if paragraph else 1):
+            try:
+                keyboard.send("shift+enter")
+            except Exception:  # noqa: BLE001
+                pass
+        # "scratch that" and "make that shorter" must not reach across it.
+        self._last_typed_text = ""
+        self._last_typed_hwnd = None
+        self._hf_block.clear()
+
+    def _hands_free_change(self, text: str, change, audio, speech_sec: float) -> None:  # noqa: ANN001
+        """Spoken "change Tuesday to Friday": swaps the words in what this
+        session typed. When they are not there it was a sentence, so it is typed."""
+        scope = self._hands_free_block_text()
+        old, new = change
+        if scope and apply_replace(scope, old, new) is not None:
+            self.transcript_area.append(f"[hands-free: change {old} to {new}]")
+            self._handle_rewrite_command(
+                lambda typed: apply_replace(typed, old, new), f"Changed {old} to {new}", scope
+            )
+            return
+        self._type_hands_free_phrase(text, audio, speech_sec)
+
+    def _hands_free_block_text(self) -> str | None:
+        """In a hands-free session "that" is everything said since the last
+        line break, not only the last phrase, so the rewrite commands act on
+        the whole of it. None outside a session or when the caret moved."""
+        block = self._hf_block
+        if (
+            self._hands_free is None
+            or not block.pieces
+            or self._caret_moved
+            or block.hwnd is None
+            or block.hwnd != self._last_typed_hwnd
+        ):
+            return None
+        return block.text or None
 
     def _on_hands_free_failed(self, message: str) -> None:
         mic = getattr(self, "_hands_free_mic", "the microphone")
@@ -6099,6 +6214,31 @@ class MainWindow(QMainWindow):
         device = resolve_input_device(
             hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
         )
+        missing = self._missing_mic()
+        if missing and self._ready_stream is None and self.stream is None:
+            # The device list is read once at startup; a headset that connected
+            # since then is only in a fresh one. Nothing is open, so read again.
+            try:
+                sd._terminate()
+                sd._initialize()
+            except Exception:  # noqa: BLE001
+                pass
+            device = resolve_input_device(
+                hotkey_settings.get_input_device(), hotkey_settings.get_input_device_name()
+            )
+            missing = self._missing_mic()
+        if missing and missing != self._warned_missing_mic:
+            # Said once per change, not on every dictation.
+            self._warned_missing_mic = missing
+            self._tray_notify(
+                "VoxScribe",
+                f"{missing} is not connected, so this dictation uses "
+                f"{device_label(device) or 'the default microphone'}.",
+                QSystemTrayIcon.MessageIcon.Warning,
+                5000,
+            )
+        elif not missing:
+            self._warned_missing_mic = None
 
         if (
             self._ready_stream is not None
@@ -6320,14 +6460,12 @@ class MainWindow(QMainWindow):
             if swap and self._typing_lock.locked():
                 self._after_typing(lambda: self._on_transcribed(text))
                 return
-            if (
-                swap
-                and self._last_typed_text
-                and apply_replace(self._last_typed_text, *swap) is not None
-            ):
+            scope = self._hands_free_block_text() if swap else None
+            target = scope or self._last_typed_text
+            if swap and target and apply_replace(target, *swap) is not None:
                 self._after_typing(
                     lambda: self._handle_rewrite_command(
-                        lambda old: apply_replace(old, *swap), "Replaced in last dictation"
+                        lambda old: apply_replace(old, *swap), "Replaced in last dictation", scope
                     )
                 )
                 return
@@ -7875,6 +8013,9 @@ class MainWindow(QMainWindow):
             self._indicator.flash_error("Not typing into a password field", 2500)
             return
         lead = self._joining_space(target_hwnd, text)
+        # Hands-free: this phrase carries on the text before it when nothing
+        # moved the caret and it goes into the same box.
+        hf_continues = not self._caret_moved and target_hwnd == self._hf_block.hwnd
         self._last_typed_at = time.monotonic()
         redo_key = hotkey_settings.get_redo_hotkey()
         hints_left = TYPED_HINT_COUNT - hotkey_settings.get_redo_hints_shown()
@@ -7924,6 +8065,8 @@ class MainWindow(QMainWindow):
                         self._typing_until = time.monotonic() + 0.5
                     self._last_typed_text = text
                     self._last_typed_hwnd = target_hwnd
+                    if self._hands_free is not None and not send_after:
+                        self._hf_block.add(lead, text, target_hwnd, hf_continues)
                     self._caret_moved = False
                     if not send_after:
                         self._hotkey_bridge.typed_into.emit(text, target_hwnd)
@@ -7973,6 +8116,17 @@ class MainWindow(QMainWindow):
         focus_window(self._last_typed_hwnd)
 
         remaining_text, backspace_count = compute_deletion(self._last_typed_text, mode)
+        if self._hands_free is not None:
+            pieces = self._hf_block.pieces
+            if mode == "all" and pieces and pieces[-1][1] == self._last_typed_text:
+                # The space typed before the phrase goes too, so the next phrase
+                # joins the text before it cleanly, and "make that shorter"
+                # still has the rest of the session's text to work on.
+                backspace_count += len(pieces[-1][0])
+                self._hf_block.pop()
+                remaining_text = self._hf_block.text
+            else:
+                self._hf_block.clear()
 
         try:
             for _ in range(backspace_count):
@@ -7996,14 +8150,16 @@ class MainWindow(QMainWindow):
             return
         command()
 
-    def _handle_rewrite_command(self, rewrite, status_text: str) -> None:
+    def _handle_rewrite_command(self, rewrite, status_text: str, scope: str | None = None) -> None:
         """Spoken "capitalize that", "all caps", "replace X with Y": retypes
         only the part of the last dictation that changes, in the window it was
         typed into. Like undo, it refuses if the active window has changed,
-        rather than Backspace into text the user never dictated."""
+        rather than Backspace into text the user never dictated. `scope` is the
+        text to work on when it is more than the last dictation (a hands-free
+        session's text since the last line break), and ends where the caret is."""
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
-        old = self._last_typed_text
+        old = scope or self._last_typed_text
         if not old:
             self._set_status("Nothing to change", "ready")
             self._indicator.flash_error("Nothing to change")
@@ -8017,6 +8173,7 @@ class MainWindow(QMainWindow):
             self._set_status("Nothing to change", "ready")
             self._indicator.flash_error("Nothing to change")
             return
+        self._hf_block.replaced(old, new)
 
         focus_window(self._last_typed_hwnd)
         backspaces, to_type = compute_rewrite(old, new)
@@ -8025,6 +8182,9 @@ class MainWindow(QMainWindow):
 
         def _retype() -> None:
             with self._typing_lock:
+                # A rewrite with line breaks in it (bullet points) is not the
+                # user moving the caret.
+                self._typing_until = float("inf")
                 try:
                     for _ in range(backspaces):
                         keyboard.send("backspace")
@@ -8032,6 +8192,8 @@ class MainWindow(QMainWindow):
                         keyboard.write(to_type, delay=typing_delay)
                 except Exception:  # noqa: BLE001
                     pass
+                finally:
+                    self._typing_until = time.monotonic() + 0.5
 
         threading.Thread(target=_retype, daemon=True).start()
         self._set_status(status_text, "ready")
@@ -8045,7 +8207,7 @@ class MainWindow(QMainWindow):
         self.record_button.setEnabled(True)
         self._set_import_enabled(True)
         label = assistant.COMMANDS[command_id].label
-        original = self._last_typed_text
+        original = self._hands_free_block_text() or self._last_typed_text
         if not original:
             self._set_status("Nothing to rewrite", "ready")
             self._indicator.flash_error("Nothing to rewrite")
@@ -8104,7 +8266,7 @@ class MainWindow(QMainWindow):
             status = f"{self._assistant_label}: done"
         # Only if the last dictation is still what the model saw.
         self._handle_rewrite_command(
-            lambda old: new if old == original else None, status
+            lambda old: new if old == original else None, status, self._hands_free_block_text()
         )
 
     # -- Form fill (core/form_fill.py, core/form_fields.py) -----------------

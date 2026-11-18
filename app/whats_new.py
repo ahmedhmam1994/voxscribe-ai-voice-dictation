@@ -12,7 +12,9 @@ WHATS_NEW: dict[str, str] = {
     "1.9.0": (
         "- New (Pro): hands-free mode. Start it from the tray, the Dictation page or a key "
         "you choose in Settings, then talk without holding anything: each phrase is "
-        "typed when you pause, and spoken commands work as usual. Say \"stop listening\" "
+        "typed when you pause, and spoken commands work as usual. \"Make that shorter\" "
+        "or \"change Tuesday to Friday\" edit everything said since the last new line. "
+        "Say \"stop listening\" "
         "to end. Typing, clicks and coughs are not typed. 3 free sessions."
     ),
     "1.8.4": (

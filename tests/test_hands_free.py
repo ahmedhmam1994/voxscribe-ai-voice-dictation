@@ -29,7 +29,7 @@ def test_a_phrase_is_cut_at_a_pause():
     (phrase,) = phrases(events)
     assert abs(phrase[2] - 2) < 0.1  # seconds of speech
     # Lead-in before the speech is kept, most of the pause after it is not.
-    assert 2.2 < len(phrase[1]) / hf.SAMPLE_RATE < 2.8
+    assert 2.5 < len(phrase[1]) / hf.SAMPLE_RATE < 3.1  # lead-in + speech + short tail
 
 
 def test_a_short_breath_inside_a_sentence_does_not_cut_it():
@@ -147,3 +147,36 @@ def test_looks_unfinished():
     assert not hf.looks_unfinished("")
     assert not hf.looks_unfinished("Thank you.")
     assert not hf.looks_unfinished("Can you send it?")
+
+
+def test_match_command_skips_lookalike_phrases():
+    for text in ("Not that.", "Make it so.", "Got that."):
+        assert hf.match_command(text) is None, text
+    assert hf.match_command("Undo that.") == "undo that"
+    assert hf.match_command("Make it short.") == "make it shorter"
+
+
+def test_change_command():
+    assert hf.change_command("Change Tuesday to Friday.") == ("Tuesday", "Friday")
+    assert hf.change_command("change 3 o'clock to 4 o'clock") == ("3 o'clock", "4 o'clock")
+    assert hf.change_command("Change of plans.") is None
+    assert hf.change_command("Change the way we work with our team to something new") is None
+
+
+def test_block_joins_pieces_and_follows_edits():
+    b = hf.Block()
+    b.add("", "Meet on Tuesday.", 1, continues=False)
+    b.add(" ", "Bring the notes.", 1, continues=True)
+    assert b.text == "Meet on Tuesday. Bring the notes."
+    b.replaced("Bring the notes.", "Bring the slides.")
+    assert b.text == "Meet on Tuesday. Bring the slides."
+    b.replaced(b.text, "Meet Tuesday, bring slides.")
+    assert b.pieces == [("", "Meet Tuesday, bring slides.")]
+    b.add(" ", "Thanks.", 2, continues=True)  # another window starts over
+    assert b.pieces == [("", "Thanks.")] and b.hwnd == 2
+    assert b.pop() == ("", "Thanks.") and b.text == ""
+
+
+def test_change_command_takes_a_misheard_verb():
+    assert hf.change_command("Fange Tuesday to Friday.") == ("Tuesday", "Friday")
+    assert hf.change_command("I want to go.") is None

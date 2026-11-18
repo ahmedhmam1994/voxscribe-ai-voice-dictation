@@ -34,8 +34,10 @@ MIN_PHRASE_SEC = 0.3
 # A phrase is cut here even without a pause, so a long run never waits minutes
 # to be typed and never gets too long for the model.
 MAX_PHRASE_SEC = 25.0
-# Audio kept from just before speech starts, so the first syllable is not lost.
-LEAD_IN_SEC = 0.3
+# Audio kept from just before speech starts, so the first word is not lost.
+# 0.3 s lost soft starts on the headset ("Let's meet" came out "It", "Hi Sarah"
+# came out "Hi sorrow"); 0.6 s kept them.
+LEAD_IN_SEC = 0.6
 # A session ends by itself after this long with no speech.
 IDLE_STOP_SEC = 120.0
 # The text typed so far that is handed to the model as context for the next
@@ -224,12 +226,17 @@ COMMAND_PHRASES = (
     "send it", "press enter",
     "period", "full stop", "comma", "question mark",
     "capitalize that", "all caps",
-    "make it shorter", "make it formal", "bullet points",
+    "make it shorter", "make it formal", "make it friendly", "bullet points", "fix that",
 )  # fmt: skip
 # Only phrases this short are compared, so a sentence is never taken for a command.
 COMMAND_MAX_WORDS = 4
 COMMAND_MAX_SPEECH_SEC = 2.0
 COMMAND_MIN_SIMILARITY = 0.72
+
+
+# Not matched loosely: they delete text, and "Not that." is close to "undo that".
+# They still work when heard right, through the normal command path.
+_EXACT_ONLY = {"undo that", "delete that", "delete last word", "delete last sentence"}
 
 
 def match_command(text: str) -> str | None:
@@ -243,10 +250,20 @@ def match_command(text: str) -> str | None:
     heard = "".join(words)
     best, best_score = None, 0.0
     for phrase in COMMAND_PHRASES:
+        if phrase in _EXACT_ONLY and " ".join(words) != phrase:
+            continue
         score = SequenceMatcher(None, heard, phrase.replace(" ", "")).ratio()
         if score > best_score:
             best, best_score = phrase, score
-    return best if best_score >= COMMAND_MIN_SIMILARITY else None
+    if best is None or best_score < COMMAND_MIN_SIMILARITY:
+        return None
+    # "Make it so." is close to "make it shorter" as a whole but ends on a
+    # different word; a real mishearing keeps the last word's sound.
+    last = best.split()[-1]
+    if len(words) > 1 and len(best.split()) > 1:
+        if SequenceMatcher(None, words[-1], last).ratio() < 0.5:
+            return None
+    return best
 
 
 # A phrase cut at a pause that ends like this was most likely cut mid-sentence
@@ -274,6 +291,73 @@ def looks_unfinished(text: str) -> bool:
         return True
     # "you", "it" and "that" are left out: "Thank you." and "Send it." are whole.
     return stripped[-1] == "." and words[-1] in _OPEN_ENDINGS
+
+
+# "change Tuesday to Friday": swaps words in what this session typed. The part
+# being changed is kept short, so "change the plan to something cheaper and
+# simpler for the team" stays a sentence unless it really names typed words.
+# The first word is often misheard ("Fange Tuesday to Friday."), so it only
+# has to sound like "change"; the caller still checks the words were typed.
+_CHANGE_RE = re.compile(r"^([a-z']+)\s+(.+?)\s+to\s+(.+?)[.!?]*$", re.IGNORECASE)
+CHANGE_MAX_WORDS = 4
+
+
+def change_command(text: str) -> tuple[str, str] | None:
+    """("Tuesday", "Friday") for "Change Tuesday to Friday.", else None."""
+    from difflib import SequenceMatcher
+
+    match = _CHANGE_RE.match(text.strip())
+    if not match:
+        return None
+    verb = match.group(1).lower()
+    if verb != "change" and SequenceMatcher(None, verb, "change").ratio() < 0.6:
+        return None
+    old, new = match.group(2).strip(" ,"), match.group(3).strip(" ,")
+    if not old or not new or len(old.split()) > CHANGE_MAX_WORDS:
+        return None
+    return old, new
+
+
+class Block:
+    """What a hands-free session typed into one box since the last line break,
+    as (space typed before it, phrase) pieces, so "make that shorter" and
+    "change X to Y" act on all of it and "scratch that" removes the last
+    phrase with its space."""
+
+    def __init__(self) -> None:
+        self.pieces: list[tuple[str, str]] = []
+        self.hwnd: int | None = None
+
+    def clear(self) -> None:
+        self.pieces = []
+        self.hwnd = None
+
+    def add(self, lead: str, text: str, hwnd: int | None, continues: bool) -> None:
+        if continues and self.pieces and hwnd == self.hwnd:
+            self.pieces.append((lead, text))
+        else:
+            self.pieces = [("", text)]
+            self.hwnd = hwnd
+
+    @property
+    def text(self) -> str:
+        if not self.pieces:
+            return ""
+        return self.pieces[0][1] + "".join(lead + t for lead, t in self.pieces[1:])
+
+    def replaced(self, old: str, new: str) -> None:
+        """After `old` on screen was rewritten to `new`."""
+        if not self.pieces:
+            return
+        if old == self.text:
+            self.pieces = [("", new)] if new else []
+        elif old == self.pieces[-1][1]:
+            self.pieces[-1] = (self.pieces[-1][0], new)
+        else:
+            self.clear()
+
+    def pop(self) -> tuple[str, str] | None:
+        return self.pieces.pop() if self.pieces else None
 
 
 def context_prompt(vocabulary: str | None, typed: list[str]) -> str | None:

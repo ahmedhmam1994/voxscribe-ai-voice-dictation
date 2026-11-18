@@ -358,6 +358,71 @@ def check_reply(original: str, reply: str) -> str | None:
 # -- the llama-server child process -------------------------------------------
 
 
+_job_handle = None
+
+
+def _close_with_app(proc: subprocess.Popen) -> None:
+    """Ties the model server to VoxScribe through a Windows job object, so it
+    closes whenever VoxScribe does, even when VoxScribe is ended from Task
+    Manager or by an update. Without it a 600 MB server was left running after
+    each such end, and several of them slowed the whole PC down."""
+    global _job_handle
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        if _job_handle is None:
+            job = kernel32.CreateJobObjectW(None, None)
+            if not job:
+                return
+
+            class _Basic(ctypes.Structure):
+                _fields_ = [
+                    ("PerProcessUserTimeLimit", ctypes.c_int64),
+                    ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD),
+                    ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t),
+                    ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t),
+                    ("PriorityClass", wintypes.DWORD),
+                    ("SchedulingClass", wintypes.DWORD),
+                ]
+
+            class _Io(ctypes.Structure):
+                _fields_ = [(n, ctypes.c_uint64) for n in (
+                    "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+                    "ReadTransferCount", "WriteTransferCount", "OtherTransferCount",
+                )]  # fmt: skip
+
+            class _Extended(ctypes.Structure):
+                _fields_ = [
+                    ("BasicLimitInformation", _Basic),
+                    ("IoInfo", _Io),
+                    ("ProcessMemoryLimit", ctypes.c_size_t),
+                    ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                    ("PeakJobMemoryUsed", ctypes.c_size_t),
+                ]
+
+            info = _Extended()
+            info.BasicLimitInformation.LimitFlags = 0x2000  # KILL_ON_JOB_CLOSE
+            if not kernel32.SetInformationJobObject(
+                wintypes.HANDLE(job), 9, ctypes.byref(info), ctypes.sizeof(info)
+            ):
+                return
+            _job_handle = job
+        kernel32.AssignProcessToJobObject(
+            wintypes.HANDLE(_job_handle), wintypes.HANDLE(int(proc._handle))
+        )
+    except Exception:  # noqa: BLE001 -- the assistant still works without it
+        pass
+
+
 def _free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -420,6 +485,7 @@ class Assistant:
             stdin=subprocess.DEVNULL,
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
+        _close_with_app(self._proc)
         deadline = time.monotonic() + _START_TIMEOUT
         while time.monotonic() < deadline:
             if self._proc.poll() is not None:
@@ -454,18 +520,17 @@ class Assistant:
                 error = exc
         raise error or AssistantError("The assistant could not start")
 
-    def rewrite(self, text: str, command_id: str) -> str:
-        """The edited text, checked. Raises AssistantError with a message for
-        the status pill when it cannot be used."""
+    def _complete(self, messages: list[dict[str, str]], max_tokens: int) -> str:
+        """The model's raw reply to `messages`. Raises AssistantError."""
         with self._lock:
             self._ensure_started()
             try:
                 reply = self._call(
                     "/v1/chat/completions",
                     {
-                        "messages": build_messages(text, command_id),
+                        "messages": messages,
                         "temperature": 0.2,
-                        "max_tokens": max(256, len(text) // 2),
+                        "max_tokens": max_tokens,
                         "chat_template_kwargs": {"enable_thinking": False},
                     },
                     _REPLY_TIMEOUT,
@@ -475,7 +540,27 @@ class Assistant:
                 raise AssistantError("The assistant stopped answering") from exc
             finally:
                 self._last_used = time.monotonic()
-        result = clean_reply(reply["choices"][0]["message"]["content"])
+        try:
+            return str(reply["choices"][0]["message"]["content"] or "")
+        except (KeyError, IndexError, TypeError) as exc:
+            raise AssistantError("The assistant gave no answer") from exc
+
+    def warm_up(self) -> None:
+        """Starts the model ahead of the first command, so a hands-free "make
+        that shorter" is not kept waiting for it to load. Never raises."""
+        try:
+            # The first rewrite after a start is several times slower than the
+            # next ones (37 s against 7 s, measured), because the long rules
+            # prompt is read once and then reused. One tiny rewrite reads it now.
+            self._complete(build_messages("OK.", "shorter"), 1)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def rewrite(self, text: str, command_id: str) -> str:
+        """The edited text, checked. Raises AssistantError with a message for
+        the status pill when it cannot be used."""
+        reply = self._complete(build_messages(text, command_id), max(256, len(text) // 2))
+        result = clean_reply(reply)
         problem = check_reply(text, result)
         if problem:
             raise AssistantError(problem)
