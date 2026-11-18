@@ -7071,7 +7071,9 @@ class MainWindow(QMainWindow):
             if marked is not None:
                 note += f" {marked.count('<span')} unsure word(s) underlined in the transcript."
             self._set_status(note, "ready")
-            if hotkey_settings.get_read_back_enabled():
+            if hotkey_settings.get_read_back_enabled() and self._hands_free is None:
+                # Never while hands-free is listening: the mic hears the
+                # speakers and types the sentence a second time.
                 QTimer.singleShot(700, lambda: read_aloud.speak(text))
             self._after_first_dictation()
         else:
