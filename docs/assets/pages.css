@@ -96,3 +96,8 @@ body>main{margin:auto; max-width:540px; padding:48px 24px; text-align:center}
   table.stack td[data-label]::before{content:attr(data-label) ": "; color:var(--text-faint); font-size:13px; font-weight:600}
 }
 @media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
+
+/* Smooth scrolling (assets/smooth.js) takes over from the browser's own. */
+html.lenis, html.lenis body{height:auto}
+html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
+.lenis.lenis-stopped{overflow:hidden}

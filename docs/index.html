@@ -69,9 +69,9 @@
 
 *{box-sizing:border-box}
 .vh{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
-html{scroll-behavior:smooth; scrollbar-color:var(--accent) var(--sky)}
+html{scroll-behavior:smooth; scrollbar-color:var(--accent) var(--sky); overflow-x:clip}
 body{margin:0; background-color:var(--sky); color:var(--ink); font:400 18px/1.65 Inter,system-ui,sans-serif;
-  transition:background-color .9s ease,color .9s ease; overflow-x:hidden; -webkit-font-smoothing:antialiased}
+  transition:background-color .9s ease,color .9s ease; overflow-x:clip; -webkit-font-smoothing:antialiased}
 ::selection{background:var(--accent); color:var(--on-accent)}
 a{color:inherit; text-underline-offset:3px; text-decoration-thickness:1px}
 a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:6px}
@@ -476,11 +476,29 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "MobileApplication", "name": "VoxScribe for Android", "applicationCategory": "UtilitiesApplication", "operatingSystem": "Android 8.0 or newer", "description": "Free, open-source, offline voice typing for Android. A floating button types your dictation into any app, transcribed on the phone with Whisper.", "url": "https://voxscribe-ai-voice-dictation.vercel.app/free-offline-voice-typing-android.html", "downloadUrl": "https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/android-v1.1.4", "softwareVersion": "1.1.4", "license": "https://opensource.org/licenses/MIT", "isAccessibleForFree": true, "offers": [{"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free"}, {"@type": "Offer", "price": "39", "priceCurrency": "USD", "name": "Pro (one-time)"}], "image": "https://voxscribe-ai-voice-dictation.vercel.app/og-meadow.png", "alternateName": ["VoxScribe Dictation", "VoxScribe for Android"], "author": {"@type": "Person", "name": "Ahmed Hmam", "url": "https://github.com/ahmedhmam1994", "sameAs": ["https://github.com/ahmedhmam1994"]}, "featureList": ["Floating button dictates into any app", "Speech model is bundled, works in airplane mode", "Transcribes audio and video files to text and .srt captions", "Spoken commands such as period, new line and scratch that", "Never appears in password or PIN fields"], "screenshot": ["https://voxscribe-ai-voice-dictation.vercel.app/assets/android-chat.png", "https://voxscribe-ai-voice-dictation.vercel.app/assets/android-dictation.png"]}
 </script>
-<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
+<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root) { animation: vt-out .32s cubic-bezier(.4,0,1,1) both; } ::view-transition-new(root) { animation: vt-in .62s cubic-bezier(.16,1,.3,1) both; } @keyframes vt-out { to { opacity: 0; transform: translateY(-18px) scale(.985); filter: blur(4px); } } @keyframes vt-in { from { clip-path: inset(100% 0 0 0 round 32px 32px 0 0); } to { clip-path: inset(0 0 0 0 round 0); } } }</style>
+<style>
+/* Living sky: six painted scenes of the same meadow, cross-faded by the page's time of day. */
+#skyart{position:fixed; left:0; right:0; bottom:0; height:100lvh; z-index:0; pointer-events:none; overflow:hidden; transition:opacity 1.2s ease;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 48%,#000 92%); mask-image:linear-gradient(180deg,transparent 0,transparent 48%,#000 92%)}
+#skyart .sk{position:absolute; left:0; right:0; bottom:-4%; height:108%; background:center bottom/cover no-repeat; opacity:0; transition:opacity 1.6s ease; will-change:opacity}
+html[data-sky="dawn"] #skyart .s-dawn, html[data-sky="morning"] #skyart .s-morning, html[data-sky="noon"] #skyart .s-noon,
+html[data-sky="golden"] #skyart .s-golden, html[data-sky="dusk"] #skyart .s-dusk, html[data-sky="night"] #skyart .s-night, html[data-sky="late"] #skyart .s-night{opacity:.4}
+html[data-sky="dusk"] #skyart .sk, html[data-sky="night"] #skyart .sk, html[data-sky="late"] #skyart .sk{transition-duration:2.2s}
+/* The hero draws its own living meadow, so the painting waits until the page moves on. */
+html.at-top #skyart{opacity:0}
+/* Smooth scrolling takes over from the browser's own. */
+html.lenis, html.lenis body{height:auto}
+html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
+.lenis.lenis-stopped{overflow:hidden}
+.hero .shot img{transform-origin:50% 60%; will-change:transform}
+@media (prefers-reduced-motion:reduce){ #skyart .sk{transition:none} }
+</style>
 </head>
 <body>
 <div id="sun" aria-hidden="true"></div>
 <canvas id="skyc" aria-hidden="true"></canvas>
+<div id="skyart" aria-hidden="true"><div class="sk s-dawn" data-bg="/assets/sky/dawn.webp"></div><div class="sk s-morning" data-bg="/assets/sky/morning.webp"></div><div class="sk s-noon" data-bg="/assets/sky/noon.webp"></div><div class="sk s-golden" data-bg="/assets/sky/golden.webp"></div><div class="sk s-dusk" data-bg="/assets/sky/dusk.webp"></div><div class="sk s-night" data-bg="/assets/sky/night.webp"></div></div>
 <canvas id="fx" aria-hidden="true"></canvas>
 <svg class="plane" id="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 3 10.5l6.8 2.7L12.5 20 21 3Z"/><path d="M21 3 9.8 13.2"/></svg>
 <div id="dayline"><button id="snd" type="button" aria-pressed="false" aria-label="Meadow sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9.5a4 4 0 0 1 0 5M19 7a8 8 0 0 1 0 10"/></svg></button><label><span class="vh">Move through the day and the page</span><input id="day" type="range" min="0" max="1000" value="0"></label><span id="clock" aria-hidden="true">6:10 am</span></div>
@@ -707,15 +725,130 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
   </div>
 </section>
 
-<section id="how" data-time="golden">
+<section id="how" class="scene" data-time="golden" aria-labelledby="scene-h">
+<style>
+#how.scene{padding:0; position:relative; z-index:2}
+.scene-pin{height:100vh; display:flex; align-items:center; padding:86px 0 26px}
+.scene-grid{display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:64px; align-items:center; width:100%}
+.scene-kicker{font:600 13px/1 Inter,sans-serif; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin:0 0 16px}
+.beats{list-style:none; margin:22px 0 0; padding:0; display:grid; gap:6px; counter-reset:b}
+.beats li{counter-increment:b; position:relative; padding:9px 0 9px 54px; border-radius:18px; transition:opacity .5s ease}
+.beats li::before{content:attr(data-n); position:absolute; left:10px; top:10px; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+  font:700 14px/1 Nunito,sans-serif; border:1.5px solid var(--line); color:var(--soft); transition:background-color .4s,color .4s,border-color .4s}
+.beats h3{font-size:20px; font-weight:800}
+.scene-copy h2{font-size:clamp(34px,3.9vw,52px)}
+.beats p{margin:2px 0 0; color:var(--soft); font-size:15.5px; line-height:1.45}
+.js-scene .beats li{opacity:.38}
+.js-scene .beats li.on{opacity:1}
+.beats li.on::before{background:var(--accent); border-color:var(--accent); color:var(--on-accent)}
+.scene-bar{height:3px; border-radius:3px; background:var(--line); margin:26px 0 0 54px; overflow:hidden; max-width:320px}
+.scene-bar i{display:block; height:100%; width:100%; background:var(--accent); transform-origin:0 50%; transform:scaleX(1)}
+
+.stage{position:relative; height:min(calc(100vh - 130px),560px); border-radius:32px; background:color-mix(in srgb,var(--cloud) 70%,transparent);
+  border:1px solid var(--line); box-shadow:0 40px 90px -50px #17352b70; overflow:hidden; isolation:isolate}
+.stage::before{content:""; position:absolute; inset:-30% -10% auto; height:70%; background:radial-gradient(closest-side,color-mix(in srgb,var(--sun) 80%,transparent),transparent); z-index:-1}
+.stage .bg{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; pointer-events:none}
+.stage .bg-b{opacity:0}
+.stage::after{content:""; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg,color-mix(in srgb,var(--cloud) 18%,transparent),color-mix(in srgb,var(--cloud) 55%,transparent) 70%)}
+.js-scene .stage .bg-b{opacity:0}
+.win{position:absolute; left:7%; right:7%; top:7%; border-radius:20px; background:var(--sky); border:1px solid var(--line); box-shadow:0 22px 50px -30px #17352b80; overflow:hidden}
+.win-top{display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); font:600 14px/1 Inter,sans-serif}
+.win-top .dots{display:flex; gap:6px}.win-top .dots i{width:10px; height:10px; border-radius:50%; background:var(--line)}
+.net{margin-left:auto; display:inline-flex; align-items:center; gap:7px; padding:6px 11px; border-radius:99px; font-size:12.5px; border:1px solid var(--line); color:var(--soft); position:relative}
+.net svg{width:15px; height:15px}
+.net .off{display:none}
+.net.is-off{border-color:var(--accent); color:var(--accent)}
+.net.is-off .on{display:none}.net.is-off .off{display:inline}
+.thread{padding:16px 16px 6px; display:grid; gap:10px; min-height:126px; align-content:end}
+.msg{max-width:78%; padding:10px 14px; border-radius:16px 16px 16px 6px; background:color-mix(in srgb,var(--line) 55%,transparent); font-size:15px; line-height:1.4}
+.msg.me{justify-self:end; border-radius:16px 16px 6px 16px; background:var(--accent); color:var(--on-accent)}
+.msg small{display:block; font-size:12px; opacity:.7; margin-bottom:2px}
+.compose{margin:8px 12px 12px; padding:12px 14px; border-radius:14px; border:1.5px solid var(--line); font-size:15.5px; min-height:48px; display:flex; align-items:center; gap:2px; transition:border-color .3s}
+.compose.focus{border-color:var(--accent)}
+.compose .ph{color:var(--soft); opacity:.7}
+.compose .caret{display:inline-block; width:2px; height:1.15em; background:var(--accent); margin-left:1px; animation:sc-blink 1s steps(1) infinite}
+@keyframes sc-blink{50%{opacity:0}}
+
+.voice{position:absolute; left:7%; right:7%; bottom:7%; display:grid; grid-template-columns:auto 1fr; gap:22px; align-items:center}
+.key{font:700 28px/1 Inter,sans-serif; padding:18px 22px 20px; border-radius:16px; border:2px solid var(--line); border-bottom-width:7px; background:var(--sky); color:var(--ink); box-shadow:0 14px 24px -16px #17352b90}
+.said{position:relative; min-height:74px; display:flex; align-items:center; gap:18px}
+.mark{width:96px; height:90px; flex:none; overflow:visible}
+.mark rect{fill:var(--accent)}
+.spoken{font-size:16px; line-height:1.45; color:var(--soft); font-style:italic}
+.spoken .w{display:inline-block; position:relative; margin-right:.28em}
+.spoken .f::after{content:""; position:absolute; left:-2px; right:-2px; top:55%; height:2px; background:currentColor; transform:scaleX(var(--cut,0)); transform-origin:0 50%}
+.chip{position:absolute; right:7%; bottom:calc(7% + 22px); padding:7px 12px; border-radius:99px; background:var(--ink); color:var(--sky); font:600 12.5px/1 Inter,sans-serif; display:inline-flex; gap:7px; align-items:center}
+.chip svg{width:14px; height:14px}
+.js-scene .chip{opacity:0}
+#sc-sent{display:none}.js-scene #sc-sent{display:block}
+.spoken .f{--cut:1; opacity:.35}
+
+@media (max-width:900px){
+  .scene-pin{padding:84px 0 16px; align-items:flex-start}
+  .scene-grid{grid-template-columns:minmax(0,1fr); gap:18px}
+  .scene-copy h2{font-size:30px}
+  .js-scene .beats{margin-top:12px; display:block; min-height:96px}
+  .js-scene .beats li{display:none; padding-top:6px}
+  .js-scene .beats li.on{display:block}
+  .js-scene .beats li::before{top:7px}
+  .scene-bar{margin-top:6px}
+  .stage{aspect-ratio:auto; height:min(calc(100svh - 400px),470px); min-height:340px}
+  .win-top{white-space:nowrap}
+  .net .lg{display:none}
+  .net{font-size:11.5px; padding:5px 9px}
+  .win{left:5%; right:5%; top:5%}
+  .thread{min-height:60px; padding-top:12px}
+  .voice{left:5%; right:5%; bottom:5%; gap:14px}
+  .key{font-size:22px; padding:13px 16px 15px}
+  .mark{width:62px; height:58px}
+  .spoken{font-size:14.5px}
+  .chip{bottom:calc(5% + 14px); right:5%}
+}
+@media (prefers-reduced-motion:reduce){ .compose .caret{animation:none} }
+</style>
+  <div class="scene-pin">
+    <div class="wrap scene-grid">
+      <div class="scene-copy">
+        <p class="scene-kicker">One dictation, start to finish</p>
+        <h2 id="scene-h">From your voice to the cursor.</h2>
+        <ol class="beats">
+          <li data-n="1" class="on"><h3>Hold F9</h3><p>In any app: a chat, a document, a browser tab.</p></li>
+          <li data-n="2"><h3>Talk the way you talk</h3><p>Pauses, ums and all. Your speech is turned into text on your own PC.</p></li>
+          <li data-n="3"><h3>Let go</h3><p>The filler words go, and clean text is typed at your cursor. Your clipboard is left alone.</p></li>
+          <li data-n="4"><h3>No internet needed</h3><p>It keeps working offline, and your audio is never saved to disk.</p></li>
+        </ol>
+        <div class="scene-bar" aria-hidden="true"><i></i></div>
+      </div>
+      <div class="stage" aria-hidden="true">
+        <img class="bg bg-a" src="/assets/proto/meadow-a.webp" alt="" width="900" height="900" decoding="async">
+        <img class="bg bg-b" src="/assets/proto/meadow-b.webp" alt="" width="900" height="900" decoding="async" loading="lazy">
+        <div class="win">
+          <div class="win-top"><span class="dots"><i></i><i></i><i></i></span>Team chat
+            <span class="net"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><path d="M12 19.5h.01"/><path class="slash" d="M3 3l18 18" opacity="0"/></svg><span class="on">Online</span><span class="off">Offline<span class="lg">, still typing</span></span></span>
+          </div>
+          <div class="thread">
+            <div class="msg"><small>Sam</small>Are we still on for Tuesday?</div>
+            <div class="msg me" id="sc-sent">Can we move the meeting to Friday?</div>
+          </div>
+          <div class="compose" id="sc-compose"><span id="sc-text">Can we move the meeting to Friday?</span><span class="caret"></span></div>
+        </div>
+        <span class="chip" id="sc-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Audio not saved</span>
+        <div class="voice">
+          <kbd class="key" id="sc-key">F9</kbd>
+          <div class="said">
+            <svg class="mark" id="sc-mark" viewBox="20 22 68 64"><rect class="b1" x="24" y="44" width="8" height="20" rx="4"/><rect class="b2" x="38" y="36" width="8" height="36" rx="4"/><rect class="b3" x="52" y="44" width="8" height="20" rx="4"/><g class="cur"><rect x="70" y="29" width="7" height="50"/><rect x="63" y="26" width="21" height="6" rx="3"/><rect x="63" y="76" width="21" height="6" rx="3"/></g></svg>
+            <p class="spoken" id="sc-spoken"><span class="w f">um,</span><span class="w">can</span><span class="w">we,</span><span class="w f">uh,</span><span class="w">move</span><span class="w">the</span><span class="w">meeting</span><span class="w">to</span><span class="w">Friday</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="setup" data-time="golden">
   <div class="wrap">
-    <h2>Three steps. Zero setup.</h2>
+    <h2>Zero setup.</h2>
     <p class="lead">Nothing to configure first. VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
-    <ol class="steps">
-      <li><div class="step-art"><kbd>F9</kbd></div><h3>Hold F9</h3><p>Anywhere on Windows: a text editor, a browser, a chat app.</p></li>
-      <li><div class="step-art"><span class="say" aria-hidden="true"><i style="animation-delay:-.1s"></i><i style="animation-delay:-.45s"></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.7s"></i><i style="animation-delay:-.3s"></i><i style="animation-delay:-.6s"></i><i style="animation-delay:-.15s"></i><i style="animation-delay:-.5s"></i></span></div><h3>Speak</h3><p>Talk naturally. VoxScribe captures your mic in the background.</p></li>
-      <li><div class="step-art"><span class="out">Move the meeting to three thirty.</span></div><h3>Release</h3><p>Cleaned-up text is typed directly where your cursor is.</p></li>
-    </ol>
     <div class="install" id="install">
       <div class="install-head">
         <div><h3>Install in under a minute</h3><p class="fine">No admin rights required. Or with winget: <code>winget install ahmedhmam1994.VoxScribe</code></p></div>
@@ -1781,6 +1914,140 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     more.addEventListener('click', function(){ set(more.getAttribute('aria-expanded') !== 'true'); });
   }
 })();
+</script>
+<script src="/assets/vendor/gsap.min.js" defer></script>
+<script src="/assets/vendor/ScrollTrigger.min.js" defer></script>
+<script src="/assets/vendor/SplitText.min.js" defer></script>
+<script>
+/* Pinned "voice to cursor" scene. Without script, or with reduced motion, the section shows its finished state. */
+window.addEventListener('DOMContentLoaded', function () {
+  var scene = document.getElementById('how');
+  if (!scene || !window.gsap || !window.ScrollTrigger || !window.SplitText) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  gsap.registerPlugin(ScrollTrigger, SplitText);
+  // Scroll scenes measure by jumping the scroll position, which CSS smooth scrolling would turn into a glide.
+  document.documentElement.style.scrollBehavior = 'auto';
+  scene.classList.add('js-scene');
+
+  var q = function (s) { return scene.querySelector(s); };
+  var beats = scene.querySelectorAll('.beats li');
+  var bar = q('.scene-bar i'), net = q('.net'), compose = q('#sc-compose');
+  var key = q('#sc-key'), chip = q('#sc-chip'), sent = q('#sc-sent');
+  var words = scene.querySelectorAll('#sc-spoken .w'), fillers = scene.querySelectorAll('#sc-spoken .f');
+  var b = [q('.b1'), q('.b2'), q('.b3')], cur = q('.cur');
+  var chars = new SplitText('#sc-text', { type: 'chars' }).chars;
+
+  gsap.set(chars, { display: 'none' });
+  gsap.set(words, { opacity: 0, y: 10 });
+  gsap.set(fillers, { '--cut': 0 });
+  gsap.set(b, { scaleY: 0.35, transformOrigin: '50% 50%' });
+  gsap.set(cur, { opacity: 0.2 });
+  gsap.set(sent, { opacity: 0, y: 14, scale: 0.96, transformOrigin: '100% 100%' });
+  gsap.set(chip, { opacity: 0, y: 8 });
+
+  var tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+  // 1. Hold F9: the key goes down and the box gets focus.
+  tl.to(key, { y: 5, borderBottomWidth: 2, duration: 0.35 }, 0.15)
+    .to(compose, { borderColor: 'var(--accent)', duration: 0.3 }, 0.2)
+  // 2. Talk: the logo's bars move like a level meter, the raw words arrive.
+    .to(b, { keyframes: { scaleY: [0.35, 1, 0.55, 0.95, 0.4, 1.1, 0.6, 0.9, 0.5] }, ease: 'none', duration: 1.15, stagger: 0.07 }, 1)
+    .to(words, { opacity: 1, y: 0, stagger: 0.11, duration: 0.25 }, 1.05)
+  // 3. Let go: the key comes up, the fillers are crossed out, the bars fold into the cursor and the text types in.
+    .to(key, { y: 0, borderBottomWidth: 7, duration: 0.25 }, 2.1)
+    .to(fillers, { '--cut': 1, duration: 0.25, stagger: 0.1 }, 2.1)
+    .to(fillers, { opacity: 0.2, duration: 0.2 }, 2.4)
+    .to(b, { attr: { x: 70, y: 29, width: 7, height: 50, rx: 0 }, scaleY: 1, duration: 0.45, ease: 'power3.inOut', stagger: 0.05 }, 2.3)
+    .to(cur, { opacity: 1, duration: 0.25 }, 2.55)
+    .to(chars, { display: 'inline-block', duration: 0.02, stagger: 0.022 }, 2.55)
+    .to('#sc-spoken', { opacity: 0.35, duration: 0.3 }, 3.0)
+  // 4. Offline: the connection drops, it is sent anyway, and the audio is gone.
+    .to(compose, { borderColor: 'var(--line)', duration: 0.2 }, 3.3)
+    .to(q('.bg-b'), { opacity: 1, duration: 0.5, ease: 'none' }, 3.2)
+    .fromTo(q('.bg-a'), { scale: 1.08 }, { scale: 1, duration: 3.6, ease: 'none' }, 0)
+    .to(chars, { display: 'none', duration: 0.02 }, 3.45)
+    .to(sent, { opacity: 1, y: 0, scale: 1, duration: 0.35, ease: 'back.out(1.6)' }, 3.5)
+    .to('#sc-spoken', { opacity: 0, duration: 0.2 }, 3.5)
+    .to(chip, { opacity: 1, y: 0, duration: 0.3 }, 3.6)
+    .to([b, cur], { opacity: 0.25, duration: 0.3 }, 3.7)
+    .to({}, { duration: 0.3 });
+
+  var shown = -1;
+  ScrollTrigger.create({
+    trigger: scene.querySelector('.scene-pin'),
+    start: 'top top',
+    end: '+=2600',
+    pin: true,
+    scrub: 0.6,
+    animation: tl,
+    onUpdate: function (st) {
+      var p = st.progress, i = Math.min(3, Math.floor(p * 4.05));
+      bar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+      net.classList.toggle('is-off', p > 0.78);
+      if (i !== shown) { shown = i; beats.forEach(function (li, n) { li.classList.toggle('on', n === i); }); }
+    }
+  });
+  bar.style.transform = 'scaleX(0)';
+  // Folds and tabs above animate their height; re-measure the pin when one finishes, and once everything has loaded.
+  var rt;
+  function remeasure() { clearTimeout(rt); rt = setTimeout(function () { ScrollTrigger.refresh(); }, 60); }
+  window.addEventListener('load', remeasure);
+  document.addEventListener('transitionend', function (ev) {
+    if (ev.propertyName === 'grid-template-rows' || (ev.target.closest && ev.target.closest('.tiers'))) remeasure();
+  });
+});
+</script>
+
+<script src="/assets/vendor/lenis.min.js" defer></script>
+<script>
+/* Living sky, cinematic hero and smooth scrolling. All optional: without them the page reads the same. */
+window.addEventListener('DOMContentLoaded', function () {
+  var root = document.documentElement, calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Painted sky: load the current scene first, the rest once the page is idle.
+  var scenes = [].slice.call(document.querySelectorAll('#skyart .sk'));
+  function paint(el) { if (el && el.dataset.bg) { el.style.backgroundImage = 'url(' + el.dataset.bg + ')'; el.removeAttribute('data-bg'); } }
+  function current() { return document.querySelector('#skyart .s-' + (root.dataset.sky === 'late' ? 'night' : root.dataset.sky)); }
+  paint(current());
+  (window.requestIdleCallback || function (f) { setTimeout(f, 1500); })(function () { scenes.forEach(paint); });
+  new MutationObserver(function () { paint(current()); }).observe(root, { attributes: true, attributeFilter: ['data-sky'] });
+  var hero = document.querySelector('header.hero');
+  function top() { root.classList.toggle('at-top', !!hero && hero.getBoundingClientRect().bottom > innerHeight * 0.55); }
+  addEventListener('scroll', top, { passive: true }); top();
+
+  if (calm || !window.gsap || !window.ScrollTrigger) return;
+  gsap.registerPlugin(ScrollTrigger);
+
+  // Smooth scroll, driven by GSAP's clock so the pinned scenes stay in step.
+  if (window.Lenis) {
+    var lenis = new Lenis({ lerp: 0.11, anchors: { offset: -72 }, autoRaf: false });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(function (t) { lenis.raf(t * 1000); });
+    gsap.ticker.lagSmoothing(0);
+    window.vsLenis = lenis;
+  }
+
+  // The painting drifts a little slower than the page.
+  gsap.to('#skyart .sk', { yPercent: -3.5, ease: 'none', scrollTrigger: { start: 0, end: 'max', scrub: true } });
+
+  if (!hero) return;
+  var copy = hero.querySelector('.copy'), img = hero.querySelector('.shot img'), card = hero.querySelector('.typed'), meadow = hero.querySelector('.meadow');
+  var mm = gsap.matchMedia();
+  mm.add('(min-width: 901px)', function () {
+    // The screenshot starts turned away; scrolling squares it up and brings it to the middle while the words step back.
+    gsap.set(img, { rotationY: -16, rotationX: 7, scale: 0.94, transformPerspective: 1400 });
+    var tl = gsap.timeline({ defaults: { ease: 'none' } });
+    tl.to(img, { rotationY: 0, rotationX: 0, scale: 1.12, xPercent: -40, yPercent: 2, duration: 1 }, 0)
+      .to(card, { xPercent: -64, yPercent: -24, duration: 1 }, 0)
+      .to(copy, { y: -110, opacity: 0, filter: 'blur(6px)', duration: 0.55 }, 0.08)
+      .to(meadow, { yPercent: 16, duration: 1 }, 0);
+    ScrollTrigger.create({ trigger: hero, start: function () { return 'top ' + Math.round(hero.getBoundingClientRect().top + scrollY) + 'px'; }, end: '+=80%', pin: true, scrub: 0.5, animation: tl, anticipatePin: 1, refreshPriority: 1 });
+    return function () { gsap.set([img, card, copy, meadow], { clearProps: 'all' }); };
+  });
+  mm.add('(max-width: 900px)', function () {
+    gsap.to(img, { yPercent: -8, scale: 1.04, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
+  });
+  ScrollTrigger.sort(); ScrollTrigger.refresh();
+});
 </script>
 <script src="/assets/events.js" defer></script>
 </body>

@@ -7,7 +7,7 @@
 <title>Page not found: VoxScribe</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="stylesheet" href="/assets/pages.css">
-<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
+<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root) { animation: vt-out .32s cubic-bezier(.4,0,1,1) both; } ::view-transition-new(root) { animation: vt-in .62s cubic-bezier(.16,1,.3,1) both; } @keyframes vt-out { to { opacity: 0; transform: translateY(-18px) scale(.985); filter: blur(4px); } } @keyframes vt-in { from { clip-path: inset(100% 0 0 0 round 32px 32px 0 0); } to { clip-path: inset(0 0 0 0 round 0); } } }</style>
 </head>
 <body>
 <main>
@@ -15,5 +15,7 @@
   <p>The link may be old or mistyped. Try the <a href="/">VoxScribe home page</a>, the <a href="/free-offline-voice-typing-android.html">Android app</a>, or the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">source on GitHub</a>.</p>
 </main>
 <script src="/assets/events.js" defer></script>
+<script src="/assets/vendor/lenis.min.js" defer></script>
+<script src="/assets/smooth.js" defer></script>
 </body>
 </html>

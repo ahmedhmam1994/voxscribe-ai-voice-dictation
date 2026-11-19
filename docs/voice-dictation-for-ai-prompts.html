@@ -40,7 +40,7 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Can I dictate prompts to ChatGPT or Claude by voice?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. VoxScribe types into any Windows app that accepts typed text, so it works in the ChatGPT and Claude websites and desktop apps, in coding assistants inside editors, and in terminals. Hold F9, talk, let go, and the prompt is typed where your cursor is."}}, {"@type": "Question", "name": "Does my voice go to the AI company?", "acceptedAnswer": {"@type": "Answer", "text": "No. VoxScribe transcribes on your own computer with a local Whisper model, and only the finished text is typed into the prompt box. What you then send is up to you."}}, {"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Dictation, custom vocabulary, word replacements and voice commands are free with no word limit. An optional one-time Pro key adds extras such as code dictation and the larger, more accurate models."}}, {"@type": "Question", "name": "Does it work with coding tools?", "acceptedAnswer": {"@type": "Answer", "text": "It types into editors and terminals like any other app. For identifiers and symbols, the Pro code dictation mode writes them the way code needs."}}]}
 </script>
-<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; } }</style>
+<style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root) { animation: vt-out .32s cubic-bezier(.4,0,1,1) both; } ::view-transition-new(root) { animation: vt-in .62s cubic-bezier(.16,1,.3,1) both; } @keyframes vt-out { to { opacity: 0; transform: translateY(-18px) scale(.985); filter: blur(4px); } } @keyframes vt-in { from { clip-path: inset(100% 0 0 0 round 32px 32px 0 0); } to { clip-path: inset(0 0 0 0 round 0); } } }</style>
 </head>
 <body>
 <div class="wrap">
@@ -104,5 +104,7 @@
   <p style="margin-top:20px;font-size:14px;color:var(--text-muted);"><a href="index.html">Home</a> &middot; <a href="free-offline-voice-typing-android.html">Android</a> &middot; <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a> &middot; <a href="privacy.html">Privacy</a> &middot; This site uses Google Analytics, see the <a href="privacy.html">privacy policy</a>.</p>
 </div>
 <script src="/assets/events.js" defer></script>
+<script src="/assets/vendor/lenis.min.js" defer></script>
+<script src="/assets/smooth.js" defer></script>
 </body>
 </html>
