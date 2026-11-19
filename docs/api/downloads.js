@@ -5,7 +5,7 @@
 // Total = every asset download across all releases (Windows and Android).
 // The last good total is kept in Upstash Redis (same store as activate.js),
 // so a GitHub hiccup shows that number instead of an error. The CDN caches
-// the badge for an hour, so GitHub is asked at most about once an hour.
+// the badge for ten minutes, so GitHub is asked at most about six times an hour.
 //
 // GET /api/downloads        -> SVG badge
 // GET /api/downloads?json=1 -> {"downloads": 204}
@@ -79,12 +79,13 @@ module.exports = async (req, res) => {
     total = saved === null || saved === undefined ? null : Number(saved);
   }
 
-  // An hour at the CDN after a good refresh. After a failed one, only five minutes, so the
-  // fallback is not served as fresh for an hour.
+  // Ten minutes at the CDN (five in browsers and GitHub's image proxy) after a good refresh, so the
+  // site and the README badge stay in step. After a failed one, only five minutes, so the
+  // fallback is not served as fresh for long.
   res.setHeader(
     "Cache-Control",
     fresh
-      ? "public, max-age=3600, s-maxage=3600, stale-while-revalidate=604800, stale-if-error=604800"
+      ? "public, max-age=300, s-maxage=600, stale-while-revalidate=604800, stale-if-error=604800"
       : "public, max-age=300, s-maxage=300, stale-while-revalidate=604800, stale-if-error=604800",
   );
 
