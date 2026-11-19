@@ -23,14 +23,16 @@ Contents
 17. [Library, My words and learned words](#17-library-my-words-and-learned-words)
 18. [Fill forms by voice (Pro)](#18-fill-forms-by-voice-pro)
 19. [Rewrite assistant (Pro)](#19-rewrite-assistant-pro)
-20. [Snippets (Pro)](#20-snippets-pro)
-21. [Per-app profiles and the second language key (Pro)](#21-per-app-profiles-and-the-second-language-key-pro)
-22. [Code dictation and smart formatting (Pro)](#22-code-dictation-and-smart-formatting-pro)
-23. [Command line](#23-command-line)
-24. [Privacy, offline mode and disabled apps](#24-privacy-offline-mode-and-disabled-apps)
-25. [Startup, look, history, Insights, Settings tips and updates](#25-startup-look-history-insights-settings-tips-and-updates)
-26. [Pro license](#26-pro-license)
-27. [Troubleshooting](#27-troubleshooting)
+20. [Hands-free mode (Pro)](#20-hands-free-mode-pro)
+21. [The Ask key (Pro)](#21-the-ask-key-pro)
+22. [Snippets (Pro)](#22-snippets-pro)
+23. [Per-app profiles and the second language key (Pro)](#23-per-app-profiles-and-the-second-language-key-pro)
+24. [Code dictation and smart formatting (Pro)](#24-code-dictation-and-smart-formatting-pro)
+25. [Command line](#25-command-line)
+26. [Privacy, offline mode and disabled apps](#26-privacy-offline-mode-and-disabled-apps)
+27. [Startup, look, history, Insights, Settings tips and updates](#27-startup-look-history-insights-settings-tips-and-updates)
+28. [Pro license](#28-pro-license)
+29. [Troubleshooting](#29-troubleshooting)
 
 ---
 
@@ -40,9 +42,9 @@ Contents
 2. Start VoxScribe. It sits in the system tray (bottom right, maybe behind the `^` arrow) and shows no window on purpose.
 3. The first launch downloads the Whisper speech model (a few hundred MB). This is the only download you cannot skip; after it, dictation works offline.
 4. Windows may show "Windows protected your PC" because the app is new and unsigned. Click **More info**, then **Run anyway**.
-5. The tray menu has: Show, Settings, Start meeting, Try harder, Welcome, Check for updates, logs, Quit. Closing the window only hides it; **Quit** in the tray menu really exits.
+5. The tray menu has: Show, Settings, Start hands-free, Start meeting, Try harder, Welcome, Check for updates, logs, Quit. Closing the window only hides it; **Quit** in the tray menu really exits.
 
-After your first dictation VoxScribe asks once whether to start with Windows. You can change that later (see section 25).
+After your first dictation VoxScribe asks once whether to start with Windows. You can change that later (see section 27).
 
 ## 2. Dictate into any app
 
@@ -129,7 +131,8 @@ Settings, Text, TERM PACKS.
 1. Tick **Medical**, **Legal**, **Business** or **Software and AI**. Each shows how many terms it holds. Nothing is downloaded.
 2. Dictate normally. Words such as MRI, metformin, habeas corpus, EBITDA, Kubernetes and PostgreSQL are written correctly, with any speech model. The software pack also repairs rare tool names that sound like ordinary words.
 3. **Import a term file...** adds your own list as a plain text file, one term per line (an imported pack has a **Remove** button).
-4. **(Pro)** Pick packs per program in Per-app profiles (section 21), for example `winword.exe => packs=legal`.
+4. **(Pro)** With Pro each pack holds hundreds more terms, including rare drug names fixed when they are misspelled.
+5. **(Pro)** Pick packs per program in Per-app profiles (section 23), for example `winword.exe => packs=legal`.
 
 The packs are starting lists. A doctor or lawyer will want to add their own terms.
 
@@ -190,7 +193,7 @@ For quick thoughts that should not be typed anywhere.
 
 Both are off until you turn them on.
 
-- **Read each dictation aloud** (Settings, General): after each dictation Windows' own voice reads it back, so you can check it without looking. In the transcript, right-click for **Read aloud** or **Read the last line aloud**, and **Stop reading**.
+- **Read each dictation aloud** (Settings, General): after each dictation Windows' own voice reads it back, so you can check it without looking. It stays quiet during hands-free mode (section 20). In the transcript, right-click for **Read aloud** or **Read the last line aloud**, and **Stop reading**.
 - **Underline unsure words in the transcript** (Settings, Text): words the speech model was not sure about are underlined (Whisper and Parakeet). Check those first.
 
 ## 15. Start meeting
@@ -235,7 +238,7 @@ Three pages in the left-hand list keep your work together. All of it stays on th
 - **Teach VoxScribe your voice** is the same reading exercise as in section 9.
 - **Edit word lists in Settings** opens your vocabulary and replacements (section 7).
 
-**Insights** shows your own statistics, such as words per day (section 25).
+**Insights** shows your own statistics, such as words per day (section 27).
 
 ## 18. Fill forms by voice (Pro)
 
@@ -257,7 +260,34 @@ Say what you want done to the text you just dictated.
 
 A local language model on your PC rewrites the text, and VoxScribe checks that every number is kept before it replaces what was typed. Nothing leaves the computer. The assistant gives 3 free tries, then needs Pro.
 
-## 20. Snippets (Pro)
+## 20. Hands-free mode (Pro)
+
+Talk for as long as you like without holding a key. Each phrase is typed when you pause.
+
+1. Start it one of three ways: **Start hands-free** on the Dictation page, **Start hands-free** in the tray menu, or a key you pick in Settings, General, HANDS-FREE KEY (PRO). Tap that key once; there is nothing to hold.
+2. Click into a text box and talk. When you pause for about a second, the phrase is typed. A phrase that sounds cut off mid-sentence waits a moment for the rest.
+3. Spoken commands work as in normal dictation: **new line**, **new paragraph**, **period**, **comma**, **question mark**, **scratch that**, **delete last word**, **send it**, **capitalize that**, **all caps**.
+4. Edit what you said: **change Tuesday to Friday** replaces the words, and **make that shorter**, **make it formal**, **make it friendly**, **bullet points** or **fix that** rewrite it with the rewrite assistant (section 19). Both work on everything said since the last new line.
+5. To end, say **stop listening**, tap the hands-free key again, or press the dictation key. After two minutes with no speech it ends by itself.
+
+Notes
+
+- Hands-free listens on the microphone chosen in Settings, Audio. If that microphone is not connected it does not start, rather than quietly using another one.
+- Read each dictation aloud (section 14) is paused while hands-free listens, so the microphone does not hear the speakers.
+- What was heard and done is written to a session log on this PC (tray menu, logs), useful if a phrase came out wrong.
+- Hands-free gives 3 free sessions, then needs Pro.
+
+## 21. The Ask key (Pro)
+
+One key that works on the text you select, or answers from everything you said before. It uses the rewrite assistant model (section 19), so download that first. Everything runs on this PC.
+
+1. Settings, General, ASK KEY (PRO): pick a key.
+2. **On a selection.** Select text in any app, hold the Ask key and say what to do with it: "make this shorter", "translate this to Spanish", "reply saying Thursday works". Let go. The result is typed over the selection.
+3. **With nothing selected.** Hold the Ask key and ask about something you said before: "what did I tell John about the budget last week?" The answer opens in a small window, with the Library notes and dates it came from. **Copy answer** copies it.
+
+The key is kept from the app you are in, so a key like F6 does not also move the focus in a browser or Word. Your clipboard is put back after VoxScribe reads the selection. The model can still get things wrong, so check the notes it shows. Each of the two uses gives 3 free tries, then needs Pro.
+
+## 22. Snippets (Pro)
 
 Say a short phrase, get a whole block of text.
 
@@ -273,7 +303,7 @@ paste it => {clipboard}
 2. Dictate the trigger phrase on its own. The snippet is typed in its place.
 3. Variables: `{date}`, `{time}`, `{clipboard}` are filled in live.
 
-## 21. Per-app profiles and the second language key (Pro)
+## 23. Per-app profiles and the second language key (Pro)
 
 **Per-app profiles.** Settings, Pro. One line per program, matched by its executable name:
 
@@ -287,14 +317,14 @@ Options: `mode`, `language`, `cleanup`, `voice_commands`, `code`, `smart`, `peri
 
 **Second language key.** Settings, Speech, SECOND LANGUAGE KEY (PRO). Hold this key instead of the main one to dictate in your second language, with no trip to Settings.
 
-## 22. Code dictation and smart formatting (Pro)
+## 24. Code dictation and smart formatting (Pro)
 
 Settings, Pro, PRO TOOLS.
 
 - **Code dictation:** say the symbols and casing of code ("snake case user name" becomes `user_name`, "open paren x close paren" becomes `(x)`).
 - **Smart formatting:** spoken emails, web addresses and numbers are typed the way they are written: "john dot smith at gmail dot com" becomes john.smith@gmail.com, "example dot com slash pricing" becomes example.com/pricing, "one hundred and five dollars" becomes $105. A lone small number is left as a word.
 
-## 23. Command line
+## 25. Command line
 
 The same engine runs from scripts. From a source checkout:
 
@@ -306,7 +336,7 @@ venv\Scripts\python.exe cli.py interview.m4a --language auto --translate
 
 Text goes to stdout or into the `--output` folder (an existing file is never replaced). `--raw` gives text exactly as heard. `.vtt`, `.md` and the three most accurate models need Pro. `cli.py --help` lists every option.
 
-## 24. Privacy, offline mode and disabled apps
+## 26. Privacy, offline mode and disabled apps
 
 Settings, Privacy.
 
@@ -316,7 +346,7 @@ Settings, Privacy.
 - **Send anonymous usage pings** (app version and Windows version only, a random id, never audio or text) can be switched off.
 - **DISABLED APPS:** list programs where VoxScribe must do nothing, for example `keepass.exe`.
 
-## 25. Startup, look, history, Insights, Settings tips and updates
+## 27. Startup, look, history, Insights, Settings tips and updates
 
 - **Start VoxScribe automatically when Windows starts:** Settings, General, STARTUP.
 - **APPEARANCE:** Light, Dark or Same as Windows.
@@ -331,17 +361,17 @@ Getting around Settings
 - **Unsaved changes.** A chip shows "Unsaved changes" and Close becomes **Discard**. If you leave with changes, VoxScribe asks whether to save, discard or keep editing.
 - **Save changes** saves and keeps you on the same page, with a green "Saved" note.
 
-## 26. Pro license
+## 28. Pro license
 
 Pro is a one-time $39 payment and covers two PCs and two phones. Everything else stays free, with no account.
 
-What Pro adds: form fill, the rewrite assistant and link import (each with 3 free tries), Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels.
+What Pro adds: hands-free mode, the Ask key, form fill, the rewrite assistant and link import (each with 3 free tries), the bigger term packs, Snippets, fill-in templates, per-app profiles (including per-app term packs), dictation modes that switch by app, Code mode and code dictation, smart formatting, a second language key, the Medium, Large turbo and Large Whisper models (also used by Try harder), folders of files beyond 2 free runs, .vtt, .md and .docx export, and speaker labels.
 
 1. Settings, Pro, **Get Pro**.
 2. Paste the license key and click **Unlock**.
 3. To move it to a new PC, click **Remove license** on the old one first.
 
-## 27. Troubleshooting
+## 29. Troubleshooting
 
 | Problem | Try |
 | --- | --- |
@@ -355,6 +385,9 @@ What Pro adds: form fill, the rewrite assistant and link import (each with 3 fre
 | Import Link says download failed | Check the address opens in a browser and the video is public, then try again. |
 | Form fill typed nothing | Start with the box label and name at least 2 boxes. Password boxes are skipped on purpose. |
 | Rewrite did nothing | Download the assistant model first (Settings, Speech). Say the command right after a dictation. |
+| Hands-free did not start | Connect the microphone chosen in Settings, Audio, or pick another one there. |
+| Hands-free typed something I did not say | Check the session log (tray menu, logs) to see what was heard. Use a headset in a noisy room. |
+| Ask key did nothing | Download the assistant model first (Settings, Speech). Select the text before you hold the key. |
 | SmartScreen warning | More info, Run anyway. The installer is unsigned. |
 
 Still stuck? Open an issue: https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/issues
