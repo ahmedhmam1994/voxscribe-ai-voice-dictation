@@ -167,7 +167,7 @@ html.reveal .copy>*:nth-child(5){animation-delay:.36s}
 html.reveal .shot{animation:rise 1.2s cubic-bezier(.16,1,.3,1) .3s both}
 html.reveal body>nav,html.reveal #dayline,html.reveal #sun{animation:fadein 1.1s ease .2s both}
 
-section{position:relative; z-index:1; padding:120px 0}
+section{position:relative; z-index:1; padding:96px 0}
 .wrap{max-width:1160px; margin:0 auto; padding:0 28px}
 h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-spacing:-.025em}
 .lead{max-width:36em; margin:18px 0 0; color:var(--soft)}
@@ -195,7 +195,7 @@ h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-s
 .phones{display:flex; justify-content:center; gap:22px}
 .phones img{width:min(42%,250px); border-radius:22px}
 
-.pro p.big{max-width:38em; margin:22px 0 28px; font-size:20px; line-height:1.55}
+.pro p.big{max-width:46em; margin:20px 0 24px; font-size:17.5px; line-height:1.6}
 .fine{margin:18px 0 0; font-size:15px; color:var(--soft)}
 
 .end{display:flex; flex-direction:column}
@@ -205,9 +205,9 @@ h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-s
 .stats b{display:block; font:800 clamp(30px,3.4vw,42px)/1.1 Nunito,Inter,sans-serif; font-variant-numeric:tabular-nums}
 .stats span{font-size:15px; color:var(--soft)}
 
-#try{padding-bottom:170px}
-#try .wrap{position:relative; z-index:3}
-#try .meadow{height:380px}
+#proof{padding-bottom:230px}
+#proof .wrap{position:relative; z-index:3}
+#proof .meadow{height:300px}
 .try-magic{margin:0; max-width:21em; font-size:15px; line-height:1.45; font-weight:600; color:var(--accent)}
 .try{margin-top:44px}
 .try [hidden]{display:none !important}
@@ -260,8 +260,6 @@ h2{font-weight:800; font-size:clamp(34px,4.6vw,58px); line-height:1.06; letter-s
 .step-art .out{font:800 23px/1.25 Nunito,Inter,sans-serif; color:var(--accent)}
 .steps h3{margin:18px 0 8px; font-weight:800; font-size:27px; line-height:1.15}
 .steps p{margin:0; color:var(--soft)}
-.shots{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; margin-top:56px}
-.shots img{border-radius:12px}
 
 .table-scroll{margin-top:44px; overflow-x:auto}
 table{width:100%; min-width:540px; border-collapse:collapse; font-size:17px}
@@ -272,8 +270,8 @@ td.yes,th.us{color:var(--accent); font-weight:600}
 th.us{font-weight:800}
 td.no{color:var(--soft)}
 
-.voices{display:grid; gap:64px; margin-top:52px}
-.voices blockquote{margin:0; max-width:27em; font:700 clamp(25px,3vw,38px)/1.32 Nunito,Inter,sans-serif; letter-spacing:-.012em}
+.voices{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:56px; margin-top:48px}
+.voices blockquote{margin:0; max-width:27em; font:700 clamp(23px,2.4vw,31px)/1.34 Nunito,Inter,sans-serif; letter-spacing:-.012em}
 .voices blockquote mark{background:none; color:var(--accent)}
 .voices .who{margin:18px 0 0; font-size:15.5px; color:var(--soft)}
 .voices .who strong{color:var(--ink); font-weight:600}
@@ -325,6 +323,106 @@ code{padding:2px 7px; border-radius:6px; background:var(--paper); font:500 .9em 
 
 .sticky-dl{display:none}
 
+/* Compact home: merged sections, tabbed gallery, folded Pro table. */
+.pair-real{margin-top:64px}
+.pair-real .cap{font-size:15px}
+.news{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:56px; align-items:start; margin-top:52px}
+.news-list{grid-template-columns:repeat(2,minmax(0,1fr)); gap:36px 36px; margin:0}
+.news-list h3{font-size:19px}
+.news-list p{font-size:15.5px}
+.news-video{margin:0; position:sticky; top:96px}
+.news-video video{width:100%; border-radius:14px; box-shadow:0 20px 50px -26px #17352b59; background:#0b0d13}
+
+.gallery{margin-top:44px}
+.tablist{position:relative; display:flex; gap:4px; padding:5px; border:1px solid var(--line); border-radius:999px; width:max-content; max-width:100%;
+  overflow-x:auto; scrollbar-width:none; transition:border-color .9s ease}
+.tablist::-webkit-scrollbar{display:none}
+.tablist button{position:relative; z-index:1; flex:none; min-height:40px; padding:0 16px; border:0; border-radius:999px; background:transparent;
+  color:var(--soft); font:600 14.5px/1 Inter,sans-serif; cursor:pointer; white-space:nowrap; transition:color .35s ease}
+.tablist button:hover{color:var(--ink)}
+.tablist button[aria-selected="true"]{color:var(--on-accent)}
+.tablist button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tab-ink{position:absolute; z-index:0; left:0; top:5px; height:40px; width:0; border-radius:999px; background:var(--accent);
+  transition:transform .55s cubic-bezier(.16,1,.3,1),width .55s cubic-bezier(.16,1,.3,1),background-color .9s ease; display:none}
+.gallery.on .tab-ink{display:block}
+.gallery.on .tablist button[aria-selected="true"]{color:var(--on-accent)}
+.gallery:not(.on) .tablist{display:none}
+.panels{display:grid; margin-top:40px}
+.panel{display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:64px; align-items:center}
+.gallery:not(.on) .panel + .panel{margin-top:80px}
+.panel h3{font-weight:800; font-size:clamp(25px,2.6vw,34px); line-height:1.14; letter-spacing:-.015em; margin:0 0 14px}
+.panel p{margin:0; color:var(--soft)}
+.panel .media img{border-radius:14px; box-shadow:0 20px 50px -26px #17352b59}
+.panel .phones img{width:min(44%,214px)}
+.gallery.on .panel{grid-area:1/1; transition:opacity .45s ease,visibility 0s linear 0s}
+.gallery.on .panel[data-off]{opacity:0; visibility:hidden; pointer-events:none; transition:opacity .3s ease,visibility 0s linear .3s}
+.gallery.on .panel:not([data-off]) .txt{animation:panel-txt .7s cubic-bezier(.16,1,.3,1) both}
+.gallery.on .panel:not([data-off]) .media{animation:panel-media .9s cubic-bezier(.16,1,.3,1) both}
+@keyframes panel-txt{from{opacity:0; transform:translateY(14px); filter:blur(6px)}}
+@keyframes panel-media{from{opacity:.2; transform:translateY(10px) scale(.985); clip-path:inset(0 0 14% 0 round 14px)} to{clip-path:inset(0 0 0 0 round 14px)}}
+
+.checks{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:30px 44px; margin:48px 0 0; padding:0; list-style:none}
+.checks li{position:relative; padding-left:30px}
+.checks li::before{content:""; position:absolute; left:0; top:3px; width:18px; height:18px; background:var(--accent);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12.5 9.5 18 20 6'/%3E%3C/svg%3E") center/contain no-repeat;
+  transition:background-color .9s ease}
+.checks h3{margin:0 0 4px; font-weight:800; font-size:18px; line-height:1.25}
+.checks p{margin:0; font-size:15px; line-height:1.55; color:var(--soft)}
+
+.install{margin-top:72px; padding-top:48px; border-top:1px solid var(--line)}
+.install h3{font-weight:800; font-size:clamp(25px,2.6vw,34px); line-height:1.14; letter-spacing:-.015em}
+.install .fine{margin-top:8px}
+.install .install-list{margin-top:28px}
+.install .pm{margin-top:0}
+
+.tiers table{table-layout:fixed}
+.tiers col.c1{width:44%} .tiers col.c2{width:22%} .tiers col.c3{width:34%}
+.more-wrap{display:grid; grid-template-rows:1fr; transition:grid-template-rows .7s cubic-bezier(.16,1,.3,1)}
+.more-wrap > div{overflow:hidden; min-height:0}
+.more-wrap tr{transition:opacity .5s ease,transform .6s cubic-bezier(.16,1,.3,1)}
+.tiers.folded .more-wrap{grid-template-rows:0fr}
+.tiers.folded .more-wrap tr{opacity:0; transform:translateY(-8px)}
+.more-btn{margin-top:22px}
+.more-btn svg{transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.more-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+
+/* Folds: content stays in the page for search and no-script visitors; the script folds it. */
+.fold{display:grid; grid-template-rows:1fr; transition:grid-template-rows .75s cubic-bezier(.16,1,.3,1)}
+.fold > div{overflow:hidden; min-height:0}
+.fold > div > *{transition:opacity .5s ease .1s,transform .7s cubic-bezier(.16,1,.3,1) .05s,filter .5s ease .1s}
+.fold.folded{grid-template-rows:0fr}
+.fold.folded > div > *{opacity:0; transform:translateY(-10px); filter:blur(4px); transition:opacity .25s ease,transform .4s ease,filter .25s ease}
+.fold-btn{margin-top:28px}
+.fold-btn svg{transition:transform .5s cubic-bezier(.16,1,.3,1)}
+.fold-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.fold-btn-lead{margin-top:34px}
+.pair-real{margin-top:36px}
+.checks-more{margin-top:30px; padding-bottom:4px}
+.install-head{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:18px 40px}
+.install-head .fold-btn{margin-top:0}
+.install-head code{font-size:14px}
+.install-body{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px; padding-top:8px}
+.install{display:block}
+@media (max-width:900px){ .voices{grid-template-columns:minmax(0,1fr); gap:44px} .install-body{grid-template-columns:minmax(0,1fr); gap:28px} .checks-more{margin-top:22px} section{padding:76px 0} }
+@media (prefers-reduced-motion:reduce){ .fold,.fold > div > *,.fold-btn svg{transition:none} }
+
+@media (max-width:900px){
+  .news{grid-template-columns:minmax(0,1fr); gap:40px}
+  .news-video{position:static}
+  .news-list{grid-template-columns:minmax(0,1fr); gap:30px}
+  .tablist{width:auto; margin-right:-28px; border-radius:999px 0 0 999px; border-right:0}
+  .panel{grid-template-columns:minmax(0,1fr); gap:24px; align-content:start}
+  .gallery.on .panel .media{order:-1}
+  .checks{grid-template-columns:minmax(0,1fr); gap:22px}
+  .tiers .more-wrap table, .tiers table{min-width:540px}
+}
+@media (min-width:901px) and (max-width:1120px){ .checks{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (prefers-reduced-motion:reduce){
+  .gallery.on .panel .txt,.gallery.on .panel .media{animation:none}
+  .tab-ink,.more-wrap,.more-wrap tr,.more-btn svg{transition:none}
+}
+
 @media (max-width:900px){
   body{font-size:17px}
   .nav-toggle{display:grid}
@@ -342,7 +440,6 @@ code{padding:2px 7px; border-radius:6px; background:var(--paper); font:500 .9em 
   .try-proof{grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px}
   .field{grid-template-columns:minmax(0,1fr); gap:38px}
   .steps{grid-template-columns:minmax(0,1fr); gap:38px}
-  .shots{grid-template-columns:minmax(0,1fr)}
   .stats{gap:18px 40px; margin-bottom:56px}
   .sticky-dl{position:fixed; left:12px; right:12px; bottom:12px; z-index:8; display:block; opacity:0; visibility:hidden; transform:translateY(16px); transition:opacity .3s ease,transform .3s ease,visibility .3s}
   .sticky-dl.show{opacity:1; visibility:visible; transform:none}
@@ -412,13 +509,13 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
         <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
       </div>
       <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.9.0">v1.9.0</a></p>
-      <form class="updates-form hero-signup" novalidate>
+      <form class="updates-form hero-signup" id="updates-form" novalidate>
         <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
         <input type="email" name="email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address for big update and price news" required>
         <button class="btn small" type="submit">Keep me posted</button>
       </form>
       <p class="updates-status" role="status" aria-live="polite"></p>
-      <p class="facts hero-signup-note">Optional. A short email when a big update ships or the price changes. No account. <a href="privacy.html">Privacy</a>.</p>
+      <p class="facts hero-signup-note">Optional. A short email when a big update ships or the price changes, never shared or sold. No account. <a href="privacy.html">Privacy</a> &middot; <a href="#" id="updates-remove">Remove me</a></p>
       <div class="listen">
         <button class="btn small hold" id="hold" type="button" aria-pressed="false">Hold <kbd>F9</kbd> to try</button>
         <button class="btn small" id="mic" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span id="mic-label">Talk to the meadow</span></button>
@@ -440,31 +537,12 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
       <li><b>v1.9.0</b><span>Windows, Android v1.1.4</span></li>
     </ul>
     <h2>Offline voice typing: it works with the internet off.</h2>
+    <p class="lead">Try it now, in this page. This runs a small Whisper model inside your browser. Load it once, then disconnect and keep talking. The counter below shows every network request made while it transcribes.</p>
     <div class="switchrow">
       <button class="switch" id="air" type="button" aria-pressed="false"><i aria-hidden="true"></i>Airplane mode</button>
       <span class="airnote" id="air-note" role="status">Switch it on. The words keep coming.</span>
     </div>
-    <div class="pair">
-      <div>
-        <img src="demo-real.webp" width="680" height="345" alt="Screen recording of VoxScribe's real transcribed text being typed into Notepad, character by character" loading="lazy">
-        <p class="cap">Real recording, not a mockup. Typed directly by VoxScribe, straight from a real F9 recording. No clipboard, no editing.</p>
-      </div>
-      <div>
-        <video id="demo" autoplay muted loop playsinline preload="metadata" poster="assets/airplane-demo.jpg" width="960" height="540" aria-label="Illustration: with airplane mode on, VoxScribe still turns speech into text on the device, while typical cloud dictation needs a connection."><source src="assets/airplane-demo.mp4" type="video/mp4"></video>
-        <div class="capbar">
-          <p class="cap">Airplane mode on, still dictating. <a href="https://youtu.be/lLCGvhdJKjA">Watch with sound</a></p>
-          <button class="btn small" id="pause" type="button" aria-pressed="false" style="margin-top:14px">Pause</button>
-        </div>
-      </div>
-    </div>
-    <p class="note">The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
-  </div>
-</section>
-
-<section id="try" data-time="morning">
-  <div class="wrap">
-    <h2>Hold a key, talk, then turn on airplane mode.</h2>
-    <p class="lead">Try it now, in this page. This runs a small Whisper model inside your browser. Load it once, then disconnect and keep talking. The counter below shows every network request made while it transcribes.</p>
+    <div id="try">
     <div class="try" id="try-card" data-state="idle">
       <div class="try-main">
         <div class="try-stage" id="try-stage">
@@ -492,6 +570,23 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
       <p class="try-note">Clicking Load downloads the speech engine from jsDelivr and a small English Whisper model (about 40 MB) from Hugging Face, once, with your browser's normal cache. Your voice is never sent anywhere: it is processed in this page and the audio is discarded afterward. This demo uses a small model and English only. The Windows and Android apps use larger models and about 28 languages.</p>
     </div>
     <noscript><p class="fine">The live demo needs JavaScript.</p></noscript>
+    </div>
+    <button class="btn small fold-btn fold-btn-lead" type="button" aria-expanded="true" aria-controls="fold-real" data-more="Watch it in the real app" data-less="Hide the recordings" hidden><span>Watch it in the real app</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="fold" id="fold-real"><div>
+    <div class="pair pair-real">
+      <div>
+        <img src="demo-real.webp" width="680" height="345" alt="Screen recording of VoxScribe's real transcribed text being typed into Notepad, character by character" loading="lazy">
+        <p class="cap">Real recording, not a mockup. Typed directly by VoxScribe, straight from a real F9 recording. No clipboard, no editing. The rest of the time it's out of sight: a small floating pill shows Recording/Transcribing, then it's back in the tray.</p>
+      </div>
+      <div>
+        <video id="demo" autoplay muted loop playsinline preload="metadata" poster="assets/airplane-demo.jpg" width="960" height="540" aria-label="Illustration: with airplane mode on, VoxScribe still turns speech into text on the device, while typical cloud dictation needs a connection."><source src="assets/airplane-demo.mp4" type="video/mp4"></video>
+        <div class="capbar">
+          <p class="cap">Airplane mode on, still dictating. <a href="https://youtu.be/lLCGvhdJKjA">Watch with sound</a></p>
+          <button class="btn small" id="pause" type="button" aria-pressed="false" style="margin-top:14px">Pause</button>
+        </div>
+      </div>
+    </div>
+    </div></div>
   </div>
   <canvas class="meadow" aria-hidden="true"></canvas>
 </section>
@@ -507,75 +602,74 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
   </div>
 </section>
 
-<section id="showcase" data-time="noon">
-  <div class="wrap">
-    <h2>The real app, not a mockup.</h2>
-    <p class="lead">Every screenshot on this page is VoxScribe running on a normal PC and phone.</p>
-    <div class="row">
-      <div class="txt"><h3>Hold a key. Talk. It is typed where your cursor is.</h3><p>Works in any app on Windows. It types with keystrokes, not paste, so your clipboard stays yours. Say "scratch that" to take back what you just typed.</p></div>
-      <img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." loading="lazy">
-    </div>
-    <div class="row flip">
-      <div class="txt"><h3>Medicine, law, business and software words, spelled right.</h3><p>Term packs (335 medical, 212 law, 178 business and 144 software terms, about twice as many with Pro) fix words like metformin, habeas corpus and Kubernetes with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p></div>
-      <img src="assets/showcase-text-packs.webp" width="1100" height="814" alt="VoxScribe text settings showing medical, law and business term packs and word replacements." loading="lazy">
-    </div>
-    <div class="row">
-      <div class="txt"><h3>Pick the speech engine that fits your language.</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast accurate English, Moonshine Arabic, and an optional NVIDIA GPU. Each model is downloaded only if you pick it.</p></div>
-      <img src="assets/showcase-speech-engine.webp" width="1100" height="814" alt="VoxScribe speech settings listing Whisper and extra downloadable speech models." loading="lazy">
-    </div>
-  </div>
-</section>
-
 <section id="new" data-time="noon">
   <div class="wrap">
     <h2>New in 1.9.0: talk without holding a key.</h2>
     <p class="lead">Hands-free mode and the Ask key are Pro features, each with 3 free tries. Everything still runs on your PC.</p>
-    <ul class="field">
+    <div class="news">
+      <ul class="field news-list">
       <li><span class="print" aria-hidden="true"></span><h3>Hands-free mode</h3><p>Start it from the tray, the Dictation page or a key you pick in Settings, then just talk. Each phrase is typed when you pause. Say "make that shorter" or "change Tuesday to Friday" to edit what you said, and "stop listening" to end.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>The Ask key</h3><p>Select text, hold the key and say what to do with it, like "translate to Spanish", and the result is typed over the selection. With nothing selected, ask about something you said before and get an answer from your Library, with the notes it came from.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Bigger Pro word packs</h3><p>Hundreds more Medical, Law, Business and Software and AI terms, including rare drug names fixed when they are misspelled.</p></li>
       <li><span class="print" aria-hidden="true"></span><h3>Microphone fixes</h3><p>Speech from a Bluetooth headset in call mode is no longer cut out, and laptop mics that report the wrong sample rate are measured and read at the right speed.</p></li>
     </ul>
-  </div>
-</section>
-
-<section id="new-184" data-time="noon">
-  <div class="wrap">
-    <h2>Say it, and it does it.</h2>
-    <p class="lead">Fill forms, rewrite what you dictated, and keep your own spellings, all on your PC. Form fill, the rewrite assistant and link import are Pro features, each with 3 free tries.</p>
-    <figure class="promo" style="margin-left:auto;margin-right:auto">
-      <video controls preload="none" playsinline poster="assets/promo-184.jpg" width="1280" height="720" aria-label="An 88 second tour of VoxScribe 1.8.4: filling a form by voice, rewriting a dictation, learning a corrected name, the Library and link import. Music only, no narration."><source src="assets/promo-184.mp4" type="video/mp4"></video>
-    </figure>
-    <div class="row">
-      <div class="txt"><h3>Fill a whole form with one sentence.</h3><p>Say "name Sam Lee, phone 0100 123 4567, email sam at gmail dot com" and each part goes into the box with that label, in a browser or any Windows app. Dropdowns pick the option you say and date boxes take a spoken date. Password boxes are never touched.</p></div>
-      <img src="assets/showcase-form-fill.webp" width="1100" height="814" alt="A sign-up form with name, phone, email, country and date of birth filled in by voice, and the notice Filled 5 boxes." loading="lazy">
-    </div>
-    <div class="row flip">
-      <div class="txt"><h3>Say how to rewrite it.</h3><p>After a dictation, say "make it formal", "make it shorter", "bullet points" or "fix the grammar". A model on this PC rewrites the text in the same window, so nothing is uploaded. The model is an optional download.</p></div>
-      <img src="assets/showcase-rewrite.webp" width="1100" height="814" alt="A dictated email rewritten as bullet points after saying bullet points." loading="lazy">
-    </div>
-    <div class="row">
-      <div class="txt"><h3>Fix a word once. It stays fixed.</h3><p>Correct a spelling right after you dictate and VoxScribe applies it from then on. See and remove what it learned on the My words page. Short forms like ASAP, BTW and FYI are typed the way you write them, even when the speech model mishears them.</p></div>
-      <img src="assets/showcase-learned.webp" width="1100" height="814" alt="A dictated sentence with the name Kowalczyk spelled correctly and the notice Learned Kowalczyk." loading="lazy">
-    </div>
-    <div class="row flip">
-      <div class="txt"><h3>Search everything you said.</h3><p>The Library page lists every dictation, import, notes inbox line and meeting note in one place. Search it, open an item to read it, and choose how long dictations are kept. It all stays on this PC.</p></div>
-      <img src="assets/showcase-library.webp" width="1600" height="833" alt="The VoxScribe Library page searching for the word launch across dictations and imported files." loading="lazy">
-    </div>
-    <div class="row">
-      <div class="txt"><h3>Paste a link. Get the transcript.</h3><p>The Files page transcribes audio files, whole folders and web links. Paste a YouTube or other site link and VoxScribe uses the site's own captions when it has them, and tells you how long transcribing will take on this PC before it starts.</p></div>
-      <img src="assets/showcase-files.webp" width="1600" height="833" alt="The VoxScribe Files page with the Import from a link box open and a video link pasted in." loading="lazy">
+      <figure class="news-video" id="new-184">
+        <video controls preload="none" playsinline poster="assets/promo-184.jpg" width="1280" height="720" aria-label="An 88 second tour of VoxScribe 1.8.4: filling a form by voice, rewriting a dictation, learning a corrected name, the Library and link import. Music only, no narration."><source src="assets/promo-184.mp4" type="video/mp4"></video>
+        <figcaption class="cap">The 1.8.4 tour, 88 seconds. Fill forms, rewrite what you dictated, and keep your own spellings, all on your PC. Form fill, the rewrite assistant and link import are Pro features, each with 3 free tries.</figcaption>
+      </figure>
     </div>
   </div>
 </section>
 
-<section id="phone" data-time="golden">
+<section id="showcase" data-time="noon">
   <div class="wrap">
-    <div class="row flip" style="margin-top:0">
-      <div class="txt"><h3>The same offline dictation on your phone.</h3><p>A floating button in any Android app. Tap, talk, and the words are typed in, transcribed on the phone with nothing uploaded. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></div>
-      <div class="phones">
-        <img src="assets/showcase-android-dictation.webp" width="420" height="933" alt="The VoxScribe Android app with a transcript and a Hold to dictate button." loading="lazy">
-        <img src="assets/showcase-android-chat.webp" width="420" height="933" alt="Dictated text typed into a chat box on Android with the keyboard open." loading="lazy">
+    <h2>The real app, not a mockup.</h2>
+    <p class="lead">Every screenshot on this page is VoxScribe running on a normal PC and phone.</p>
+    <div class="gallery">
+      <div class="tablist" role="tablist" aria-label="Parts of the app">
+        <button type="button" role="tab" id="tab-dictation" aria-controls="panel-dictation" aria-selected="true">Dictation</button><button type="button" role="tab" id="tab-packs" aria-controls="panel-packs" aria-selected="false" tabindex="-1">Word packs</button><button type="button" role="tab" id="tab-engines" aria-controls="panel-engines" aria-selected="false" tabindex="-1">Speech engines</button><button type="button" role="tab" id="tab-forms" aria-controls="panel-forms" aria-selected="false" tabindex="-1">Fill forms</button><button type="button" role="tab" id="tab-rewrite" aria-controls="panel-rewrite" aria-selected="false" tabindex="-1">Rewrite</button><button type="button" role="tab" id="tab-learns" aria-controls="panel-learns" aria-selected="false" tabindex="-1">Learns your words</button><button type="button" role="tab" id="tab-library" aria-controls="panel-library" aria-selected="false" tabindex="-1">Library</button><button type="button" role="tab" id="tab-links" aria-controls="panel-links" aria-selected="false" tabindex="-1">Link import</button><button type="button" role="tab" id="tab-phone" aria-controls="phone" aria-selected="false" tabindex="-1">Android</button>
+        <span class="tab-ink" aria-hidden="true"></span>
+      </div>
+      <div class="panels">
+      <div class="panel" role="tabpanel" id="panel-dictation" aria-labelledby="tab-dictation">
+        <div class="txt"><h3>Hold a key. Talk. It is typed where your cursor is.</h3><p>Works in any app on Windows. It types with keystrokes, not paste, so your clipboard stays yours. Say "scratch that" to take back what you just typed.</p></div>
+        <div class="media"><img src="assets/showcase-main.webp" width="1100" height="814" alt="The VoxScribe dictation page with a transcript." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-packs" aria-labelledby="tab-packs" data-off>
+        <div class="txt"><h3>Medicine, law, business and software words, spelled right.</h3><p>Term packs (335 medical, 212 law, 178 business and 144 software terms, about twice as many with Pro) fix words like metformin, habeas corpus and Kubernetes with any speech model. Add your own word replacements, or let VoxScribe learn from your voice.</p></div>
+        <div class="media"><img src="assets/showcase-text-packs.webp" width="1100" height="814" alt="VoxScribe text settings showing medical, law and business term packs and word replacements." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-engines" aria-labelledby="tab-engines" data-off>
+        <div class="txt"><h3>Pick the speech engine that fits your language.</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast accurate English, Moonshine Arabic, and an optional NVIDIA GPU. Each model is downloaded only if you pick it.</p></div>
+        <div class="media"><img src="assets/showcase-speech-engine.webp" width="1100" height="814" alt="VoxScribe speech settings listing Whisper and extra downloadable speech models." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-forms" aria-labelledby="tab-forms" data-off>
+        <div class="txt"><h3>Fill a whole form with one sentence.</h3><p>Say "name Sam Lee, phone 0100 123 4567, email sam at gmail dot com" and each part goes into the box with that label, in a browser or any Windows app. Dropdowns pick the option you say and date boxes take a spoken date. Password boxes are never touched. Pro, 3 free tries.</p></div>
+        <div class="media"><img src="assets/showcase-form-fill.webp" width="1100" height="814" alt="A sign-up form with name, phone, email, country and date of birth filled in by voice, and the notice Filled 5 boxes." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-rewrite" aria-labelledby="tab-rewrite" data-off>
+        <div class="txt"><h3>Say how to rewrite it.</h3><p>After a dictation, say "make it formal", "make it shorter", "bullet points" or "fix the grammar". A model on this PC rewrites the text in the same window, so nothing is uploaded. The model is an optional download. Pro, 3 free tries.</p></div>
+        <div class="media"><img src="assets/showcase-rewrite.webp" width="1100" height="814" alt="A dictated email rewritten as bullet points after saying bullet points." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-learns" aria-labelledby="tab-learns" data-off>
+        <div class="txt"><h3>Fix a word once. It stays fixed.</h3><p>Correct a spelling right after you dictate and VoxScribe applies it from then on. See and remove what it learned on the My words page. Short forms like ASAP, BTW and FYI are typed the way you write them, even when the speech model mishears them.</p></div>
+        <div class="media"><img src="assets/showcase-learned.webp" width="1100" height="814" alt="A dictated sentence with the name Kowalczyk spelled correctly and the notice Learned Kowalczyk." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-library" aria-labelledby="tab-library" data-off>
+        <div class="txt"><h3>Search everything you said.</h3><p>The Library page lists every dictation, import, notes inbox line and meeting note in one place. Search it, open an item to read it, and choose how long dictations are kept. It all stays on this PC.</p></div>
+        <div class="media"><img src="assets/showcase-library.webp" width="1600" height="833" alt="The VoxScribe Library page searching for the word launch across dictations and imported files." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="panel-links" aria-labelledby="tab-links" data-off>
+        <div class="txt"><h3>Paste a link. Get the transcript.</h3><p>The Files page transcribes audio files, whole folders and web links. Paste a YouTube or other site link and VoxScribe uses the site's own captions when it has them, and tells you how long transcribing will take on this PC before it starts. Link import is Pro, 3 free tries.</p></div>
+        <div class="media"><img src="assets/showcase-files.webp" width="1600" height="833" alt="The VoxScribe Files page with the Import from a link box open and a video link pasted in." loading="lazy" decoding="async"></div>
+      </div>
+      <div class="panel" role="tabpanel" id="phone" aria-labelledby="tab-phone" data-off>
+        <div class="txt"><h3>The same offline dictation on your phone.</h3><p>A floating button in any Android app. Tap, talk, and the words are typed in, transcribed on the phone with nothing uploaded. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></div>
+        <div class="media"><div class="phones">
+        <img src="assets/showcase-android-dictation.webp" width="420" height="933" alt="The VoxScribe Android app with a transcript and a Hold to dictate button." loading="lazy" decoding="async">
+        <img src="assets/showcase-android-chat.webp" width="420" height="933" alt="Dictated text typed into a chat box on Android with the keyboard open." loading="lazy" decoding="async">
+      </div></div>
+      </div>
       </div>
     </div>
   </div>
@@ -585,43 +679,66 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
   <div class="wrap">
     <h2>Everything you need, nothing you don't</h2>
     <p class="lead">Built to feel invisible: it stays out of your way until you need it. <a href="tutorial.html">Read the full tutorial</a> for every feature, step by step.</p>
-    <ul class="field">
-      <li><span class="print" aria-hidden="true"></span><h3>Hold-to-talk hotkey</h3><p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Types directly, not clipboard</h3><p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>100% local transcription</h3><p>Speech-to-text runs on your own PC, on the CPU or an NVIDIA graphics card. Your voice audio never leaves your computer.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Free filler-word cleanup</h3><p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Spoken commands and undo</h3><p>Say "period" or "new line" for symbols, "scratch that" to take back what you just typed, and "capitalize that" or "replace X with Y" to change it.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Audio and video to captions</h3><p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Android app</h3><p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Meeting notes</h3><p>Start meeting records your microphone and what the PC plays, removes the echo, and writes a markdown note with action items, decisions and questions into a folder you choose, such as your Obsidian vault.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Term packs for medicine, law, business and software</h3><p>Words like MRI, metformin, habeas corpus, EBITDA and Kubernetes are written correctly with any speech model. Import your own list as a plain text file.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Teach VoxScribe your voice</h3><p>Read a short script and VoxScribe finds the words it mishears in your voice or accent, then fixes them from then on. Recordings stay on your PC.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Spoken formats</h3><p>"One twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b).</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>More speech models, your choice</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast, accurate English, Moonshine Arabic, and optional NVIDIA GPU. Each is downloaded only if you pick it.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Notes inbox key</h3><p>Hold a key and speak, and the words are saved as a timestamped line in a markdown file instead of being typed.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Read it back, and unsure words</h3><p>Hear each dictation in Windows' own voice, and see the words the model was unsure about underlined. Both are off until you turn them on.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Fill forms by voice</h3><p>Say a label and a value for each box and VoxScribe fills them in a browser or any Windows app. Dropdowns, dates and phone numbers are handled, and password boxes are never touched. Pro, 3 free tries.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Rewrite by voice</h3><p>Say "make it formal", "make it shorter" or "bullet points" after a dictation and a model on your PC rewrites it. Pro, 3 free tries.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Library and My words</h3><p>Search everything you dictated or imported in one list, and see the spellings VoxScribe learned from your fixes.</p></li>
-      <li><span class="print" aria-hidden="true"></span><h3>Try harder, modes and snippets</h3><p>Press F8 to rerun a recording through a bigger model, switch between Chat, Email, Code and Notes, and expand short phrases into full text with Pro.</p></li>
+    <ul class="checks">
+      <li><h3>Hold-to-talk hotkey</h3><p>Hold F9 anywhere on your system: any app, any window. Release to transcribe, no toggling or mode switching.</p></li>
+      <li><h3>Types directly, not clipboard</h3><p>Text is typed straight into the focused field, so your clipboard contents are never touched or overwritten.</p></li>
+      <li><h3>100% local transcription</h3><p>Speech-to-text runs on your own PC, on the CPU or an NVIDIA graphics card. Your voice audio never leaves your computer.</p></li>
+      <li><h3>Free filler-word cleanup</h3><p>Strips "um", "uh", "like", "you know" and fixes spacing and capitalization. Rule-based, no paid AI API.</p></li>
+      <li><h3>Spoken commands and undo</h3><p>Say "period" or "new line" for symbols, "scratch that" to take back what you just typed, and "capitalize that" or "replace X with Y" to change it.</p></li>
+      <li><h3>Audio and video to captions</h3><p>Import a file or a whole folder and get an .srt next to each one: short two line cards, timed from the words and cut at pauses, and never overwriting an existing file.</p></li>
     </ul>
+    <div class="fold" id="fold-features"><div>
+    <ul class="checks checks-more">
+      <li><h3>Android app</h3><p>The same offline dictation as a floating button in any Android app. <a href="free-offline-voice-typing-android.html">See the Android app</a>.</p></li>
+      <li><h3>Meeting notes</h3><p>Start meeting records your microphone and what the PC plays, removes the echo, and writes a markdown note with action items, decisions and questions into a folder you choose, such as your Obsidian vault.</p></li>
+      <li><h3>Term packs for medicine, law, business and software</h3><p>Words like MRI, metformin, habeas corpus, EBITDA and Kubernetes are written correctly with any speech model. Import your own list as a plain text file.</p></li>
+      <li><h3>Teach VoxScribe your voice</h3><p>Read a short script and VoxScribe finds the words it mishears in your voice or accent, then fixes them from then on. Recordings stay on your PC.</p></li>
+      <li><h3>Spoken formats</h3><p>"One twenty over eighty" becomes 120/80, "five milligrams twice daily" becomes 5 mg BID, "section twelve subsection b" becomes section 12(b).</p></li>
+      <li><h3>More speech models, your choice</h3><p>Cohere Transcribe for Arabic that keeps your dialect, Parakeet for fast, accurate English, Moonshine Arabic, and optional NVIDIA GPU. Each is downloaded only if you pick it.</p></li>
+      <li><h3>Notes inbox key</h3><p>Hold a key and speak, and the words are saved as a timestamped line in a markdown file instead of being typed.</p></li>
+      <li><h3>Read it back, and unsure words</h3><p>Hear each dictation in Windows' own voice, and see the words the model was unsure about underlined. Both are off until you turn them on.</p></li>
+      <li><h3>Fill forms by voice</h3><p>Say a label and a value for each box and VoxScribe fills them in a browser or any Windows app. Dropdowns, dates and phone numbers are handled, and password boxes are never touched. Pro, 3 free tries.</p></li>
+      <li><h3>Rewrite by voice</h3><p>Say "make it formal", "make it shorter" or "bullet points" after a dictation and a model on your PC rewrites it. Pro, 3 free tries.</p></li>
+      <li><h3>Library and My words</h3><p>Search everything you dictated or imported in one list, and see the spellings VoxScribe learned from your fixes.</p></li>
+      <li><h3>Try harder, modes and snippets</h3><p>Press F8 to rerun a recording through a bigger model, switch between Chat, Email, Code and Notes, and expand short phrases into full text with Pro.</p></li>
+    </ul>
+    </div></div>
+    <button class="btn small fold-btn" type="button" aria-expanded="true" aria-controls="fold-features" data-more="Show all 18 features" data-less="Show fewer" hidden><span>Show all 18 features</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
   </div>
 </section>
 
 <section id="how" data-time="golden">
   <div class="wrap">
     <h2>Three steps. Zero setup.</h2>
-    <p class="lead">Nothing to configure first.</p>
+    <p class="lead">Nothing to configure first. VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
     <ol class="steps">
       <li><div class="step-art"><kbd>F9</kbd></div><h3>Hold F9</h3><p>Anywhere on Windows: a text editor, a browser, a chat app.</p></li>
       <li><div class="step-art"><span class="say" aria-hidden="true"><i style="animation-delay:-.1s"></i><i style="animation-delay:-.45s"></i><i style="animation-delay:-.2s"></i><i style="animation-delay:-.7s"></i><i style="animation-delay:-.3s"></i><i style="animation-delay:-.6s"></i><i style="animation-delay:-.15s"></i><i style="animation-delay:-.5s"></i></span></div><h3>Speak</h3><p>Talk naturally. VoxScribe captures your mic in the background.</p></li>
       <li><div class="step-art"><span class="out">Move the meeting to three thirty.</span></div><h3>Release</h3><p>Cleaned-up text is typed directly where your cursor is.</p></li>
     </ol>
-    <p class="note">VoxScribe starts hidden in the system tray and stays there. No window to manage, no icon in your taskbar until you ask for one.</p>
-    <div class="shots">
-      <figure style="margin:0"><img src="assets/screenshot-ready.png" alt="VoxScribe ready to record" width="1375" height="900" loading="lazy"><figcaption class="cap">Idle, waiting for F9</figcaption></figure>
-      <figure style="margin:0"><img src="assets/screenshot-recording.png" alt="VoxScribe recording" width="1375" height="900" loading="lazy"><figcaption class="cap">Recording your voice</figcaption></figure>
-      <figure style="margin:0"><img src="assets/screenshot-transcript.png" alt="VoxScribe with a transcript" width="1375" height="900" loading="lazy"><figcaption class="cap">Typed straight into the app</figcaption></figure>
+    <div class="install" id="install">
+      <div class="install-head">
+        <div><h3>Install in under a minute</h3><p class="fine">No admin rights required. Or with winget: <code>winget install ahmedhmam1994.VoxScribe</code></p></div>
+        <button class="btn small fold-btn" type="button" aria-expanded="true" aria-controls="fold-install" data-more="Show the install steps" data-less="Hide the steps" hidden><span>Show the install steps</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+      </div>
+      <div class="fold" id="fold-install"><div>
+      <div class="install-body">
+        <div>
+        <ol class="install-list">
+      <li><span><strong>Download</strong> the installer from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Releases page</a></span></li>
+      <li><span><strong>Run</strong> VoxScribe-Setup.exe and follow the prompts</span></li>
+      <li><span>On first launch, VoxScribe <strong>downloads the speech model</strong> (a few hundred MB). This needs internet once; after that, transcription is fully offline</span></li>
+      <li><span><strong>Hold F9</strong> anywhere and start talking</span></li>
+    </ol>
+        </div>
+        <div>
+        <p class="pm">Prefer a package manager? With winget: <code>winget install ahmedhmam1994.VoxScribe</code>. Or with <a href="https://scoop.sh">Scoop</a>: <code>scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe</code> then <code>scoop install voxscribe</code></p>
+        <div class="smartscreen" id="smartscreen">
+      <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info &rarr; Run anyway</strong> to proceed. This is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself. <a href="windows-security-warning.html">How to check the file, skip the warning, and what the installer changes</a>.
+    </div>
+        </div>
+      </div>
+      </div></div>
     </div>
   </div>
 </section>
@@ -665,21 +782,30 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
     <p class="big">Hands-free mode (talk without holding a key), the Ask key (select text and say what to do with it), word packs with about twice the terms, Snippets (say a trigger phrase, get an expansion typed, with live {date}/{time}/{clipboard} variables), Medium and Large Whisper models for higher accuracy (also for Try harder), dictation modes that switch by app, and whole-folder caption import. One key covers two PCs and two phones. One-time purchase, offline license key, no account, no subscription.</p>
     <div class="table-scroll tiers">
       <table>
+        <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
         <tr><th></th><th>Free</th><th class="us">Pro</th></tr>
-        <tr><td class="first">Dictation into any app, offline</td><td>Included</td><td class="yes">Included</td></tr>
-        <tr><td class="first">Filler cleanup, spoken commands, word replacements</td><td>Included</td><td class="yes">Included</td></tr>
-        <tr><td class="first">Term packs and Teach your voice</td><td>Included</td><td class="yes">About twice the terms, and packs per app</td></tr>
-        <tr><td class="first">Whisper models</td><td>Tiny, Base and Small</td><td class="yes">Also Medium, Large turbo and Large</td></tr>
-        <tr><td class="first">Try harder (F8)</td><td>Up to Small</td><td class="yes">Up to Medium or Large</td></tr>
-        <tr><td class="first">Dictation modes</td><td>Chat, Email and Notes</td><td class="yes">Also Code, and switching by app</td></tr>
-        <tr><td class="first">Snippets and fill-in templates</td><td class="no">Not included</td><td class="yes">Included</td></tr>
-        <tr><td class="first">Smart formatting and code dictation</td><td class="no">Not included</td><td class="yes">Included</td></tr>
-        <tr><td class="first">Per-app profiles and a second language key</td><td class="no">Not included</td><td class="yes">Included</td></tr>
         <tr><td class="first">Hands-free mode and the Ask key</td><td>3 free tries each</td><td class="yes">No limit</td></tr>
+        <tr><td class="first">Whisper models</td><td>Tiny, Base and Small</td><td class="yes">Also Medium, Large turbo and Large</td></tr>
+        <tr><td class="first">Term packs and Teach your voice</td><td>Included</td><td class="yes">About twice the terms, and packs per app</td></tr>
+        <tr><td class="first">Snippets and fill-in templates</td><td class="no">Not included</td><td class="yes">Included</td></tr>
         <tr><td class="first">Fill forms by voice, rewrite assistant, links from the web</td><td>3 free tries each</td><td class="yes">No limit</td></tr>
-        <tr><td class="first">Whole folders of files</td><td>2 free runs</td><td class="yes">No limit</td></tr>
         <tr><td class="first">Export formats</td><td>.txt and .srt</td><td class="yes">Also .vtt, .md and .docx, with speaker labels</td></tr>
       </table>
+      <div class="more-wrap" id="tiers-more">
+        <div>
+          <table>
+            <colgroup><col class="c1"><col class="c2"><col class="c3"></colgroup>
+            <tr><td class="first">Dictation into any app, offline</td><td>Included</td><td class="yes">Included</td></tr>
+            <tr><td class="first">Filler cleanup, spoken commands, word replacements</td><td>Included</td><td class="yes">Included</td></tr>
+            <tr><td class="first">Try harder (F8)</td><td>Up to Small</td><td class="yes">Up to Medium or Large</td></tr>
+            <tr><td class="first">Dictation modes</td><td>Chat, Email and Notes</td><td class="yes">Also Code, and switching by app</td></tr>
+            <tr><td class="first">Smart formatting and code dictation</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+            <tr><td class="first">Per-app profiles and a second language key</td><td class="no">Not included</td><td class="yes">Included</td></tr>
+            <tr><td class="first">Whole folders of files</td><td>2 free runs</td><td class="yes">No limit</td></tr>
+          </table>
+        </div>
+      </div>
+      <button class="btn small more-btn" type="button" aria-expanded="true" aria-controls="tiers-more" hidden><span>See everything in Pro</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     </div>
     <p class="fine">This table describes Windows. On Android the same key unlocks Snippets, smart formatting, code dictation, fill-in templates and per-app profiles.</p>
     <a class="btn primary pro-buy" href="https://hmamster3.gumroad.com/l/tbsfom">Get VoxScribe Pro: $39</a>
@@ -688,42 +814,11 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
   </div>
 </section>
 
-<section id="updates" data-time="dusk">
-  <div class="wrap">
-    <h2>Get one email when a big update ships or the price changes</h2>
-    <p class="lead">Optional. Add your email if you would like a short note about major releases or price changes, or want to tell me what is missing. No account, and VoxScribe works the same without it.</p>
-    <form class="updates-form" id="updates-form" novalidate>
-      <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-      <input type="email" name="email" id="updates-email" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" required>
-      <button class="btn primary" type="submit" id="updates-button">Notify me</button>
-    </form>
-    <p class="updates-status" id="updates-status" role="status" aria-live="polite"></p>
-    <p class="fine">Used only for these emails, never shared or sold. You can be removed at any time: type your address and press <a href="#" id="updates-remove">remove me</a>. See the <a href="privacy.html">privacy policy</a>.</p>
-  </div>
-</section>
-
-<section id="install" data-time="dusk">
-  <div class="wrap">
-    <h2>Install in under a minute</h2>
-    <p class="lead">No admin rights required.</p>
-    <ol class="install-list">
-      <li><span><strong>Download</strong> the installer from the <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest">Releases page</a></span></li>
-      <li><span><strong>Run</strong> VoxScribe-Setup.exe and follow the prompts</span></li>
-      <li><span>On first launch, VoxScribe <strong>downloads the speech model</strong> (a few hundred MB). This needs internet once; after that, transcription is fully offline</span></li>
-      <li><span><strong>Hold F9</strong> anywhere and start talking</span></li>
-    </ol>
-    <p class="pm">Prefer a package manager? With winget: <code>winget install ahmedhmam1994.VoxScribe</code>. Or with <a href="https://scoop.sh">Scoop</a>: <code>scoop bucket add voxscribe https://github.com/ahmedhmam1994/scoop-voxscribe</code> then <code>scoop install voxscribe</code></p>
-    <div class="smartscreen" id="smartscreen">
-      <strong>Windows SmartScreen note:</strong> VoxScribe is a new, unsigned app, and because it hooks the keyboard (for the hotkey and to type text), Windows may show a "Windows protected your PC" warning on first run. Click <strong>More info &rarr; Run anyway</strong> to proceed. This is expected for unsigned indie software, not a sign of a problem. The full source is public on GitHub if you want to verify it yourself. <a href="windows-security-warning.html">How to check the file, skip the warning, and what the installer changes</a>.
-    </div>
-  </div>
-</section>
-
 <section id="faq" data-time="late">
   <div class="wrap">
     <h2>Frequently asked questions</h2>
     <div class="faq">
-      <details open><summary><h3>Is it really free?</h3></summary><p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time Pro upgrade ($39) for snippets and larger Whisper models, but dictation itself is fully free.</p></details>
+      <details><summary><h3>Is it really free?</h3></summary><p>The core app is, forever, under the MIT license: no subscription, no account required. There's an optional one-time Pro upgrade ($39) for snippets and larger Whisper models, but dictation itself is fully free.</p></details>
       <details><summary><h3>Does it need an internet connection?</h3></summary><p>Only once, to download the speech-to-text model on first launch. After that, transcription works fully offline. Your voice audio is never uploaded anywhere.</p></details>
       <details><summary><h3>Which languages can I dictate in?</h3></summary><p>Windows dictates in about 28 languages plus auto-detect, including Spanish, French, German, Italian, Portuguese, Arabic, Hindi, Chinese, Japanese and Korean. Android currently offers English, Spanish, French, German, Italian, Turkish and Arabic, plus auto-detect. Smaller models make more mistakes outside English, so on Windows try the Small model or larger for other languages.</p></details>
       <details><summary><h3>What platforms does it support?</h3></summary><p>Windows 10 and 11, and Android 8 or newer. On Android a small floating button works in any app; download the APK from the releases page, since it is not on the Play Store yet.</p></details>
@@ -1608,6 +1703,88 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 })();
 </script>
 
+<script>
+/* Tabbed gallery and the folded Pro table. Without this script every panel and row simply shows. */
+(function(){
+  var g = document.querySelector('.gallery');
+  if (g){
+    var list = g.querySelector('[role=tablist]'), ink = g.querySelector('.tab-ink');
+    var tabs = [].slice.call(list.querySelectorAll('[role=tab]'));
+    var panels = tabs.map(function(t){ return document.getElementById(t.getAttribute('aria-controls')); });
+    g.classList.add('on');
+    function inkTo(t, instant){
+      if (instant) ink.style.transition = 'none';
+      ink.style.width = t.offsetWidth + 'px';
+      ink.style.transform = 'translateX(' + t.offsetLeft + 'px)';
+      if (instant){ ink.offsetWidth; ink.style.transition = ''; }
+    }
+    function select(i, focus){
+      tabs.forEach(function(t, j){
+        var on = i === j;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        if (on) panels[j].removeAttribute('data-off'); else panels[j].setAttribute('data-off', '');
+        panels[j].setAttribute('aria-hidden', String(!on));
+      });
+      var t = tabs[i];
+      if (focus) t.focus({ preventScroll: true });
+      var l = list.scrollLeft, r = l + list.clientWidth;
+      if (t.offsetLeft < l || t.offsetLeft + t.offsetWidth > r) list.scrollTo({ left: t.offsetLeft - 24, behavior: 'smooth' });
+      inkTo(t);
+    }
+    tabs.forEach(function(t, i){
+      t.addEventListener('click', function(){ select(i); });
+      t.addEventListener('keydown', function(e){
+        var k = e.key, n = tabs.length, to = null;
+        if (k === 'ArrowRight') to = (i + 1) % n; else if (k === 'ArrowLeft') to = (i - 1 + n) % n;
+        else if (k === 'Home') to = 0; else if (k === 'End') to = n - 1;
+        if (to !== null){ e.preventDefault(); select(to, true); }
+      });
+    });
+    panels.forEach(function(p, j){ if (j) p.setAttribute('aria-hidden', 'true'); });
+    inkTo(tabs[0], true);
+    addEventListener('resize', function(){ var on = tabs.filter(function(t){ return t.getAttribute('aria-selected') === 'true'; })[0]; if (on) inkTo(on, true); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ inkTo(tabs.filter(function(t){ return t.getAttribute('aria-selected') === 'true'; })[0], true); });
+    if (location.hash === '#phone') select(tabs.length - 1);
+  }
+
+  /* Generic folds with a show more / show less button. */
+  [].forEach.call(document.querySelectorAll('.fold-btn'), function(b){
+    var box = document.getElementById(b.getAttribute('aria-controls')), label = b.querySelector('span');
+    if (!box) return;
+    function set(open){
+      box.classList.toggle('folded', !open);
+      b.setAttribute('aria-expanded', String(open));
+      label.textContent = open ? b.dataset.less : b.dataset.more;
+      if (open) box.removeAttribute('inert'); else box.setAttribute('inert', '');
+      if (!open) [].forEach.call(box.querySelectorAll('video'), function(v){ v.pause(); });
+    }
+    b.hidden = false;
+    set(false);
+    b.addEventListener('click', function(){
+      var open = b.getAttribute('aria-expanded') !== 'true';
+      set(open);
+      if (open) [].forEach.call(box.querySelectorAll('video[autoplay]'), function(v){ var p = v.play(); if (p && p.catch) p.catch(function(){}); });
+    });
+    if (location.hash && box.querySelector(location.hash.replace(/[^#\w-]/g, ''))) set(true);
+  });
+
+  var tiers = document.querySelector('.tiers'), more = tiers && tiers.querySelector('.more-btn');
+  if (tiers && more){
+    var label = more.querySelector('span'), wrap = document.getElementById('tiers-more');
+    var count = wrap.querySelectorAll('tr').length;
+    function set(open){
+      tiers.classList.toggle('folded', !open);
+      more.setAttribute('aria-expanded', String(open));
+      label.textContent = open ? 'Show fewer' : 'See everything in Pro (' + count + ' more)';
+      if (open) wrap.removeAttribute('inert'); else wrap.setAttribute('inert', '');
+    }
+    more.hidden = false;
+    set(false);
+    more.addEventListener('click', function(){ set(more.getAttribute('aria-expanded') !== 'true'); });
+  }
+})();
+</script>
 <script src="/assets/events.js" defer></script>
 </body>
 </html>
