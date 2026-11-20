@@ -479,14 +479,14 @@ if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)')
 <style>@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-old(root) { animation: vt-out .32s cubic-bezier(.4,0,1,1) both; } ::view-transition-new(root) { animation: vt-in .62s cubic-bezier(.16,1,.3,1) both; } @keyframes vt-out { to { opacity: 0; transform: translateY(-18px) scale(.985); filter: blur(4px); } } @keyframes vt-in { from { clip-path: inset(100% 0 0 0 round 32px 32px 0 0); } to { clip-path: inset(0 0 0 0 round 0); } } }</style>
 <style>
 /* Living sky: six painted scenes of the same meadow, cross-faded by the page's time of day. */
-#skyart{position:fixed; left:0; right:0; bottom:0; height:100lvh; z-index:0; pointer-events:none; overflow:hidden; transition:opacity 1.2s ease;
+#skyart{position:fixed; left:0; right:0; bottom:0; height:100lvh; z-index:0; pointer-events:none; overflow:hidden; opacity:0; transition:opacity 1.2s ease;
   -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 48%,#000 92%); mask-image:linear-gradient(180deg,transparent 0,transparent 48%,#000 92%)}
 #skyart .sk{position:absolute; left:0; right:0; bottom:-4%; height:108%; background:center bottom/cover no-repeat; opacity:0; transition:opacity 1.6s ease; will-change:opacity}
 html[data-sky="dawn"] #skyart .s-dawn, html[data-sky="morning"] #skyart .s-morning, html[data-sky="noon"] #skyart .s-noon,
 html[data-sky="golden"] #skyart .s-golden, html[data-sky="dusk"] #skyart .s-dusk, html[data-sky="night"] #skyart .s-night, html[data-sky="late"] #skyart .s-night{opacity:.4}
 html[data-sky="dusk"] #skyart .sk, html[data-sky="night"] #skyart .sk, html[data-sky="late"] #skyart .sk{transition-duration:2.2s}
 /* The hero draws its own living meadow, so the painting waits until the page moves on. */
-html.at-top #skyart{opacity:0}
+html.sky-on #skyart{opacity:1}
 /* Smooth scrolling takes over from the browser's own. */
 html.lenis, html.lenis body{height:auto}
 html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
@@ -2011,7 +2011,8 @@ window.addEventListener('DOMContentLoaded', function () {
   (window.requestIdleCallback || function (f) { setTimeout(f, 1500); })(function () { scenes.forEach(paint); });
   new MutationObserver(function () { paint(current()); }).observe(root, { attributes: true, attributeFilter: ['data-sky'] });
   var hero = document.querySelector('header.hero');
-  function top() { root.classList.toggle('at-top', !!hero && hero.getBoundingClientRect().bottom > innerHeight * 0.55); }
+  /* Hidden until the hero is scrolled past, so it never shows and then fades on load. */
+  function top() { root.classList.toggle('sky-on', !hero || hero.getBoundingClientRect().bottom <= innerHeight * 0.55); }
   addEventListener('scroll', top, { passive: true }); top();
 
   if (calm || !window.gsap || !window.ScrollTrigger) return;
