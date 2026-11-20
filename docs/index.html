@@ -471,6 +471,9 @@ try { vsSeen = !!sessionStorage.getItem('vs-opening'); } catch (e) {}
 if (!vsSeen && !location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches){
   document.documentElement.classList.add('intro');
   setTimeout(function(){ document.documentElement.classList.remove('intro'); }, 5000);
+} else if (!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  /* No opening this time: start the fade-in now, before the first paint, so the hero never shows and then disappears. */
+  document.documentElement.classList.add('reveal');
 }
 </script>
 <script type="application/ld+json">
@@ -516,7 +519,7 @@ html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
   </div>
 </nav>
 
-<header class="hero" data-time="dawn">
+<div class="hero-pin"><header class="hero" data-time="dawn">
   <div class="hero-in" id="top">
     <div class="copy">
       <h1><span class="vh">Offline, open source dictation for your PC and your phone. </span><span id="talk">Whisper in,</span><br>words out.<span class="caret" aria-hidden="true"></span></h1>
@@ -544,7 +547,7 @@ html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
       <div class="typed"><strong>What VoxScribe types</strong><p id="typed-text">Hold F9, then let go.</p></div></div>
   </div>
   <canvas class="meadow" aria-hidden="true"></canvas>
-</header>
+</header></div>
 
 <section id="proof" data-time="morning">
   <div class="wrap">
@@ -2041,7 +2044,7 @@ window.addEventListener('DOMContentLoaded', function () {
       .to(card, { xPercent: -64, yPercent: -24, duration: 1 }, 0)
       .to(copy, { y: -110, opacity: 0, filter: 'blur(6px)', duration: 0.55 }, 0.08)
       .to(meadow, { yPercent: 16, duration: 1 }, 0);
-    ScrollTrigger.create({ trigger: hero, start: function () { return 'top ' + Math.round(hero.getBoundingClientRect().top + scrollY) + 'px'; }, end: '+=80%', pin: true, scrub: 0.5, animation: tl, anticipatePin: 1, refreshPriority: 1 });
+    ScrollTrigger.create({ trigger: hero, start: function () { return 'top ' + Math.round(hero.getBoundingClientRect().top + scrollY) + 'px'; }, end: '+=80%', pin: true, pinSpacer: hero.parentNode, scrub: 0.5, animation: tl, anticipatePin: 1, refreshPriority: 1 });
     return function () { gsap.set([img, card, copy, meadow], { clearProps: 'all' }); };
   });
   mm.add('(max-width: 900px)', function () {
