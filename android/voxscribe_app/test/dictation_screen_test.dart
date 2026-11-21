@@ -132,4 +132,26 @@ void main() {
     expect(find.text('Hold to dictate'), findsOneWidget);
     expect(find.text('Language you speak'), findsNothing);
   });
+
+  testWidgets('the picker scrolls to the newer languages, such as Japanese', (
+    tester,
+  ) async {
+    final engine = ScriptedEngine();
+    await tester.pumpWidget(
+      buildTestApp(engine: engine, setup: FakeSetupPlatform(_modelReady)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('日本語'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('日本語'));
+    await tester.pumpAndSettle();
+
+    expect(engine.languageChanges, ['ja']);
+    expect(find.text('Japanese'), findsOneWidget);
+  });
 }

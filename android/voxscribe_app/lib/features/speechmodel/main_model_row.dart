@@ -6,7 +6,7 @@ import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/features/settings/widgets/settings_group.dart';
 
 /// One of the two speech models in Settings: Granite (English and the
-/// European languages) or Nemotron (Arabic and Turkish). There is no switch:
+/// European languages) or Nemotron (Arabic and the other languages). There is no switch:
 /// the language picks the model, and dictation needs that one.
 ///
 /// Hides itself when the phone side is not there (tests, older builds).

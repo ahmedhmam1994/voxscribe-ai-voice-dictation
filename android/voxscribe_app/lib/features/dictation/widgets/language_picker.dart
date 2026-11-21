@@ -7,6 +7,10 @@ Future<String?> pickLanguage(BuildContext context, String selectedCode) {
   return showModalBottomSheet<String>(
     context: context,
     backgroundColor: context.vox.card,
+    isScrollControlled: true,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+    ),
     builder: (context) => _LanguageSheet(selectedCode: selectedCode),
   );
 }
@@ -36,6 +40,9 @@ class _LanguageSheet extends StatelessWidget {
               ListTile(
                 minTileHeight: 52,
                 title: Text(language.name),
+                subtitle: language.native == language.name
+                    ? null
+                    : Text(language.native, style: TextStyle(color: c.muted)),
                 trailing: language.code == selectedCode
                     ? Icon(Icons.check, color: c.accentInk)
                     : null,
@@ -44,9 +51,10 @@ class _LanguageSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Text(
-                'Arabic and Turkish use one speech model (682 MB), the other '
-                'languages share another (536 MB). Picking a language whose '
-                'model is not on the phone offers to download it.',
+                'English, French, German, Italian, Portuguese and Spanish '
+                'share one speech model (536 MB); the other languages share '
+                'another (682 MB). Picking a language whose model is not on '
+                'the phone offers to download it.',
                 style: Theme.of(context).textTheme.bodySmall
                     ?.copyWith(color: c.muted),
               ),

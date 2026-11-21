@@ -8,7 +8,10 @@ import android.util.Log
  * chosen by the language the user speaks:
  *   - Granite ([GraniteModel]) for English, French, Spanish, German, Italian
  *     and Portuguese.
- *   - Nemotron ([ArabicModel]) for Arabic and Turkish.
+ *   - Nemotron ([ArabicModel]) for Arabic, Turkish and the other languages in
+ *     [NEMOTRON_LANGUAGES], each checked on synthetic speech before it was added
+ *     (21 Nov 2026; Swedish, Danish, Norwegian, Romanian, Bulgarian, Croatian
+ *     and Estonian were left out, at 18 to 67% word errors).
  *
  * Nothing is bundled and there is no other recognizer to fall back on: until
  * the model for the chosen language is downloaded, dictation says so (see
@@ -45,8 +48,46 @@ object SpeechEngine {
     }
 
     /** The languages each model types, by the codes the language picker saves. */
-    private val NEMOTRON_LANGUAGES = setOf("ar", "tr")
+    private val NEMOTRON_LANGUAGES = setOf(
+        "ar", "tr", "nl", "ru", "uk", "hi", "ja", "ko", "zh", "vi", "pl", "cs", "sk", "fi", "hu",
+    )
     val LANGUAGES = setOf("en", "fr", "es", "de", "it", "pt") + NEMOTRON_LANGUAGES
+
+    /** Japanese and Chinese are written without spaces between words. */
+    fun writesWithoutSpaces(language: String): Boolean = language == "ja" || language == "zh"
+
+    /**
+     * Chinese and Japanese punctuation for [language]: Nemotron writes "，" as
+     * ", " and "？" as "?" in Chinese (21 Nov 2026). Turns English marks next
+     * to Chinese or Japanese characters into full width ones and drops the
+     * spaces between those characters. Other languages are returned as they are.
+     */
+    fun cjkPunctuation(text: String, language: String): String {
+        if (!writesWithoutSpaces(language)) return text
+        val comma = if (language == "ja") "、" else "，"
+        // A mark with a Chinese or Japanese character on either side.
+        var out = Regex("(?<=$CJK)\\s*([,?!:;])\\s*|\\s*([,?!:;])\\s*(?=$CJK)").replace(text) { m ->
+            when (m.groupValues[1].ifEmpty { m.groupValues[2] }) {
+                "," -> comma
+                "?" -> "？"
+                "!" -> "！"
+                ":" -> "："
+                else -> "；"
+            }
+        }
+        out = Regex("(?<=$CJK|[。，、？！])\\s+(?=$CJK)").replace(out, "")
+        return out
+    }
+
+    /** A Chinese or Japanese character, for [cjkPunctuation]. */
+    private const val CJK = "[\\p{IsHan}\\p{IsHiragana}\\p{IsKatakana}]"
+
+    /** The mark that ends a sentence in [language]. */
+    fun fullStop(language: String): String = when (language) {
+        "ja", "zh" -> "。"
+        "hi" -> "।"
+        else -> "."
+    }
 
     fun modelFor(language: String): Model =
         if (language in NEMOTRON_LANGUAGES) Model.NEMOTRON else Model.GRANITE

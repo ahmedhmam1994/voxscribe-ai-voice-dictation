@@ -56,17 +56,20 @@ object TranscriptCleanup {
         multiSpaceRegex.replace(nonSpeechTagRegex.replace(text, " "), " ").trim()
 
     /** Strip common filler words/phrases and fix up spacing/capitalization. */
-    fun clean(text: String): String {
+    fun clean(text: String, english: Boolean = true): String {
         if (text.isBlank()) return text
 
         var result = text
 
         // Filler phrases first, before the repeated-word/spacing passes clean
         // up whatever gaps they leave behind.
-        result = likeMidSentenceRegex.replace(result, ",")
-        result = likeLeadingRegex.replace(result) { m -> (m.groupValues[1] + m.groupValues[2]) }
-        result = youKnowRegex.replace(result, "")
-        result = simpleFillerRegex.replace(result, "")
+        // English only: "um" is a German word ("um 8 Uhr") and "like" is English.
+        if (english) {
+            result = likeMidSentenceRegex.replace(result, ",")
+            result = likeLeadingRegex.replace(result) { m -> (m.groupValues[1] + m.groupValues[2]) }
+            result = youKnowRegex.replace(result, "")
+            result = simpleFillerRegex.replace(result, "")
+        }
 
         // Collapse immediately-repeated words produced by dictation stutter.
         result = repeatedWordRegex.replace(result) { m -> m.groupValues[1] }

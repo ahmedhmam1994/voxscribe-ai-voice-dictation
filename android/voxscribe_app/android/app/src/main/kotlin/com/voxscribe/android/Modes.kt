@@ -81,6 +81,12 @@ object Modes {
     /** "See you at 5." becomes "See you at 5", only for a single sentence; "etc." and "..." stay. */
     fun dropFinalPeriod(text: String): String {
         val stripped = text.trimEnd()
+        // "。" ends Japanese and Chinese sentences, "।" Hindi ones.
+        if (stripped.endsWith("。") || stripped.endsWith("।")) {
+            val body = stripped.dropLast(1)
+            if (listOf("。", "।", "！", "？", "?", "!", "\n").any { it in body }) return text
+            return body + text.substring(stripped.length)
+        }
         if (!stripped.endsWith(".") || stripped.endsWith("..")) return text
         val body = stripped.dropLast(1)
         if (listOf(". ", "! ", "? ", "\n").any { it in body }) return text

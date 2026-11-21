@@ -128,10 +128,12 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       MainModelRow(
                         model: 'arabic',
-                        title: 'Speech model: Arabic and Turkish',
+                        title: 'Speech model: Arabic, Asian and more',
                         pitch:
-                            'Types Arabic, Egyptian dialect included, and '
-                            'Turkish.',
+                            'Types Arabic (Egyptian dialect included), '
+                            'Chinese, Czech, Dutch, Finnish, Hindi, '
+                            'Hungarian, Japanese, Korean, Polish, Russian, '
+                            'Slovak, Turkish, Ukrainian and Vietnamese.',
                         inUse: _nemotronLanguage(dictation.language),
                       ),
                       SettingsRow(
@@ -432,8 +434,8 @@ class SettingsScreen extends StatelessWidget {
     };
   }
 
-  /// Arabic and Turkish use Nemotron, the other languages Granite.
-  static bool _nemotronLanguage(String code) => code == 'ar' || code == 'tr';
+  /// Every language but English and the European five uses Nemotron.
+  static bool _nemotronLanguage(String code) => !languageForCode(code).granite;
 
   String _setupSummary(SetupStatus status) {
     if (!status.permissionsComplete) {

@@ -783,8 +783,10 @@ class BubbleService : Service() {
         if (handsFreeActive) holdStartedAt = SystemClock.elapsedRealtime()
         // A trailing space keeps the next dictation in the same box from running into this one.
         // Hands-free phrases always get a space, or they would run into each other.
+        // Japanese and Chinese put no space between sentences either.
         val spaceAfter = (handsFreeActive || SettingsStore.trailingSpaceEnabled(this)) &&
-            !FieldShape.noTrailingSpace(inputType)
+            !FieldShape.noTrailingSpace(inputType) &&
+            !SpeechEngine.writesWithoutSpaces(SettingsStore.language(this))
         val toInsert = if (spaceAfter) "$text " else text
         val inserted = VoxScribeAccessibilityService.instance?.insertText(toInsert) ?: false
         lastInsertWorked = inserted

@@ -58,8 +58,10 @@ data class TextOptions(
     val screenTerms: List<String> = emptyList(),
     /** The everyday words that are never taken for a name. */
     val commonWords: Set<String> = emptySet(),
-    /** True with Nemotron (Arabic, Turkish), which leaves the last full stop out. Granite writes its own. */
+    /** True with Nemotron, which leaves the last full stop out. Granite writes its own. */
     val closeEnd: Boolean = false,
+    /** The language spoken. English filler words are only removed from English. */
+    val language: String = "en",
 )
 
 /**
@@ -145,10 +147,13 @@ object TextPipeline {
             // Code is not prose: no capitals, no full stops, no filler cleanup.
             text = CodeDictation.toCode(text)
         } else {
-            if (text.isNotEmpty() && options.cleanup) text = TranscriptCleanup.clean(text)
+            if (text.isNotEmpty() && options.cleanup) text = TranscriptCleanup.clean(text, english = options.language == "en")
             if (text.isNotEmpty() && options.voiceCommands) text = VoiceCommands.apply(text)
             if (text.isNotEmpty() && options.pro && options.smartFormat) text = SmartFormat.format(text)
-            if (text.isNotEmpty() && options.cleanup) text = SentenceFix.fix(text, closeEnd = options.closeEnd)
+            if (text.isNotEmpty() && options.cleanup) {
+                text = SentenceFix.fix(text, closeEnd = options.closeEnd, fullStop = SpeechEngine.fullStop(options.language))
+            }
+            if (text.isNotEmpty()) text = SpeechEngine.cjkPunctuation(text, options.language)
             if (text.isNotEmpty() && !options.endPeriod) text = Modes.dropFinalPeriod(text)
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
@@ -222,6 +227,7 @@ object TextPipeline {
             screenTerms = screenTerms,
             commonWords = if (screenTerms.isEmpty()) emptySet() else ScreenWords.common(context),
             closeEnd = SpeechEngine.neededModel(context) == SpeechEngine.Model.NEMOTRON,
+            language = SettingsStore.language(context),
         )
     }
 }

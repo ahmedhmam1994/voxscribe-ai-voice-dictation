@@ -51,20 +51,32 @@ object SentenceFix {
         }
     }
 
-    /** A closing full stop for a dictation of four words or more that ends bare. */
-    fun closeSentence(text: String): String {
+    /**
+     * A closing full stop for a dictation of four words or more that ends bare.
+     * [fullStop] is the language's own mark: "。" for Japanese and Chinese, which
+     * have no spaces, so there it counts characters (six or more) instead of
+     * words; "।" for Hindi, whose words can end in a vowel sign.
+     */
+    fun closeSentence(text: String, fullStop: String = "."): String {
         val trimmed = text.trimEnd()
         if (trimmed.isEmpty()) return text
         val last = trimmed.last()
-        if (!(last.isLetterOrDigit() || last == '%')) return text
-        if (trimmed.split(Regex("\\s+")).size < 4) return text
+        val type = Character.getType(last).toByte()
+        val vowelSign = type == Character.NON_SPACING_MARK || type == Character.COMBINING_SPACING_MARK
+        if (!(last.isLetterOrDigit() || last == '%' || vowelSign)) return text
+        val long = if (fullStop == "。") {
+            trimmed.count { !it.isWhitespace() } >= 6
+        } else {
+            trimmed.split(Regex("\\s+")).size >= 4
+        }
+        if (!long) return text
         // Not a web address, an email or a number on its own.
         if (trimmed.contains('@') || trimmed.contains("://")) return text
-        return trimmed + "." + text.substring(trimmed.length)
+        return trimmed + fullStop + text.substring(trimmed.length)
     }
 
-    fun fix(text: String, closeEnd: Boolean = true): String {
+    fun fix(text: String, closeEnd: Boolean = true, fullStop: String = "."): String {
         val split = splitSentences(text)
-        return if (closeEnd) closeSentence(split) else split
+        return if (closeEnd) closeSentence(split, fullStop) else split
     }
 }

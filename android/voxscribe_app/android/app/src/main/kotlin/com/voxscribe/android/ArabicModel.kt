@@ -82,7 +82,7 @@ class ArabicEngine private constructor(
         private const val TAG = "ArabicEngine"
         private const val SAMPLE_RATE = 16_000
 
-        /** [language] is "ar" or "tr". Throws when the files are damaged or the library cannot load them. */
+        /** [language] is one of [SpeechEngine]'s Nemotron codes, such as "ar". Throws when the files are damaged or the library cannot load them. */
         fun load(context: Context, language: String): ArabicEngine {
             val dir = ArabicModel.dir(context)
             val config = OnlineRecognizerConfig(
