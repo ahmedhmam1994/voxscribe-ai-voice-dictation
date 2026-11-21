@@ -19,7 +19,7 @@ class ImportCancelled : Exception()
 /**
  * Transcribes an audio or video file on the phone: Android's own decoders
  * turn it into 16 kHz mono audio a block at a time, [Segmenter] cuts it at
- * pauses, and each spoken piece goes through the bundled Whisper model and the
+ * pauses, and each spoken piece goes through the downloaded speech model and the
  * same text tools as dictation (cleanup, replacements, ...). Nothing is
  * uploaded, and only one short piece is held in memory at a time, so a long
  * video does not fill the phone's memory.
@@ -29,15 +29,15 @@ class FileTranscriber(private val context: Context) {
 
     /** Blocking. [onProgress] gets the position and the length in seconds (length 0 when unknown). */
     fun transcribe(uri: Uri, onProgress: (Double, Double) -> Unit): FileTranscript {
-        if (!WhisperEngine.isAvailable(context)) {
-            throw IllegalStateException("The speech model is not available on this phone.")
-        }
+        if (!SpeechEngine.isReady(context)) throw IllegalStateException(SpeechEngine.notReadyMessage(context))
         val options = TextPipeline.optionsFor(context, null)
         val texts = mutableListOf<String>()
         val cues = mutableListOf<Cue>()
         val segmenter = Segmenter { segment ->
             if (cancelled) throw ImportCancelled()
-            val raw = TranscriptCleanup.removeNonSpeechTags(WhisperEngine.transcribe(segment.samples))
+            val heard = SpeechEngine.transcribe(context, segment.samples)
+                ?: throw IllegalStateException(SpeechEngine.notReadyMessage(context))
+            val raw = TranscriptCleanup.removeNonSpeechTags(heard)
             val spoken = TextPipeline.process(raw, options, interactive = false)
             val text = (spoken as? Spoken.Text)?.text?.trim().orEmpty()
             if (text.isNotEmpty()) {

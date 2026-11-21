@@ -31,6 +31,9 @@ class FakeSetupPlatform implements SetupPlatform {
   Future<void> openNotificationSettings() =>
       _record('openNotificationSettings');
 
+  @override
+  Future<void> requestBatteryExemption() => _record('requestBatteryExemption');
+
   /// How often the setup screen reported itself open (kept out of [calls]).
   var openedCount = 0;
 
@@ -45,6 +48,27 @@ class FakeSetupPlatform implements SetupPlatform {
     await _record('addQuickTile');
     return tileResult;
   }
+
+  @override
+  Future<void> downloadModel() async {
+    await _record('downloadModel');
+    status = SetupStatus(
+      microphone: status.microphone,
+      accessibility: status.accessibility,
+      overlay: status.overlay,
+      bubbleRunning: status.bubbleRunning,
+      language: status.language,
+      modelInstalled: false,
+      modelDownloading: true,
+      modelMegabytes: status.modelMegabytes,
+    );
+  }
+
+  @override
+  Future<void> cancelModel() => _record('cancelModel');
+
+  @override
+  Future<void> setLanguage(String code) => _record('setLanguage:$code');
 
   @override
   Future<void> setBubbleRunning({required bool running}) async {

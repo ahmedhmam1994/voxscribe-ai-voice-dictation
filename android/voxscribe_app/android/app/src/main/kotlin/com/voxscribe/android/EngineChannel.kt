@@ -44,7 +44,7 @@ class EngineChannel(private val activity: Activity) :
         when (call.method) {
             "start" -> start(result)
             "stop" -> stop(result)
-            "getLanguage" -> result.success(SettingsStore.whisperLanguage(activity))
+            "getLanguage" -> result.success(SettingsStore.language(activity))
             "setLanguage" -> setLanguage(call.argument<String>("code").orEmpty(), result)
             else -> result.notImplemented()
         }
@@ -55,6 +55,10 @@ class EngineChannel(private val activity: Activity) :
             PackageManager.PERMISSION_GRANTED
         if (!granted) {
             result.error(ERROR_NO_MICROPHONE, "Allow the microphone in Setup first.", null)
+            return
+        }
+        if (!SpeechEngine.isInstalled(activity)) {
+            result.error(ERROR_NO_MODEL, SpeechEngine.notReadyMessage(activity), null)
             return
         }
         engine?.destroy()
@@ -91,17 +95,23 @@ class EngineChannel(private val activity: Activity) :
     }
 
     private fun setLanguage(code: String, result: MethodChannel.Result) {
-        SettingsStore.setWhisperLanguage(activity, code)
-        // Reloading the model takes a moment, so keep it off the main thread.
+        if (code !in SpeechEngine.LANGUAGES) {
+            result.error(ERROR_FAILED, "That language is not supported.", null)
+            return
+        }
+        SettingsStore.setLanguage(activity, code)
+        // Loading the other model takes a moment, so keep it off the main thread.
         Thread {
-            WhisperEngine.reload(activity)
+            SpeechEngine.reload(activity)
             activity.runOnUiThread { result.success(null) }
         }.start()
     }
 
     private fun finish(text: String) {
         val elapsed = SystemClock.elapsedRealtime() - startedAt
-        pendingStop?.success(mapOf("text" to text, "durationMs" to elapsed))
+        pendingStop?.success(
+            mapOf("text" to text, "durationMs" to elapsed, "noSpeech" to engine?.noSpeech?.key),
+        )
         release()
     }
 
@@ -122,5 +132,7 @@ class EngineChannel(private val activity: Activity) :
         const val LEVELS_CHANNEL = "com.voxscribe.android/engine/levels"
         const val ERROR_NO_MICROPHONE = "no_microphone"
         const val ERROR_FAILED = "failed"
+        // Dictation waits for the speech model; the screen clears this once it downloads.
+        const val ERROR_NO_MODEL = "no_model"
     }
 }

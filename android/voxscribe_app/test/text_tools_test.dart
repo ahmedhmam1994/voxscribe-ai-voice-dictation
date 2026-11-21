@@ -143,10 +143,7 @@ void main() {
       );
       await openTab(tester, 'Settings');
 
-      expect(
-        find.text('On. Punctuation, take back, change it.'),
-        findsOneWidget,
-      );
+      expect(find.text('On'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('2 replacements'),
         200,
@@ -196,7 +193,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
 
-      expect(find.textContaining('Locked. Unlock snippets'), findsOneWidget);
+      expect(find.text('Unlock Pro'), findsOneWidget);
       await tester.tap(find.text('Smart formatting'), warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(repository.saved.smartFormat, isFalse);
@@ -230,7 +227,7 @@ void main() {
         200,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(find.textContaining('Unlocked. Snippets'), findsOneWidget);
+      expect(find.text('Pro is unlocked'), findsOneWidget);
       await _flip(tester, 'Smart formatting');
       await _flip(tester, 'Code dictation');
       await _openRow(tester, 'Per-app profiles');

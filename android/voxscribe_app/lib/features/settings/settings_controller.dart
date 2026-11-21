@@ -47,6 +47,12 @@ class SettingsController extends ChangeNotifier {
     return repository.setBubbleSize(value);
   }
 
+  Future<void> setHandsFree({required bool value}) {
+    _settings = _settings.copyWith(handsFree: value);
+    notifyListeners();
+    return repository.setHandsFree(value: value);
+  }
+
   Future<void> setTheme(ThemeChoice value) {
     _settings = _settings.copyWith(theme: value);
     notifyListeners();

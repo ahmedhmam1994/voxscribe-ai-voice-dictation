@@ -20,8 +20,17 @@ class MethodChannelSettingsRepository implements SettingsRepository {
             raw['trailingSpace'] as bool? ?? AppSettings.defaults.trailingSpace,
         theme: _themeFromName(raw['theme'] as String?),
         usagePing: raw['usagePing'] as bool? ?? AppSettings.defaults.usagePing,
-        recordingMode: _byName(RecordingMode.values, raw['recordingMode'], RecordingMode.both),
-        bubbleSize: _byName(BubbleSize.values, raw['bubbleSize'], BubbleSize.medium),
+        recordingMode: _byName(
+          RecordingMode.values,
+          raw['recordingMode'],
+          RecordingMode.both,
+        ),
+        bubbleSize: _byName(
+          BubbleSize.values,
+          raw['bubbleSize'],
+          BubbleSize.medium,
+        ),
+        handsFree: raw['handsFree'] as bool? ?? false,
       );
     } on PlatformException {
       return AppSettings.defaults;
@@ -49,6 +58,30 @@ class MethodChannelSettingsRepository implements SettingsRepository {
   @override
   Future<void> setBubbleSize(BubbleSize value) =>
       _send('setBubbleSize', value.name);
+
+  @override
+  Future<void> setHandsFree({required bool value}) =>
+      _send('setHandsFree', value);
+
+  @override
+  Future<bool> leaverQuestionDue() async {
+    try {
+      return await _channel.invokeMethod<bool>('leaverQuestionDue') ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> answerLeaverQuestion(String? reason) async {
+    try {
+      await _channel.invokeMethod<void>('answerLeaverQuestion', {
+        'value': reason,
+      });
+    } on PlatformException {
+      // Not saved; it may be asked again next time.
+    }
+  }
 
   Future<void> _send(String method, Object value) async {
     try {

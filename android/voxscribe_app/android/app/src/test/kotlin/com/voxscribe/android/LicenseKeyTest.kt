@@ -4,9 +4,12 @@ import net.i2p.crypto.eddsa.EdDSAEngine
 import net.i2p.crypto.eddsa.EdDSAPrivateKey
 import net.i2p.crypto.eddsa.spec.EdDSANamedCurveTable
 import net.i2p.crypto.eddsa.spec.EdDSAPrivateKeySpec
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class LicenseKeyTest {
     private val spec = EdDSANamedCurveTable.getByName(EdDSANamedCurveTable.ED_25519)
@@ -71,6 +74,55 @@ class LicenseKeyTest {
     @Test
     fun aKeyIsRejectedUnderAnotherPublicKey() {
         assertFalse(LicenseKey.isValid(keyFor(licenseId)))
+    }
+
+    /** A yearly key: id, 2 byte big endian day count, then a signature over both. */
+    private fun yearlyKeyFor(id: ByteArray, expires: LocalDate): String {
+        val days = expires.toEpochDay().toInt()
+        val expiry = byteArrayOf((days shr 8).toByte(), days.toByte())
+        val engine = EdDSAEngine()
+        engine.initSign(EdDSAPrivateKey(privateSpec))
+        engine.update(id + expiry)
+        return dashed(base32(id + expiry + engine.sign()))
+    }
+
+    @Test
+    fun aPerpetualKeyNeverExpires() {
+        val key = keyFor(licenseId)
+        assertNull(LicenseKey.expiry(key, publicKeyHex))
+        assertFalse(LicenseKey.isExpired(key, LocalDate.of(2099, 1, 1), publicKeyHex))
+        assertTrue(LicenseKey.isActive(key, LocalDate.of(2099, 1, 1), publicKeyHex))
+    }
+
+    @Test
+    fun aYearlyKeyIsValidAndReportsItsLastDay() {
+        val key = yearlyKeyFor(licenseId, LocalDate.of(2027, 11, 22))
+        assertTrue(LicenseKey.isValid(key, publicKeyHex))
+        assertEquals(LocalDate.of(2027, 11, 22), LicenseKey.expiry(key, publicKeyHex))
+    }
+
+    @Test
+    fun aYearlyKeyWorksThroughItsLastDayThenExpires() {
+        val key = yearlyKeyFor(licenseId, LocalDate.of(2027, 11, 22))
+        assertTrue(LicenseKey.isActive(key, LocalDate.of(2027, 11, 22), publicKeyHex))
+        assertFalse(LicenseKey.isActive(key, LocalDate.of(2027, 11, 23), publicKeyHex))
+        assertTrue(LicenseKey.isExpired(key, LocalDate.of(2027, 11, 23), publicKeyHex))
+    }
+
+    @Test
+    fun anExpiredKeyIsStillValidButNotActive() {
+        val key = yearlyKeyFor(licenseId, LocalDate.of(2020, 1, 1))
+        assertTrue(LicenseKey.isValid(key, publicKeyHex))
+        assertFalse(LicenseKey.isActive(key, publicKeyHex = publicKeyHex))
+    }
+
+    @Test
+    fun aYearlyKeyWithALaterDateSwappedInIsRejected() {
+        val key = yearlyKeyFor(licenseId, LocalDate.of(2027, 11, 22)).replace("-", "")
+        val later = yearlyKeyFor(licenseId, LocalDate.of(2035, 1, 1)).replace("-", "")
+        // The expiry sits in characters 13 to 16 of the base32 text; keep the original signature.
+        val forged = key.take(13) + later.substring(13, 16) + key.drop(16)
+        assertFalse(LicenseKey.isValid(forged, publicKeyHex))
     }
 
     @Test

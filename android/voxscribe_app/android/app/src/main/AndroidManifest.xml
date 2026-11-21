@@ -6,6 +6,8 @@
     <!-- Floating bubble: draws above other apps. The user grants this in
          system settings, there is no runtime dialog for it. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Lets setup ask, in one tap, that battery saving never stops the floating button. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Android 13+: only controls whether the bubble service's notification is visible. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

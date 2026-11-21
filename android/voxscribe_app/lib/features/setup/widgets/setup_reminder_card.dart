@@ -18,6 +18,12 @@ class SetupReminderCard extends StatelessWidget {
     final theme = Theme.of(context).textTheme;
     final status = controller.status;
     final stepsLeft = !status.permissionsComplete;
+    // Everything else is done (an update from a version with a built-in
+    // model, for one): only the speech model is missing.
+    final onlyModel =
+        status.nextStep == SetupStep.model &&
+        SetupStep.values.every((s) => s == SetupStep.model || status.isDone(s));
+    if (status.modelDownloading) return _Downloading(controller: controller);
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
@@ -35,13 +41,15 @@ class SetupReminderCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  stepsLeft
+                  onlyModel
+                      ? 'Download the speech model'
+                      : stepsLeft
                       ? 'Dictate in any app'
                       : 'Turn on the floating button',
                   style: theme.titleMedium,
                 ),
               ),
-              if (stepsLeft)
+              if (stepsLeft && !onlyModel)
                 Text(
                   '${status.doneCount} of ${SetupStep.values.length} done',
                   style: theme.bodySmall,
@@ -50,8 +58,13 @@ class SetupReminderCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            stepsLeft
-                ? 'Three quick steps turn on the floating button, so you can '
+            onlyModel
+                ? 'VoxScribe now types with a far more accurate speech model '
+                      'that runs on this phone. It downloads once '
+                      '(${status.modelMegabytes} MB, so use Wi-Fi). Until then '
+                      'the floating button cannot type.'
+                : stepsLeft
+                ? 'A few quick steps turn on the floating button, so you can '
                       'talk into your chats, email and browser with your own '
                       'keyboard.'
                 : 'Setup is done. Turn the button on to dictate in any app.',
@@ -69,6 +82,8 @@ class SetupReminderCard extends StatelessWidget {
               FilledButton(
                 onPressed: controller.busy
                     ? null
+                    : onlyModel
+                    ? controller.performPrimaryAction
                     : stepsLeft
                     ? () => _openSetup(context)
                     : controller.performPrimaryAction,
@@ -79,7 +94,13 @@ class SetupReminderCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(stepsLeft ? 'Set up' : 'Turn on'),
+                child: Text(
+                  onlyModel
+                      ? 'Download'
+                      : stepsLeft
+                      ? 'Set up'
+                      : 'Turn on',
+                ),
               ),
             ],
           ),
@@ -92,6 +113,72 @@ class SetupReminderCard extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => SetupPage(controller: controller),
+      ),
+    );
+  }
+}
+
+/// The speech model is downloading: how far it is, so the wait is not a mystery.
+class _Downloading extends StatelessWidget {
+  const _Downloading({required this.controller});
+
+  final SetupController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.vox;
+    final theme = Theme.of(context).textTheme;
+    final status = controller.status;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.accent.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.download_outlined, color: c.accentInk, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Downloading the speech model',
+                  style: theme.titleMedium,
+                ),
+              ),
+              Text('${status.modelPercent}%', style: theme.bodySmall),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              color: c.accent,
+              backgroundColor: c.border,
+              value: status.modelPercent <= 0
+                  ? null
+                  : status.modelPercent / 100,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${status.modelMegabytes} MB, once. VoxScribe types as soon as it '
+            'finishes, and works offline from then on.',
+            style: theme.bodyMedium?.copyWith(color: c.muted),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: controller.hideReminder,
+              child: Text('Hide', style: TextStyle(color: c.muted)),
+            ),
+          ),
+        ],
       ),
     );
   }

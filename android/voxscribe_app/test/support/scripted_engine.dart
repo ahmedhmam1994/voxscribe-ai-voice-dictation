@@ -21,8 +21,14 @@ class ScriptedEngine implements DictationEngine {
   void emitLevel(double level) => _levels.add(level);
 
   /// Completes the transcription started by [stop].
-  void finish(String text, {Duration duration = const Duration(seconds: 2)}) {
-    _transcription!.complete(DictationResult(text: text, duration: duration));
+  void finish(
+    String text, {
+    Duration duration = const Duration(seconds: 2),
+    String? noSpeech,
+  }) {
+    _transcription!.complete(
+      DictationResult(text: text, duration: duration, noSpeech: noSpeech),
+    );
   }
 
   /// Fails the transcription started by [stop].

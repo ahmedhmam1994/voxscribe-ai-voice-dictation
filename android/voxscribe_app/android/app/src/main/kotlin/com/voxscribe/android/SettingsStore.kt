@@ -11,15 +11,10 @@ import android.content.Context
 object SettingsStore {
     private const val PREFS_NAME = "voxscribe_settings"
 
-    private const val KEY_PREFER_WHISPER = "prefer_whisper"
-    private const val KEY_FALLBACK_LANGUAGE = "fallback_language"
     private const val KEY_CLEANUP_ENABLED = "cleanup_enabled"
     private const val KEY_TRAILING_SPACE = "trailing_space"
-    private const val KEY_WHISPER_LANGUAGE = "whisper_language"
-    private const val KEY_SPEECH_MODEL = "speech_model"
-    const val MODEL_BASE = "base"
-    const val MODEL_FAST = "fast"
-    private const val DEFAULT_WHISPER_LANGUAGE = "en"
+    // Named from when Whisper was the model; kept so a saved choice survives the update.
+    private const val KEY_LANGUAGE = "whisper_language"
     private const val KEY_THEME_MODE = "theme_mode"
     private const val KEY_USAGE_PING = "usage_ping"
     private const val KEY_LAST_PING_DAY = "last_ping_day"
@@ -30,42 +25,14 @@ object SettingsStore {
     private const val KEY_FIRST_DICTATION_SENT = "first_dictation_sent"
     private const val KEY_LAST_DICTATION_DAY = "last_dictation_day"
     private const val KEY_SETUP_EVENTS_SENT = "setup_events_sent"
-
-    /** BCP-47 tag -> display name shown in the language picker. Null tag means "device default". */
-    val FALLBACK_LANGUAGES: List<Pair<String?, String>> = listOf(
-        null to "System default",
-        "en-US" to "English (US)",
-        "es-ES" to "Spanish",
-        "fr-FR" to "French",
-        "de-DE" to "German",
-        "it-IT" to "Italian",
-        "pt-BR" to "Portuguese",
-        "tr-TR" to "Turkish",
-        "ar-SA" to "Arabic",
-        "hi-IN" to "Hindi",
-        "zh-CN" to "Chinese",
-        "ja-JP" to "Japanese",
-        "ko-KR" to "Korean",
-    )
+    private const val KEY_SETUP_SEEN = "setup_seen"
+    private const val KEY_BUBBLE_USED = "bubble_used"
+    private const val KEY_HANDS_FREE = "hands_free"
+    private const val KEY_LAST_USE_DAY = "last_use_day"
+    private const val KEY_LEAVER_ASKED = "leaver_asked"
 
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    /** Prefer the bundled Whisper model when it's available. Off = always use the online/fallback recognizer. */
-    fun preferWhisper(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_PREFER_WHISPER, true)
-
-    fun setPreferWhisper(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean(KEY_PREFER_WHISPER, value).apply()
-    }
-
-    /** BCP-47 language tag for the Milestone 1 fallback recognizer, or null for device default. */
-    fun fallbackLanguage(context: Context): String? =
-        prefs(context).getString(KEY_FALLBACK_LANGUAGE, null)
-
-    fun setFallbackLanguage(context: Context, tag: String?) {
-        prefs(context).edit().putString(KEY_FALLBACK_LANGUAGE, tag).apply()
-    }
 
     /** Strip filler words ("um", "uh", "like", "you know") via TranscriptCleanup. */
     fun cleanupEnabled(context: Context): Boolean =
@@ -76,24 +43,20 @@ object SettingsStore {
     }
 
     /**
-     * Language Whisper transcribes in: a code such as "en" or "ar", or an
-     * empty string to auto-detect. English by default, because auto-detect
-     * guessed Arabic for English speech on a phone microphone.
+     * The language the user speaks, as a code from [SpeechEngine.LANGUAGES].
+     * Until one is picked it is the phone's own language when the models
+     * type it, else English. Auto-detect ("") was dropped with Whisper, and a
+     * saved code the models do not type is treated the same way.
      */
-    fun whisperLanguage(context: Context): String =
-        prefs(context).getString(KEY_WHISPER_LANGUAGE, DEFAULT_WHISPER_LANGUAGE)
-            ?: DEFAULT_WHISPER_LANGUAGE
-
-    fun setWhisperLanguage(context: Context, code: String) {
-        prefs(context).edit().putString(KEY_WHISPER_LANGUAGE, code).apply()
+    fun language(context: Context): String {
+        val saved = prefs(context).getString(KEY_LANGUAGE, null)
+        if (saved != null && saved in SpeechEngine.LANGUAGES) return saved
+        val phone = java.util.Locale.getDefault().language
+        return if (phone in SpeechEngine.LANGUAGES) phone else "en"
     }
 
-    /** Which speech model dictates: [MODEL_BASE] (bundled Whisper) or [MODEL_FAST] (downloaded English model). */
-    fun speechModel(context: Context): String =
-        prefs(context).getString(KEY_SPEECH_MODEL, MODEL_BASE) ?: MODEL_BASE
-
-    fun setSpeechModel(context: Context, value: String) {
-        prefs(context).edit().putString(KEY_SPEECH_MODEL, value).apply()
+    fun setLanguage(context: Context, code: String) {
+        prefs(context).edit().putString(KEY_LANGUAGE, code).apply()
     }
 
     /** The app theme: "system", "light" or "dark". */
@@ -180,6 +143,36 @@ object SettingsStore {
         prefs(context).edit().putStringSet(KEY_SETUP_EVENTS_SENT, events).apply()
     }
 
+    /**
+     * The setup screen has been opened on this phone. A new install starts on
+     * the setup steps until then. Installs from before this flag existed have
+     * been updated at least once, so they count as seen.
+     */
+    fun setupSeen(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SETUP_SEEN, false) || updatedSinceInstall(context)
+
+    fun setSetupSeen(context: Context) {
+        prefs(context).edit().putBoolean(KEY_SETUP_SEEN, true).apply()
+    }
+
+    /**
+     * The floating button has been pressed at least once. Until then the app
+     * offers a practice box. Updated installs count as used, as above.
+     */
+    fun bubbleUsed(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_BUBBLE_USED, false) || updatedSinceInstall(context)
+
+    fun setBubbleUsed(context: Context) {
+        if (!prefs(context).getBoolean(KEY_BUBBLE_USED, false)) {
+            prefs(context).edit().putBoolean(KEY_BUBBLE_USED, true).apply()
+        }
+    }
+
+    private fun updatedSinceInstall(context: Context): Boolean = runCatching {
+        val info = context.packageManager.getPackageInfo(context.packageName, 0)
+        info.lastUpdateTime > info.firstInstallTime
+    }.getOrDefault(false)
+
     /** A random id made on this phone, so a repeat launch is not counted as a new person. */
     fun anonymousId(context: Context): String? = prefs(context).getString(KEY_ANONYMOUS_ID, null)
 
@@ -216,5 +209,25 @@ object SettingsStore {
 
     fun setTrailingSpaceEnabled(context: Context, value: Boolean) {
         prefs(context).edit().putBoolean(KEY_TRAILING_SPACE, value).apply()
+    }
+
+    /** The last day a dictation was saved, kept whether or not the ping is on (see [LeaverQuestion]). */
+    fun lastUseDay(context: Context): String? = prefs(context).getString(KEY_LAST_USE_DAY, null)
+
+    fun setLastUseDay(context: Context, day: String) {
+        prefs(context).edit().putString(KEY_LAST_USE_DAY, day).apply()
+    }
+
+    fun leaverAsked(context: Context): Boolean = prefs(context).getBoolean(KEY_LEAVER_ASKED, false)
+
+    fun setLeaverAsked(context: Context) {
+        prefs(context).edit().putBoolean(KEY_LEAVER_ASKED, true).apply()
+    }
+
+    /** Pro: a tap on the floating button keeps listening and types each phrase when you pause. */
+    fun handsFree(context: Context): Boolean = prefs(context).getBoolean(KEY_HANDS_FREE, false)
+
+    fun setHandsFree(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_HANDS_FREE, value).apply()
     }
 }

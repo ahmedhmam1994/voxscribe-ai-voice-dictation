@@ -50,6 +50,9 @@ class VoxScribeAccessibilityService : AccessibilityService() {
     // word" know what to take back. Cleared whenever focus moves, like
     // lastWrittenText, so an edit never touches text VoxScribe did not write.
     private var lastInsertedChunk: String? = null
+
+    /** The last dictation typed into the focused box, or null. Read only, for "scratch that, at 6". */
+    val lastDictation: String? get() = lastInsertedChunk
     private val recentChunks = ArrayDeque<String>()
 
     // Learns your words (see LearnedWords): the box as VoxScribe left it, where

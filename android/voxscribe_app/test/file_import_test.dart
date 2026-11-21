@@ -144,4 +144,3 @@ void main() {
     expect(find.text('Save captions .srt'), findsOneWidget);
   });
 }
-

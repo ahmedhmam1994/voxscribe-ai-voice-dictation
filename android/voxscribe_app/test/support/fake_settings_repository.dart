@@ -7,6 +7,10 @@ class FakeSettingsRepository implements SettingsRepository {
 
   AppSettings saved;
 
+  bool leaverDue = false;
+  bool leaverAnswered = false;
+  String? leaverReason;
+
   @override
   Future<AppSettings> load() async => saved;
 
@@ -38,5 +42,19 @@ class FakeSettingsRepository implements SettingsRepository {
   @override
   Future<void> setTheme(ThemeChoice value) async {
     saved = saved.copyWith(theme: value);
+  }
+
+  @override
+  Future<void> setHandsFree({required bool value}) async {
+    saved = saved.copyWith(handsFree: value);
+  }
+
+  @override
+  Future<bool> leaverQuestionDue() async => leaverDue && !leaverAnswered;
+
+  @override
+  Future<void> answerLeaverQuestion(String? reason) async {
+    leaverAnswered = true;
+    leaverReason = reason;
   }
 }

@@ -7,10 +7,9 @@ import kotlin.math.sqrt
 /**
  * Pieces of the file import that need no phone: cutting a long recording into
  * short spoken pieces, turning each piece's text into caption cards, and
- * writing those cards as an .srt file. The Android speech model reads at most
- * about 30 seconds at a time and gives no word timings, so a file is cut at
- * pauses into pieces of up to [Segmenter.MAX_SEGMENT_SEC], and each piece's
- * time span is shared out across its cards by length.
+ * writing those cards as an .srt file. The speech model gives no word timings,
+ * so a file is cut at pauses into pieces of up to [Segmenter.MAX_SEGMENT_SEC],
+ * and each piece's time span is shared out across its cards by length.
  */
 
 /** One spoken piece of a file: where it starts (in samples at 16 kHz) and its audio. */
@@ -21,18 +20,23 @@ class AudioSegment(val startSample: Long, val samples: FloatArray) {
 
 /**
  * Takes 16 kHz mono audio in blocks of any size and hands out spoken pieces:
- * a piece ends at a pause of at least [PAUSE_SEC] once it is a second long,
- * or at the quietest moment of its last few seconds when it reaches
- * [MAX_SEGMENT_SEC]. Silence between pieces is dropped, so no time is spent
- * transcribing it (and Whisper cannot invent text for it).
+ * a piece ends at a long pause ([LONG_PAUSE_SEC]) once it is a second long, at
+ * a short pause ([PAUSE_SEC]) once it is [TARGET_SEGMENT_SEC] long, or at the
+ * quietest moment of its last few seconds when it reaches [MAX_SEGMENT_SEC].
+ * Pieces are kept long because the model reads each one on its own: cut at
+ * every breath, a sentence loses its words at the cut (on 21 Nov 2026 "EBITDA
+ * grew and the free cash flow" came out as "grow and. Free cash flow"). Silence between pieces is dropped, so no time is spent
+ * transcribing it (and the model cannot invent text for it).
  */
 class Segmenter(private val onSegment: (AudioSegment) -> Unit) {
     companion object {
         const val RATE = 16_000
         const val FRAME = 480 // 30 ms
-        const val MAX_SEGMENT_SEC = 12.0
+        const val MAX_SEGMENT_SEC = 20.0
+        const val TARGET_SEGMENT_SEC = 8.0
         const val MIN_SEGMENT_SEC = 1.0
         const val PAUSE_SEC = 0.4
+        const val LONG_PAUSE_SEC = 1.2
         const val PAD_SEC = 0.15
         /** RMS above this counts as speech. Quiet recordings are lifted first by [speechThreshold]. */
         const val BASE_THRESHOLD = 0.01f
@@ -73,7 +77,8 @@ class Segmenter(private val onSegment: (AudioSegment) -> Unit) {
             onFrame(frame.copyOf(frameFill))
             frameFill = 0
         }
-        emit(current.size)
+        // Drop the silence at the end, keeping a little of it as at any pause.
+        emit(min(current.size, current.size - silentFrames + leadFrames))
     }
 
     private fun speechThreshold(): Float = max(BASE_THRESHOLD, loudest * 0.08f)
@@ -105,7 +110,10 @@ class Segmenter(private val onSegment: (AudioSegment) -> Unit) {
 
         val lengthSec = current.size * FRAME / RATE.toDouble()
         val pauseFrames = (PAUSE_SEC * RATE / FRAME).toInt()
-        if (silentFrames >= pauseFrames && lengthSec >= MIN_SEGMENT_SEC) {
+        val longPauseFrames = (LONG_PAUSE_SEC * RATE / FRAME).toInt()
+        val atPause = (silentFrames >= longPauseFrames && lengthSec >= MIN_SEGMENT_SEC) ||
+            (silentFrames >= pauseFrames && lengthSec >= TARGET_SEGMENT_SEC)
+        if (atPause) {
             // End at the pause, keeping a little of it.
             val keep = current.size - silentFrames + leadFrames
             emit(min(keep, current.size))

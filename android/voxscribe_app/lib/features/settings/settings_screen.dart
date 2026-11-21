@@ -19,15 +19,16 @@ import 'package:voxscribe_app/features/setup/domain/setup_status.dart';
 import 'package:voxscribe_app/features/setup/setup_controller.dart';
 import 'package:voxscribe_app/features/setup/setup_page.dart';
 import 'package:voxscribe_app/features/snippets/snippets_controller.dart';
-import 'package:voxscribe_app/features/speechmodel/fast_model_row.dart';
+import 'package:voxscribe_app/features/speechmodel/main_model_row.dart';
 import 'package:voxscribe_app/features/termpacks/term_packs_controller.dart';
 import 'package:voxscribe_app/features/termpacks/term_packs_page.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_controller.dart';
 import 'package:voxscribe_app/features/texttools/text_tools_pages.dart';
 import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
-/// Every setting, in seven groups: setup, dictation, the floating button, voice
-/// and words, Pro, appearance, and privacy and data.
+/// Every setting, grouped by what it is for: typing, words, voice commands, the
+/// floating button, Pro, appearance, privacy, and help and data. Setup shows
+/// first until it is finished, then moves into the floating button group.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     required this.settings,
@@ -83,6 +84,13 @@ class SettingsScreen extends StatelessWidget {
         final values = settings.settings;
         final tools = textTools.settings;
         final unlocked = pro.isPro;
+        final setupDone = setup.status.permissionsComplete;
+        final setupRow = SettingsRow(
+          title: 'Speech model, button and permissions',
+          subtitle: _setupSummary(setup.status),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => _openSetup(context),
+        );
         return Column(
           children: [
             const _Header(),
@@ -94,19 +102,10 @@ class SettingsScreen extends StatelessWidget {
                     'Settings',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
+                  if (!setupDone)
+                    SettingsGroup(label: 'Setup', children: [setupRow]),
                   SettingsGroup(
-                    label: 'Setup',
-                    children: [
-                      SettingsRow(
-                        title: 'Floating button and permissions',
-                        subtitle: _setupSummary(setup.status),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openSetup(context),
-                      ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'Dictation',
+                    label: 'Typing',
                     children: [
                       SettingsRow(
                         title: 'Language you speak',
@@ -119,7 +118,22 @@ class SettingsScreen extends StatelessWidget {
                             ? () => _chooseLanguage(context)
                             : null,
                       ),
-                      const FastModelRow(),
+                      MainModelRow(
+                        model: 'english',
+                        title: 'Speech model: English and European',
+                        pitch:
+                            'Types English, French, Spanish, German, Italian '
+                            'and Portuguese, accents included.',
+                        inUse: !_nemotronLanguage(dictation.language),
+                      ),
+                      MainModelRow(
+                        model: 'arabic',
+                        title: 'Speech model: Arabic and Turkish',
+                        pitch:
+                            'Types Arabic, Egyptian dialect included, and '
+                            'Turkish.',
+                        inUse: _nemotronLanguage(dictation.language),
+                      ),
                       SettingsRow(
                         title: 'Dictation mode',
                         subtitle: unlocked && tools.autoModes
@@ -147,8 +161,80 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
+                    label: 'Words',
+                    children: [
+                      SettingsRow(
+                        title: 'Term packs',
+                        subtitle: _packsLine(tools.enabledPacks),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _push(
+                          context,
+                          TermPacksPage(
+                            packs: packs,
+                            textTools: textTools,
+                            engine: engine,
+                          ),
+                        ),
+                      ),
+                      SettingsRow(
+                        title: 'Your replacements',
+                        subtitle: _countLine(
+                          ruleCount(tools.replacements),
+                          'replacement',
+                          'Fix words the model keeps getting wrong.',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          textTools.refreshLearned();
+                          _push(
+                            context,
+                            ReplacementsPage(controller: textTools),
+                          );
+                        },
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Spell names from the screen',
+                        subtitle:
+                            'Uses names on screen, like who you write to. '
+                            'Read on your phone only, never kept.',
+                        value: tools.screenSpelling,
+                        onChanged: (value) =>
+                            textTools.setScreenSpelling(value: value),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'Voice commands',
+                    children: [
+                      SettingsRow(
+                        title: 'Voice commands',
+                        subtitle: 'Say "period", "scratch that", "all caps".',
+                        trailing: _StateChevron(on: tools.voiceCommands),
+                        onTap: () => _push(
+                          context,
+                          VoiceCommandsPage(controller: textTools),
+                        ),
+                      ),
+                      SettingsRow(
+                        title: 'Say "send it" to send',
+                        subtitle: 'Taps the Send button for you.',
+                        trailing: _StateChevron(on: tools.sendIt),
+                        onTap: () =>
+                            _push(context, SendItPage(controller: textTools)),
+                      ),
+                      SettingsSwitchRow(
+                        title: 'Read it back',
+                        subtitle: 'Your phone reads each dictation aloud.',
+                        value: tools.readBack,
+                        onChanged: (value) =>
+                            textTools.setReadBack(value: value),
+                      ),
+                    ],
+                  ),
+                  SettingsGroup(
                     label: 'Floating button',
                     children: [
+                      if (setupDone) setupRow,
                       _PickerRow<RecordingMode>(
                         title: 'How you record',
                         subtitle: _recordingModeHelp(values.recordingMode),
@@ -175,84 +261,36 @@ class SettingsScreen extends StatelessWidget {
                         title: 'Quick Settings tile',
                         subtitle:
                             'Turn the button on and off from the '
-                            'notification shade. On Xiaomi phones, turn on '
-                            'Autostart for VoxScribe first, and add the tile '
-                            'again after an update.',
+                            'notification shade.',
                         trailing: const Icon(Icons.add),
                         onTap: () => _addQuickTile(context),
                       ),
                     ],
                   ),
                   SettingsGroup(
-                    label: 'Voice and words',
+                    label: 'VoxScribe Pro',
                     children: [
                       SettingsRow(
-                        title: 'Voice commands',
-                        subtitle: tools.voiceCommands
-                            ? 'On. Punctuation, take back, change it.'
-                            : 'Off. Say "period", "scratch that", "all caps".',
+                        title: unlocked ? 'Pro is unlocked' : 'Unlock Pro',
+                        subtitle: unlocked
+                            ? 'Snippets and the tools below are on.'
+                            : 'One key, same as Windows. Unlocks the tools '
+                                  'below.',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _push(
-                          context,
-                          VoiceCommandsPage(controller: textTools),
+                        onTap: () => _openPro(context),
+                      ),
+                      ProGate(
+                        unlocked: unlocked,
+                        child: SettingsSwitchRow(
+                          title: 'Hands-free mode',
+                          subtitle:
+                              'Tap the button once and keep talking. Each '
+                              'phrase is typed when you pause. Say "stop '
+                              'listening" or tap again to end.',
+                          value: values.handsFree,
+                          onChanged: (value) =>
+                              settings.setHandsFree(value: value),
                         ),
-                      ),
-                      SettingsRow(
-                        title: 'Say "send it" to send',
-                        subtitle: tools.sendIt
-                            ? 'On. Taps the Send button for you.'
-                            : 'Off. Send a message by voice.',
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () =>
-                            _push(context, SendItPage(controller: textTools)),
-                      ),
-                      SettingsRow(
-                        title: 'Your replacements',
-                        subtitle: _countLine(
-                          ruleCount(tools.replacements),
-                          'replacement',
-                          'Fix words the model keeps getting wrong.',
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          textTools.refreshLearned();
-                          _push(
-                            context,
-                            ReplacementsPage(controller: textTools),
-                          );
-                        },
-                      ),
-                      SettingsRow(
-                        title: 'Term packs',
-                        subtitle: _packsLine(tools.enabledPacks),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _push(
-                          context,
-                          TermPacksPage(
-                            packs: packs,
-                            textTools: textTools,
-                            engine: engine,
-                          ),
-                        ),
-                      ),
-                      SettingsSwitchRow(
-                        title: 'Spell names from the screen',
-                        subtitle:
-                            'Names and app words shown on screen, like the '
-                            'person you are writing to, fix how they are '
-                            'spelled. Read on your phone only, never kept.',
-                        value: tools.screenSpelling,
-                        onChanged: (value) =>
-                            textTools.setScreenSpelling(value: value),
-                      ),
-                      SettingsSwitchRow(
-                        title: 'Read it back',
-                        subtitle:
-                            'Your phone reads each dictation aloud after it '
-                            'is typed, so you can check it without looking.',
-                        value: tools.readBack,
-                        onChanged: (value) =>
-                            textTools.setReadBack(value: value),
                       ),
                       SettingsSwitchRow(
                         title: 'Fill forms by voice',
@@ -261,27 +299,12 @@ class SettingsScreen extends StatelessWidget {
                         onChanged: (value) =>
                             textTools.setFormFill(value: value),
                       ),
-                    ],
-                  ),
-                  SettingsGroup(
-                    label: 'VoxScribe Pro',
-                    children: [
-                      SettingsRow(
-                        title: 'VoxScribe Pro',
-                        subtitle: unlocked
-                            ? 'Unlocked. Snippets and the tools below are on.'
-                            : 'Locked. Unlock snippets and the tools below '
-                                  'with the same key as Windows.',
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _openPro(context),
-                      ),
                       ProGate(
                         unlocked: unlocked,
                         child: SettingsSwitchRow(
                           title: 'Smart formatting',
                           subtitle:
-                              '"john at gmail dot com" becomes john@gmail.com, '
-                              '"twenty five percent" becomes 25%.',
+                              '"john at gmail dot com" becomes john@gmail.com.',
                           value: tools.smartFormat,
                           onChanged: (value) =>
                               textTools.setSmartFormat(value: value),
@@ -291,9 +314,7 @@ class SettingsScreen extends StatelessWidget {
                         unlocked: unlocked,
                         child: SettingsSwitchRow(
                           title: 'Code dictation',
-                          subtitle:
-                              '"camel case user name" becomes userName. Turns '
-                              'off capitals and filler cleanup while on.',
+                          subtitle: '"camel case user name" becomes userName.',
                           value: tools.codeDictation,
                           onChanged: (value) =>
                               textTools.setCodeDictation(value: value),
@@ -304,7 +325,7 @@ class SettingsScreen extends StatelessWidget {
                         subtitle: _countLine(
                           ruleCount(tools.templates),
                           'template',
-                          'Say "template bug report" and fill it in by voice.',
+                          'Say "template bug report" and fill it in.',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => _push(
@@ -345,16 +366,13 @@ class SettingsScreen extends StatelessWidget {
                     ],
                   ),
                   SettingsGroup(
-                    label: 'Privacy and data',
+                    label: 'Privacy',
                     children: [
                       SettingsSwitchRow(
                         title: 'Send an anonymous usage ping',
                         subtitle:
-                            'When the app starts (once a day), the first time '
-                            'you dictate, and once on each day you dictate: '
-                            'the app version, the Android version and a random '
-                            'id, so we can see how many people use VoxScribe. '
-                            'Never audio or text.',
+                            'App version, Android version and a random id, '
+                            'about once a day. Never audio or text.',
                         value: values.usagePing,
                         onChanged: (value) =>
                             settings.setUsagePing(value: value),
@@ -362,8 +380,8 @@ class SettingsScreen extends StatelessWidget {
                       SettingsRow(
                         title: 'Privacy receipt',
                         subtitle:
-                            'Every time VoxScribe went online from this '
-                            'phone, and what it sent. Never your words.',
+                            'Every time VoxScribe went online, and what '
+                            'it sent.',
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () =>
                             _push(context, PrivacyReceiptPage(log: networkLog)),
@@ -371,18 +389,18 @@ class SettingsScreen extends StatelessWidget {
                       if (openLink case final open?)
                         SettingsRow(
                           title: 'Privacy at a glance',
-                          subtitle:
-                              'What stays on your phone and every connection '
-                              'the app makes.',
+                          subtitle: 'What stays on your phone.',
                           trailing: const Icon(Icons.open_in_new, size: 20),
                           onTap: () => open(_privacyUrl),
                         ),
+                    ],
+                  ),
+                  SettingsGroup(
+                    label: 'Help and data',
+                    children: [
                       SettingsRow(
                         title: 'Copy diagnostics',
-                        subtitle:
-                            'Copies where setup stopped and your phone model '
-                            'so you can paste it into a message. Nothing is '
-                            'sent for you.',
+                        subtitle: 'For support. Nothing is sent for you.',
                         trailing: const Icon(Icons.copy, size: 20),
                         onTap: () => _copyDiagnostics(context),
                       ),
@@ -413,6 +431,9 @@ class SettingsScreen extends StatelessWidget {
       RecordingMode.tap => 'Tap once to start and again to stop. No holding.',
     };
   }
+
+  /// Arabic and Turkish use Nemotron, the other languages Granite.
+  static bool _nemotronLanguage(String code) => code == 'ar' || code == 'tr';
 
   String _setupSummary(SetupStatus status) {
     if (!status.permissionsComplete) {
@@ -460,12 +481,10 @@ class SettingsScreen extends StatelessWidget {
 
   /// How form filling works, and the free fills left without Pro.
   String _formFillLine(int left) {
-    const how =
-        'Say "Name Sam Lee, phone 555 0100, email sam at mail dot com" '
-        'and every box on the form fills at once.';
+    const how = 'Say "Name Sam Lee, phone 555 0100" and the form fills.';
     if (left < 0) return how;
-    if (left == 0) return '$how Your free fills are used up: Pro keeps it on.';
-    return '$how $left free ${left == 1 ? 'fill' : 'fills'} left, unlimited with Pro.';
+    if (left == 0) return '$how Free fills used up.';
+    return '$how $left free ${left == 1 ? 'fill' : 'fills'} left.';
   }
 
   Future<void> _addQuickTile(BuildContext context) async {
@@ -478,7 +497,8 @@ class SettingsScreen extends StatelessWidget {
       QuickTileResult.declined => null,
       QuickTileResult.manual =>
         'Swipe down twice from the top, tap the pencil, and drag '
-            'VoxScribe button into your tiles.',
+            'VoxScribe button into your tiles. On Xiaomi phones, turn on '
+            'Autostart for VoxScribe first.',
     };
     if (message == null) return;
     messenger.showSnackBar(SnackBar(content: Text(message)));
@@ -549,6 +569,32 @@ class _Header extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// "On" or "Off" and a chevron, for a row that opens its own page.
+class _StateChevron extends StatelessWidget {
+  const _StateChevron({required this.on});
+
+  final bool on;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.vox;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          on ? 'On' : 'Off',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: on ? c.accentInk : c.muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(width: 4),
+        const Icon(Icons.chevron_right),
+      ],
     );
   }
 }

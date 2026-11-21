@@ -1,20 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The four-bar VoxScribe mark, centered in the 66dp safe zone of an adaptive icon. -->
+<!-- The VoxScribe mark: three sound bars that turn into a text cursor (voice
+     becoming typed words). Drawn in a 108 grid, then scaled into the 66dp safe
+     zone of an adaptive icon so no launcher mask clips it. The same shapes are
+     in lib/shared/widgets/brand_mark.dart and the intro splash. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#3ECF8E"
-        android:pathData="M32.4,42 a4.2,4.2 0 0 1 4.2,4.2 v15.6 a4.2,4.2 0 0 1 -4.2,4.2 a4.2,4.2 0 0 1 -4.2,-4.2 v-15.6 a4.2,4.2 0 0 1 4.2,-4.2 z" />
-    <path
-        android:fillColor="#3ECF8E"
-        android:pathData="M46.8,30 a4.2,4.2 0 0 1 4.2,4.2 v39.6 a4.2,4.2 0 0 1 -4.2,4.2 a4.2,4.2 0 0 1 -4.2,-4.2 v-39.6 a4.2,4.2 0 0 1 4.2,-4.2 z" />
-    <path
-        android:fillColor="#3ECF8E"
-        android:pathData="M61.2,24 a4.2,4.2 0 0 1 4.2,4.2 v51.6 a4.2,4.2 0 0 1 -4.2,4.2 a4.2,4.2 0 0 1 -4.2,-4.2 v-51.6 a4.2,4.2 0 0 1 4.2,-4.2 z" />
-    <path
-        android:fillColor="#3ECF8E"
-        android:pathData="M75.6,36 a4.2,4.2 0 0 1 4.2,4.2 v27.6 a4.2,4.2 0 0 1 -4.2,4.2 a4.2,4.2 0 0 1 -4.2,-4.2 v-27.6 a4.2,4.2 0 0 1 4.2,-4.2 z" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.78"
+        android:scaleY="0.78">
+        <!-- Sound bars: 20, 36, 20 tall, 8 wide. -->
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M28,44 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -8,0 v-12 a4,4 0 0 1 4,-4 z" />
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M42,36 a4,4 0 0 1 4,4 v28 a4,4 0 0 1 -8,0 v-28 a4,4 0 0 1 4,-4 z" />
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M56,44 a4,4 0 0 1 4,4 v12 a4,4 0 0 1 -8,0 v-12 a4,4 0 0 1 4,-4 z" />
+        <!-- Text cursor: a stem with a cap at the top and bottom. -->
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M70,29 h7 v50 h-7 z" />
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M66,26 h15 a3,3 0 0 1 0,6 h-15 a3,3 0 0 1 0,-6 z" />
+        <path
+            android:fillColor="#3ECF8E"
+            android:pathData="M66,76 h15 a3,3 0 0 1 0,6 h-15 a3,3 0 0 1 0,-6 z" />
+    </group>
 </vector>

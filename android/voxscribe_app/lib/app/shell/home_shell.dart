@@ -11,6 +11,8 @@ import 'package:voxscribe_app/features/pro/pro_controller.dart';
 import 'package:voxscribe_app/features/release/domain/release_repository.dart';
 import 'package:voxscribe_app/features/release/release_controller.dart';
 import 'package:voxscribe_app/features/release/release_prompts.dart';
+import 'package:voxscribe_app/features/settings/leaver_question_sheet.dart';
+import 'package:voxscribe_app/features/speechmodel/model_offer.dart';
 import 'package:voxscribe_app/features/settings/settings_controller.dart';
 import 'package:voxscribe_app/features/settings/settings_screen.dart';
 import 'package:voxscribe_app/features/setup/domain/setup_platform.dart';
@@ -61,9 +63,11 @@ class _HomeShellState extends State<HomeShell> {
   late final DictationController _dictation = DictationController(
     engine: widget.engine,
     history: _history,
+    onLanguageChanged: _languageChanged,
   );
   late final SetupController _setup = SetupController(
     platform: widget.setupPlatform,
+    onLanguageChanged: _dictation.loadLanguage,
   );
   late final ProController _pro = ProController(
     repository: widget.proRepository,
@@ -81,6 +85,7 @@ class _HomeShellState extends State<HomeShell> {
   );
   late final AppLifecycleListener _lifecycle;
   var _notesShown = false;
+  Future<void>? _leaverSheet;
   var _index = 0;
   var _insightsVisits = 0;
 
@@ -93,15 +98,45 @@ class _HomeShellState extends State<HomeShell> {
     _refresh();
     _dictation.loadLanguage();
     _release.addListener(_maybeShowNotes);
+    _setup.addListener(_modelProgress);
     _release.start();
+    _maybeAskLeaver();
   }
 
   void _maybeShowNotes() {
     if (_notesShown || _release.pendingNotes == null) return;
     _notesShown = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) showWhatsNewSheet(context, _release);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // One sheet at a time: the notes wait for the question to close.
+      await _leaverSheet;
+      if (mounted) await showWhatsNewSheet(context, _release);
     });
+  }
+
+  /// Once, after a few days without dictating: why did you stop?
+  Future<void> _maybeAskLeaver() async {
+    final repository = widget.settings.repository;
+    if (!await repository.leaverQuestionDue() || !mounted || _notesShown) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _notesShown) return;
+      _leaverSheet = showLeaverQuestionSheet(context, repository);
+    });
+  }
+
+  void _modelProgress() {
+    final status = _setup.status;
+    if (status.modelInstalled || status.modelDownloading) {
+      _dictation.modelArrived();
+    }
+  }
+
+  /// The language changed on the Dictation or Settings screen: its model may
+  /// need downloading.
+  Future<void> _languageChanged() async {
+    await _setup.refresh();
+    if (mounted) await offerSpeechModel(context, _setup);
   }
 
   void _refresh() {
@@ -142,6 +177,7 @@ class _HomeShellState extends State<HomeShell> {
                     history: _history,
                     textTools: _textTools,
                     setup: _setup,
+                    engine: widget.engine,
                   ),
                   // A new key on every visit, so its numbers and chart animate
                   // in where they can be seen, not once hidden at launch.

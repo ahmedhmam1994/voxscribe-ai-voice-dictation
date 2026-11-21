@@ -16,4 +16,12 @@ abstract interface class SettingsRepository {
   Future<void> setRecordingMode(RecordingMode value);
 
   Future<void> setBubbleSize(BubbleSize value);
+
+  Future<void> setHandsFree({required bool value});
+
+  /// True once, after a few days without a dictation, while the usage ping is on.
+  Future<bool> leaverQuestionDue();
+
+  /// Marks the question as asked. A null [reason] sends nothing.
+  Future<void> answerLeaverQuestion(String? reason);
 }

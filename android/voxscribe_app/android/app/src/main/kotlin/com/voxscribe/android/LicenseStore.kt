@@ -12,7 +12,7 @@ object LicenseStore {
 
     fun isPro(context: Context): Boolean {
         val stored = prefs(context).getString(KEY_LICENSE, null) ?: return false
-        return LicenseKey.isValid(stored)
+        return LicenseKey.isActive(stored)
     }
 
     /** The saved key, or null. Only Remove license needs it, to free this phone's slot. */

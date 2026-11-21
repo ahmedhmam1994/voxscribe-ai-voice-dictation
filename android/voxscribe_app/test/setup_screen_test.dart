@@ -21,17 +21,73 @@ Future<FakeSetupPlatform> _openSetup(
   final platform = FakeSetupPlatform(status);
   await tester.pumpWidget(buildTestApp(setup: platform));
   await openTab(tester, 'Settings');
-  await tester.tap(find.text('Floating button and permissions'));
+  await tester.tap(find.text('Speech model, button and permissions'));
   await tester.pumpAndSettle();
   return platform;
 }
 
-void main() {
-  testWidgets('a fresh phone starts at the microphone step', (tester) async {
-    await _openSetup(tester, SetupStatus.none);
+const _modelReady = SetupStatus(
+  microphone: false,
+  accessibility: false,
+  overlay: false,
+  bubbleRunning: false,
+);
 
-    expect(find.text('Three quick steps'), findsOneWidget);
-    expect(find.text('0 of 3 done'), findsOneWidget);
+void main() {
+  testWidgets('a fresh phone starts at the speech model', (tester) async {
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: false,
+        accessibility: false,
+        overlay: false,
+        bubbleRunning: false,
+        modelInstalled: false,
+        modelMegabytes: 536,
+      ),
+    );
+
+    expect(find.text('A few quick steps'), findsOneWidget);
+    expect(find.text('0 of 4 done'), findsOneWidget);
+    expect(find.textContaining('VoxScribe types English'), findsOneWidget);
+    await tester.tap(find.text('Download (536 MB)'));
+    // The progress bar keeps moving until the download reports a percentage.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(platform.calls, ['downloadModel']);
+    expect(find.text('Allow microphone'), findsOneWidget);
+    expect(find.text('Cancel download'), findsOneWidget);
+  });
+
+  testWidgets('the language can be changed before the download', (
+    tester,
+  ) async {
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: false,
+        accessibility: false,
+        overlay: false,
+        bubbleRunning: false,
+        modelInstalled: false,
+      ),
+    );
+
+    await tester.tap(find.text('Not English? Change the language'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Arabic'));
+    await tester.pumpAndSettle();
+
+    expect(platform.calls, ['setLanguage:ar']);
+  });
+
+  testWidgets('with the model there it starts at the microphone step', (
+    tester,
+  ) async {
+    await _openSetup(tester, _modelReady);
+
+    expect(find.text('1 of 4 done'), findsOneWidget);
     expect(find.text('Allow microphone'), findsOneWidget);
     expect(
       find.textContaining('only while you hold the button'),
@@ -69,7 +125,8 @@ void main() {
       ),
     );
 
-    expect(find.text('DONE'), findsOneWidget);
+    // The speech model and the microphone.
+    expect(find.text('DONE'), findsNWidgets(2));
     expect(find.text('Open accessibility settings'), findsOneWidget);
     expect(find.textContaining('tap VoxScribe and turn it on'), findsOneWidget);
   });
@@ -140,7 +197,7 @@ void main() {
   });
 
   testWidgets('the button runs the next step', (tester) async {
-    final platform = await _openSetup(tester, SetupStatus.none);
+    final platform = await _openSetup(tester, _modelReady);
 
     await tester.tap(find.text('Allow microphone'));
     await tester.pumpAndSettle();
@@ -170,7 +227,7 @@ void main() {
   });
 
   testWidgets('a failure is shown to the user', (tester) async {
-    final platform = await _openSetup(tester, SetupStatus.none);
+    final platform = await _openSetup(tester, _modelReady);
     platform.failWith = 'Finish the setup steps first.';
 
     await tester.tap(find.text('Allow microphone'));
@@ -216,5 +273,65 @@ void main() {
     );
 
     expect(find.text('Notifications are off'), findsNothing);
+  });
+
+  testWidgets('asks to keep battery saving from closing the button', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+        batteryUnrestricted: false,
+      ),
+    );
+
+    expect(find.text('Keep the button from disappearing'), findsOneWidget);
+    expect(find.text('Open App info'), findsNothing);
+    await tester.ensureVisible(find.text('Allow'));
+    await tester.tap(find.text('Allow'));
+    await tester.pumpAndSettle();
+    expect(platform.calls, contains('requestBatteryExemption'));
+  });
+
+  testWidgets('on a Xiaomi phone it also points to App info', (tester) async {
+    useTallScreen(tester);
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+        batteryUnrestricted: false,
+        xiaomi: true,
+      ),
+    );
+
+    await tester.ensureVisible(find.text('Open App info'));
+    await tester.tap(find.text('Open App info'));
+    await tester.pumpAndSettle();
+    expect(platform.calls, contains('openAppInfo'));
+  });
+
+  testWidgets('no battery card before the steps are done or once allowed', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: false,
+        overlay: false,
+        bubbleRunning: false,
+        batteryUnrestricted: false,
+      ),
+    );
+    expect(find.text('Keep the button from disappearing'), findsNothing);
   });
 }

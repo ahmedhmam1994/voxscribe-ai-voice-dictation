@@ -18,17 +18,26 @@ const _allGranted = SetupStatus(
   bubbleRunning: false,
 );
 
+const _modelOnly = SetupStatus(
+  microphone: false,
+  accessibility: false,
+  overlay: false,
+  bubbleRunning: false,
+);
+
 void main() {
   group('SetupStatus', () {
     test('steps come in order and the first missing one is next', () {
-      expect(SetupStatus.none.nextStep, SetupStep.microphone);
+      expect(SetupStatus.none.nextStep, SetupStep.model);
+      expect(_modelOnly.nextStep, SetupStep.microphone);
       expect(_micOnly.nextStep, SetupStep.accessibility);
       expect(_allGranted.nextStep, isNull);
     });
 
     test('counts finished steps', () {
       expect(SetupStatus.none.doneCount, 0);
-      expect(_micOnly.doneCount, 1);
+      expect(_modelOnly.doneCount, 1);
+      expect(_micOnly.doneCount, 2);
       expect(_allGranted.doneCount, SetupStep.values.length);
       expect(_allGranted.permissionsComplete, isTrue);
     });
@@ -50,14 +59,55 @@ void main() {
       await controller.refresh();
 
       await controller.performPrimaryAction();
+      // The download runs on: the next step is the microphone meanwhile.
+      expect(controller.status.nextStep, SetupStep.microphone);
+      await controller.performPrimaryAction();
       platform.status = _micOnly;
       await controller.refresh();
       await controller.performPrimaryAction();
 
       expect(platform.calls, [
+        'downloadModel',
         'requestMicrophone',
         'openAccessibilitySettings',
       ]);
+      controller.dispose();
+    });
+
+    test('a language change is saved and reported', () async {
+      final platform = FakeSetupPlatform(_modelOnly);
+      var changed = 0;
+      final controller = SetupController(
+        platform: platform,
+        onLanguageChanged: () => changed++,
+      );
+      await controller.refresh();
+
+      await controller.chooseLanguage('ar');
+      await controller.chooseLanguage('en'); // the language it already has
+
+      expect(platform.calls, ['setLanguage:ar']);
+      expect(changed, 1);
+    });
+
+    test('the reminder stays while the model downloads', () async {
+      final platform = FakeSetupPlatform(
+        const SetupStatus(
+          microphone: true,
+          accessibility: true,
+          overlay: true,
+          bubbleRunning: true,
+          modelInstalled: false,
+          modelDownloading: true,
+          modelPercent: 40,
+        ),
+      );
+      final controller = SetupController(platform: platform);
+      await controller.refresh();
+
+      expect(controller.status.permissionsComplete, isTrue);
+      expect(controller.showReminder, isTrue);
+      controller.dispose();
     });
 
     test('opens the overlay settings once the first two are done', () async {

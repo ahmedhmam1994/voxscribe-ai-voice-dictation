@@ -29,11 +29,25 @@ abstract interface class SetupPlatform {
   /// Opens this app's notification settings, where they can be allowed.
   Future<void> openNotificationSettings();
 
+  /// Asks Android to stop battery saving for VoxScribe. The answer shows up
+  /// in [getStatus].
+  Future<void> requestBatteryExemption();
+
   /// Tells the native side the setup screen opened, for its one-time ping.
   Future<void> setupOpened();
 
   /// Asks Android to add the VoxScribe button tile to Quick Settings.
   Future<QuickTileResult> addQuickTile();
+
+  /// Starts downloading the speech model for the chosen language. Progress
+  /// shows up in [getStatus].
+  Future<void> downloadModel();
+
+  /// Stops that download.
+  Future<void> cancelModel();
+
+  /// Saves the language the user speaks, which picks the model to download.
+  Future<void> setLanguage(String code);
 
   /// Starts or stops the floating button.
   Future<void> setBubbleRunning({required bool running});

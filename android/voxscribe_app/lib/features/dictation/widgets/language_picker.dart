@@ -44,8 +44,9 @@ class _LanguageSheet extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Text(
-                'Auto-detect can guess wrong on a phone microphone. Pick the '
-                'language you are speaking for the best results.',
+                'Arabic and Turkish use one speech model (682 MB), the other '
+                'languages share another (536 MB). Picking a language whose '
+                'model is not on the phone offers to download it.',
                 style: Theme.of(context).textTheme.bodySmall
                     ?.copyWith(color: c.muted),
               ),

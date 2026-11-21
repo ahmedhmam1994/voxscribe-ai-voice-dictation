@@ -61,7 +61,10 @@ class VoiceCommandsPage extends StatelessWidget {
         const _CommandList(
           label: 'Take it back',
           commands: [
-            ('"scratch that"', 'removes your last dictation'),
+            (
+              '"scratch that"',
+              'on its own, removes your last dictation; after a sentence, drops that sentence',
+            ),
             ('"delete last word"', 'removes one word'),
             ('"delete last sentence"', 'removes one sentence'),
           ],

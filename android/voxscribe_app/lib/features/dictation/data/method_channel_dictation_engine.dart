@@ -25,6 +25,7 @@ class MethodChannelDictationEngine implements DictationEngine {
       duration: Duration(
         milliseconds: (map['durationMs'] as num?)?.toInt() ?? 0,
       ),
+      noSpeech: map['noSpeech'] as String?,
     );
   }
 
@@ -47,7 +48,10 @@ class MethodChannelDictationEngine implements DictationEngine {
     try {
       return await call();
     } on PlatformException catch (error) {
-      throw DictationException(error.message ?? 'Something went wrong.');
+      throw DictationException(
+        error.message ?? 'Something went wrong.',
+        modelMissing: error.code == 'no_model',
+      );
     }
   }
 }

@@ -37,12 +37,23 @@ class FileImportTest {
         assertTrue(out[1].endSec < 7.8)
     }
 
+    @Test fun aBreathInAShortSentenceDoesNotCutIt() {
+        // 2.5 s, a 0.6 s breath, 2 s: one piece, so the model hears the whole sentence.
+        assertEquals(1, segments(tone(2.5), silence(0.6), tone(2.0), silence(1.0)).size)
+    }
+
+    @Test fun aShortPauseCutsOnceThePieceIsLong() {
+        val out = segments(tone(9.0), silence(0.6), tone(3.0), silence(1.0))
+        assertEquals(2, out.size)
+        assertTrue(out[0].endSec < 9.5)
+    }
+
     @Test fun longSpeechWithoutPausesIsCutBelowTheLimit() {
-        val out = segments(tone(30.0))
+        val out = segments(tone(50.0))
         assertTrue(out.size >= 3)
         assertTrue(out.all { it.endSec - it.startSec <= Segmenter.MAX_SEGMENT_SEC + 0.1 })
-        // Nothing is lost: the pieces cover the whole 30 seconds.
-        assertEquals(30.0, out.sumOf { it.endSec - it.startSec }, 0.1)
+        // Nothing is lost: the pieces cover the whole 50 seconds.
+        assertEquals(50.0, out.sumOf { it.endSec - it.startSec }, 0.1)
     }
 
     @Test fun blockSizeDoesNotChangeTheResult() {

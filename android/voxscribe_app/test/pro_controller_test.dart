@@ -75,14 +75,17 @@ void main() {
     expect(controller.notice, contains('free to use on another phone'));
   });
 
-  test('removing the license offline still turns Pro off and says so', () async {
-    final repository = FakeProRepository(unlocked: true)..offline = true;
-    final controller = ProController(repository: repository);
-    await controller.load();
+  test(
+    'removing the license offline still turns Pro off and says so',
+    () async {
+      final repository = FakeProRepository(unlocked: true)..offline = true;
+      final controller = ProController(repository: repository);
+      await controller.load();
 
-    await controller.deactivate();
+      await controller.deactivate();
 
-    expect(controller.isPro, isFalse);
-    expect(controller.notice, contains('could not be reached'));
-  });
+      expect(controller.isPro, isFalse);
+      expect(controller.notice, contains('could not be reached'));
+    },
+  );
 }

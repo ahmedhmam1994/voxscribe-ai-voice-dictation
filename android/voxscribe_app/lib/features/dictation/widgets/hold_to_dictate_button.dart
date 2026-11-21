@@ -18,8 +18,16 @@ class HoldToDictateButton extends StatefulWidget {
     required this.onHoldEnd,
     this.levels = const [],
     this.invite = false,
+    this.idleLabel = 'Hold to dictate',
+    this.recordingLabel = 'Release to type',
+    this.busyLabel = 'Typing in...',
     super.key,
   });
+
+  /// The words on the button when idle, recording and transcribing.
+  final String idleLabel;
+  final String recordingLabel;
+  final String busyLabel;
 
   final DictationStatus status;
   final VoidCallback onHoldStart;
@@ -50,9 +58,9 @@ class _HoldToDictateButtonState extends State<HoldToDictateButton>
   bool get _recording => widget.status == DictationStatus.recording;
 
   String get _label => switch (widget.status) {
-    DictationStatus.recording => 'Release to type',
-    DictationStatus.transcribing => 'Typing in...',
-    _ => 'Hold to dictate',
+    DictationStatus.recording => widget.recordingLabel,
+    DictationStatus.transcribing => widget.busyLabel,
+    _ => widget.idleLabel,
   };
 
   @override

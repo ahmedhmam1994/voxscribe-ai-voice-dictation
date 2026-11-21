@@ -98,6 +98,27 @@ void main() {
     expect(controller.errorMessage, isNull);
   });
 
+  test(
+    'a missing speech model clears once it arrives, other errors stay',
+    () async {
+      engine.startError = const DictationException(
+        'Download the speech model first',
+        modelMissing: true,
+      );
+      await controller.holdStarted();
+      expect(controller.status, DictationStatus.failed);
+
+      controller.modelArrived();
+      expect(controller.status, DictationStatus.ready);
+      expect(controller.errorMessage, isNull);
+
+      engine.startError = const DictationException('No microphone available.');
+      await controller.holdStarted();
+      controller.modelArrived();
+      expect(controller.status, DictationStatus.failed);
+    },
+  );
+
   test('a transcription failure is reported', () async {
     await controller.holdStarted();
     final released = controller.holdReleased();
@@ -171,5 +192,21 @@ void main() {
       expect(controller.language, 'en');
       expect(engine.languageChanges, isEmpty);
     });
+  });
+
+  test('a dictation with no words says why and what to try', () async {
+    await controller.holdStarted();
+    final done = controller.holdReleased();
+    engine.finish('', noSpeech: 'too_short');
+    await done;
+    expect(controller.status, DictationStatus.noSpeech);
+    expect(controller.nothingHeardAdvice, contains('Hold the button'));
+
+    await controller.holdStarted();
+    expect(controller.nothingHeardAdvice, isNull);
+    final again = controller.holdReleased();
+    engine.finish('', noSpeech: 'silent');
+    await again;
+    expect(controller.nothingHeardAdvice, contains('muted'));
   });
 }

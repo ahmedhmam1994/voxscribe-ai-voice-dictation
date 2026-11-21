@@ -30,6 +30,7 @@ object HistoryStore {
         }
         // Both the floating button and the in-app button save here, so this is
         // the one place a finished dictation is counted (see [Telemetry]).
+        SettingsStore.setLastUseDay(context, java.time.LocalDate.now().toString())
         Telemetry.sendDictationUsed(context)
     }
 

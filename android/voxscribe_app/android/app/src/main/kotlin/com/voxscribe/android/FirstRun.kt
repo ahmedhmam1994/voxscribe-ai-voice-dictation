@@ -86,7 +86,7 @@ object FirstRun {
         ).filterValues { it.isNotEmpty() }
     }
 
-    val FEATURES = setOf("snippets", "read_back", "file_import", "folder_import", "learned_word", "fast_model", "share_import")
+    val FEATURES = setOf("snippets", "read_back", "file_import", "folder_import", "learned_word", "granite_model", "arabic_model", "share_import", "hands_free", "notes_inbox")
 
     /** The first time each feature is used, once per install. Only the fixed name is sent. */
     fun feature(context: Context, name: String) {
@@ -135,7 +135,7 @@ object FirstRun {
             "VoxScribe for Android $version",
             "Android ${Build.VERSION.RELEASE}, ${Build.MANUFACTURER} ${Build.MODEL}, memory $ram",
             "Last step: $last at $whenText",
-            "Speech model: ${if (WhisperEngine.isAvailable(app)) "loaded" else "not loaded"}",
+            SpeechEngine.diagnostics(app),
         ).joinToString("\n")
     }
 }

@@ -8,8 +8,12 @@ class MethodChannelSetupPlatform implements SetupPlatform {
 
   @override
   Future<SetupStatus> getStatus() async {
-    final raw = await _channel.invokeMapMethod<String, bool>('getStatus');
-    final map = raw ?? const <String, bool>{};
+    final raw = await _channel.invokeMapMethod<String, Object?>('getStatus');
+    final values = raw ?? const <String, Object?>{};
+    final map = {
+      for (final MapEntry(:key, :value) in values.entries)
+        if (value is bool) key: value,
+    };
     final accessibilityOn = map['accessibility'] ?? false;
     final connected = map['accessibilityConnected'] ?? false;
     return SetupStatus(
@@ -22,6 +26,16 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       overlay: map['overlay'] ?? false,
       bubbleRunning: map['bubbleRunning'] ?? false,
       notifications: map['notifications'] ?? true,
+      setupSeen: map['setupSeen'] ?? true,
+      bubbleUsed: map['bubbleUsed'] ?? true,
+      batteryUnrestricted: map['batteryUnrestricted'] ?? true,
+      xiaomi: map['xiaomi'] ?? false,
+      language: values['language'] as String? ?? 'en',
+      modelInstalled: map['modelInstalled'] ?? false,
+      modelDownloading: map['modelDownloading'] ?? false,
+      modelPercent: (values['modelPercent'] as num?)?.toInt() ?? 0,
+      modelMegabytes: (values['modelMegabytes'] as num?)?.toInt() ?? 0,
+      modelError: values['modelError'] as String?,
     );
   }
 
@@ -43,6 +57,9 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       _invoke('openNotificationSettings');
 
   @override
+  Future<void> requestBatteryExemption() => _invoke('requestBatteryExemption');
+
+  @override
   Future<void> setupOpened() => _invoke('setupOpened');
 
   @override
@@ -60,6 +77,16 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       return QuickTileResult.manual;
     }
   }
+
+  @override
+  Future<void> downloadModel() => _invoke('downloadModel');
+
+  @override
+  Future<void> cancelModel() => _invoke('cancelModel');
+
+  @override
+  Future<void> setLanguage(String code) =>
+      _invoke('setLanguage', {'code': code});
 
   @override
   Future<void> setBubbleRunning({required bool running}) {

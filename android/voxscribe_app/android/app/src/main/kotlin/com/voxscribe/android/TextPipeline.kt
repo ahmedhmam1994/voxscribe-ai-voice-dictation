@@ -7,8 +7,14 @@ sealed interface Spoken {
     /** Text to type. May be empty when nothing was recognized. */
     data class Text(val text: String, val thenSend: VoiceCommands.SendKind? = null) : Spoken
 
-    /** A spoken editing command: remove some of what was typed last. */
-    data class Edit(val edit: VoiceCommands.Edit) : Spoken
+    /**
+     * A spoken editing command: remove some of what was typed last, then type [thenText]
+     * when there is any ("scratch that, four o'clock" said in one go).
+     */
+    data class Edit(val edit: VoiceCommands.Edit, val thenText: String? = null) : Spoken
+
+    /** Everything in this dictation was taken back with "scratch that": nothing to type. */
+    data object Scratched : Spoken
 
     /** A spoken command that changes the text typed last: capitalize it, or make it upper or lower case. */
     data class Transform(val transform: VoiceCommands.Transform) : Spoken
@@ -52,8 +58,8 @@ data class TextOptions(
     val screenTerms: List<String> = emptyList(),
     /** The everyday words that are never taken for a name. */
     val commonWords: Set<String> = emptySet(),
-    /** True with the English fast model, which leaves the last full stop out. */
-    val fastModel: Boolean = false,
+    /** True with Nemotron (Arabic, Turkish), which leaves the last full stop out. Granite writes its own. */
+    val closeEnd: Boolean = false,
 )
 
 /**
@@ -87,6 +93,18 @@ object TextPipeline {
         var text = raw
         if (interactive && text.isNotEmpty() && options.voiceCommands) {
             VoiceCommands.editingCommand(text)?.let { return Spoken.Edit(it) }
+            // "move it to Friday, scratch that" or "at three, scratch that, at four": the
+            // sentence before "scratch that" is dropped inside this one dictation.
+            VoiceCommands.inlineScratch(text)?.let { scratch ->
+                if (scratch.text.isEmpty()) {
+                    return if (scratch.undoPrevious) Spoken.Edit(VoiceCommands.Edit.ALL) else Spoken.Scratched
+                }
+                if (scratch.undoPrevious) {
+                    val rest = process(scratch.text, options, interactive, state, nowMs, allowReplace)
+                    return Spoken.Edit(VoiceCommands.Edit.ALL, (rest as? Spoken.Text)?.text?.takeIf { it.isNotBlank() })
+                }
+                text = scratch.text
+            }
         }
         if (interactive && text.isNotEmpty()) {
             if (options.voiceCommands) {
@@ -130,7 +148,7 @@ object TextPipeline {
             if (text.isNotEmpty() && options.cleanup) text = TranscriptCleanup.clean(text)
             if (text.isNotEmpty() && options.voiceCommands) text = VoiceCommands.apply(text)
             if (text.isNotEmpty() && options.pro && options.smartFormat) text = SmartFormat.format(text)
-            if (text.isNotEmpty() && options.cleanup) text = SentenceFix.fix(text, closeEnd = options.fastModel)
+            if (text.isNotEmpty() && options.cleanup) text = SentenceFix.fix(text, closeEnd = options.closeEnd)
             if (text.isNotEmpty() && !options.endPeriod) text = Modes.dropFinalPeriod(text)
         }
         if (text.isNotEmpty()) text = Replacements.apply(text, options.replacements)
@@ -203,7 +221,7 @@ object TextPipeline {
             spokenFormatPacks = if (saved.spokenFormats) packIds else emptyList(),
             screenTerms = screenTerms,
             commonWords = if (screenTerms.isEmpty()) emptySet() else ScreenWords.common(context),
-            fastModel = FastModel.isSelected(context),
+            closeEnd = SpeechEngine.neededModel(context) == SpeechEngine.Model.NEMOTRON,
         )
     }
 }

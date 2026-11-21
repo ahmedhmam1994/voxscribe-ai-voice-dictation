@@ -1,7 +1,6 @@
 package com.voxscribe.android
 
 import android.content.Context
-import android.util.Base64
 import kotlin.math.abs
 
 /**
@@ -153,29 +152,25 @@ object ScreenWords {
         return runCatching { terms(service.screenTexts(), common(context)) }.getOrDefault(emptyList())
     }
 
-    // -- the common words, from the speech model's own word list -----------------
+    // -- the common words -----------------------------------------------------
+
+    /** The everyday-words list in the app's assets, one lowercase word per line. */
+    const val COMMON_WORDS_ASSET = "common-words.txt"
 
     @Volatile private var commonCache: Set<String>? = null
 
     /**
-     * About 20,000 everyday lowercase words: the whole-word entries of the
-     * bundled Whisper model's token list (base64, one per line). Empty when the
-     * file is missing, which turns this feature off rather than guessing.
+     * About 20,000 everyday lowercase words (the whole-word entries of
+     * Whisper's token list, kept as plain text). Empty when the file is
+     * missing, which turns this feature off rather than guessing.
      */
     fun common(context: Context): Set<String> {
         commonCache?.let { return it }
-        val words = HashSet<String>()
-        runCatching {
-            context.assets.open(WhisperEngine.TOKENS_ASSET).bufferedReader().useLines { lines ->
-                for (line in lines) {
-                    val encoded = line.substringBefore(' ')
-                    val token = runCatching { String(Base64.decode(encoded, Base64.DEFAULT), Charsets.UTF_8) }.getOrNull() ?: continue
-                    if (token.length < 2 || token[0] != ' ') continue
-                    val w = token.substring(1)
-                    if (w.all { it in 'a'..'z' }) words += w
-                }
+        val words = runCatching {
+            context.assets.open(COMMON_WORDS_ASSET).bufferedReader().useLines { lines ->
+                lines.map { it.trim() }.filter { it.isNotEmpty() }.toHashSet()
             }
-        }
+        }.getOrDefault(HashSet())
         return words.also { commonCache = it }
     }
 }

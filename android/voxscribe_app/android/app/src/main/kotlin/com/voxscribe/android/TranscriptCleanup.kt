@@ -39,7 +39,7 @@ object TranscriptCleanup {
     private val multiSpaceRegex = Regex("\\s+")
     private val leadingStrayPunctRegex = Regex("^[,;:]\\s*")
 
-    // Whisper tags sounds that are not speech with markers such as [MUSIC] or
+    // Speech models can tag sounds that are not speech with markers such as [MUSIC] or
     // [BLANK_AUDIO], sometimes as (applause). Square brackets are always a
     // tag; round brackets only for known sound words, so a real aside like
     // "(maybe)" survives.

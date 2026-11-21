@@ -66,6 +66,9 @@ class BubbleService : Service() {
     private var holdStartedAt = 0L
     private var lastInsertWorked = false
     private val gesture = HoldOrTap()
+
+    // True while a tap-started recording listens hands-free (Pro): each phrase is typed at a pause.
+    private var handsFreeActive = false
     private var snoozedUntil = 0L
 
     /** True while running with the MICROPHONE foreground type (see [promote]). */
@@ -83,14 +86,9 @@ class BubbleService : Service() {
         createAlertChannel()
         addBubbleToWindow()
         startAccessibilityWatch()
-        // WhisperEngine.isAvailable() loads the ~160MB bundled model into
-        // memory the first time it's called, which takes a few seconds --
-        // doing that lazily on the first bubble press (as DictationEngine's
-        // willUseWhisper getter would otherwise trigger, on the main thread,
-        // during ACTION_DOWN) produced a visible freeze before recording
-        // started. Warm it up here on a background thread instead, so it's
-        // already loaded by the time the user actually holds the bubble.
-        Thread { WhisperEngine.isAvailable(this) }.start()
+        // Loading the speech model takes a few seconds: do it now, off the
+        // main thread, so it is ready by the first press.
+        Thread { SpeechEngine.isReady(this) }.start()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -245,6 +243,7 @@ class BubbleService : Service() {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(140)
                         .setInterpolator(DecelerateInterpolator()).start()
                     perform(gesture.up(SystemClock.elapsedRealtime()))
+                    if (gesture.isLatched) maybeStartHandsFree()
                     if (dragging) {
                         hideSnoozeTarget()
                         finishDrag(v, params, event.rawY)
@@ -301,6 +300,29 @@ class BubbleService : Service() {
 
     // A tap-started recording that nobody stops would keep the microphone open.
     private val recordingTimeout = Runnable { perform(gesture.forceStop()) }
+
+    /** A tap latched the recording: with hands-free on (Pro), keep listening and type each phrase at a pause. */
+    private fun maybeStartHandsFree() {
+        if (handsFreeActive || state != BubbleState.RECORDING) return
+        if (!SettingsStore.handsFree(this) || !LicenseStore.isPro(this)) return
+        if (dictationEngine?.startHandsFree() != true) return
+        handsFreeActive = true
+        FirstRun.feature(this, "hands_free")
+        // It ends by itself after two quiet minutes; this is only the outer safety limit.
+        watchHandler.removeCallbacks(recordingTimeout)
+        watchHandler.postDelayed(recordingTimeout, MAX_HANDS_FREE_MS)
+        bubbleView?.recordingDeadline = 0L
+        Toast.makeText(this, R.string.hands_free_started, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Hands-free listening ended and every phrase has been typed. */
+    private fun onHandsFreeEnd() {
+        handsFreeActive = false
+        watchHandler.removeCallbacks(recordingTimeout)
+        gesture.reset()
+        setState(BubbleState.IDLE)
+        flash(true)
+    }
 
     private fun keepOnScreen() {
         val view = bubbleView ?: return
@@ -593,6 +615,7 @@ class BubbleService : Service() {
     }
 
     private fun onHoldStart(): Boolean {
+        handsFreeActive = false
         if (!micForeground) promote()
         if (!hasRecordAudioPermission()) {
             // Phase 5's onboarding should prevent BubbleService from ever
@@ -602,13 +625,21 @@ class BubbleService : Service() {
             Toast.makeText(this, R.string.status_need_permission, Toast.LENGTH_SHORT).show()
             return false
         }
+        if (!SpeechEngine.isInstalled(this)) {
+            // Still downloading, or never downloaded: say which instead of recording.
+            setState(BubbleState.IDLE)
+            Toast.makeText(this, SpeechEngine.notReadyMessage(this), Toast.LENGTH_LONG).show()
+            return false
+        }
 
         holdStartedAt = SystemClock.elapsedRealtime()
+        SettingsStore.setBubbleUsed(this)
         dictationEngine?.destroy()
         dictationEngine = DictationEngine(
             context = this,
             onResult = { text -> onDictationResult(text) },
             onFailure = { message ->
+                handsFreeActive = false
                 watchHandler.removeCallbacks(recordingTimeout)
                 gesture.reset()
                 setState(BubbleState.IDLE)
@@ -620,6 +651,7 @@ class BubbleService : Service() {
             onSpecial = { spoken -> onSpecialResult(spoken) },
             onSend = { kind -> sendAfterTyping(kind) },
             onLevel = { level -> bubbleView?.pushLevel(level) },
+            onHandsFreeEnd = { if (handsFreeActive) onHandsFreeEnd() },
         ).also { it.startListening() }
         return true
     }
@@ -637,15 +669,28 @@ class BubbleService : Service() {
 
     /** An editing command, a template prompt, or "send it": not text to type. */
     private fun onSpecialResult(spoken: Spoken) {
-        setState(BubbleState.IDLE)
+        // Hands-free keeps listening after each phrase.
+        if (!handsFreeActive) setState(BubbleState.IDLE)
         val service = VoxScribeAccessibilityService.instance
         when (spoken) {
             is Spoken.Edit -> {
+                // "Meet me at 5", then "scratch that, at 6": the correction keeps the start of what it replaces.
+                val previous = if (spoken.edit == VoiceCommands.Edit.ALL) service?.lastDictation else null
                 val done = service?.applyEdit(spoken.edit) ?: false
                 if (service == null) Log.d("VoxPipeline", "edit refused: accessibility service not connected")
-                flash(done)
-                if (!done) Toast.makeText(this, R.string.edit_cant_undo, Toast.LENGTH_SHORT).show()
+                val then = spoken.thenText?.let { text ->
+                    if (done && previous != null) VoiceCommands.spliceCorrection(previous.trim(), text) else text
+                }
+                if (then != null) {
+                    // "scratch that, four o'clock": the new words are typed even when there was nothing to take back.
+                    typeDictation(then)
+                } else {
+                    flash(done)
+                    if (!done) Toast.makeText(this, R.string.edit_cant_undo, Toast.LENGTH_SHORT).show()
+                }
             }
+            // The whole dictation was taken back inside itself: nothing to type, and nothing went wrong.
+            Spoken.Scratched -> flash(true)
             is Spoken.Transform -> {
                 val done = service?.applyTransform(spoken.transform) ?: false
                 flash(done)
@@ -689,12 +734,20 @@ class BubbleService : Service() {
     }
 
     private fun onDictationResult(heard: String) {
-        setState(BubbleState.IDLE)
+        // Hands-free keeps listening after each phrase.
+        if (!handsFreeActive) setState(BubbleState.IDLE)
         lastInsertWorked = false
         if (heard.isBlank()) {
-            // Usually a muted or too quiet mic: say so instead of doing nothing.
+            if (handsFreeActive) return
+            // Say why, so the next try works: too short a press, a muted mic, or too quiet.
             flash(success = false)
-            Toast.makeText(this, R.string.bubble_no_speech, Toast.LENGTH_SHORT).show()
+            val reason = dictationEngine?.noSpeech
+            val message = if (reason == null) {
+                R.string.bubble_no_speech
+            } else {
+                NoSpeech.bubbleMessage(reason, SettingsStore.recordingMode(this))
+            }
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show()
             return
         }
         if (fillForm(heard)) return
@@ -726,15 +779,20 @@ class BubbleService : Service() {
                 durationMillis = SystemClock.elapsedRealtime() - holdStartedAt,
             ),
         )
+        // Hands-free: time each phrase from the one before, not from the tap that started listening.
+        if (handsFreeActive) holdStartedAt = SystemClock.elapsedRealtime()
         // A trailing space keeps the next dictation in the same box from running into this one.
-        val spaceAfter = SettingsStore.trailingSpaceEnabled(this) && !FieldShape.noTrailingSpace(inputType)
+        // Hands-free phrases always get a space, or they would run into each other.
+        val spaceAfter = (handsFreeActive || SettingsStore.trailingSpaceEnabled(this)) &&
+            !FieldShape.noTrailingSpace(inputType)
         val toInsert = if (spaceAfter) "$text " else text
         val inserted = VoxScribeAccessibilityService.instance?.insertText(toInsert) ?: false
         lastInsertWorked = inserted
         flash(inserted)
         if (inserted) showTapHintOnce()
         // Read it back: hear what was typed without looking at the screen.
-        if (TextToolsStore.snapshot(this).readBack) {
+        // Not while hands-free listens: the phone's voice would be heard and typed as a phrase.
+        if (!handsFreeActive && TextToolsStore.snapshot(this).readBack) {
             FirstRun.feature(this, "read_back")
             ReadAloud.speak(this, text)
         }
@@ -919,6 +977,7 @@ class BubbleService : Service() {
         private const val WATCH_INTERVAL_MS = 5_000L
         private const val ACTION_UNSNOOZE = "com.voxscribe.android.UNSNOOZE"
         private const val MAX_RECORDING_MS = 120_000L
+        private const val MAX_HANDS_FREE_MS = 30 * 60_000L
         private const val SEND_DELAY_MS = 350L
         private const val KEYBOARD_SETTLE_MS = 600L
         private const val FLASH_OK_MS = 700L

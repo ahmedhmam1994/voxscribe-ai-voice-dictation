@@ -49,6 +49,11 @@ class ProChannel(private val context: Context) : MethodChannel.MethodCallHandler
             result.success(mapOf("ok" to false, "message" to "That key is not valid. Check for typos."))
             return
         }
+        if (LicenseKey.isExpired(key)) {
+            val day = LicenseKey.expiry(key)
+            result.success(mapOf("ok" to false, "message" to "That key expired on $day. Renew Pro to get a new key."))
+            return
+        }
         Thread {
             val outcome = ActivationClient.activate(context, key)
             FirstRun.step(context, "pro_activation", FirstRun.activationCode(outcome.ok, outcome.message))

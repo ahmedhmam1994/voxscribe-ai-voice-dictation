@@ -32,8 +32,10 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         SetupChannel(this).register(messenger)
         EngineChannel(this).register(messenger)
-        FastModelChannel(this).register(messenger)
+        MainModelsChannel(this).register(messenger)
+        removeRetiredModels()
         HistoryChannel(this).register(messenger)
+        NotesChannel(this).register(messenger)
         SettingsChannel(this).register(messenger)
         ProChannel(this).register(messenger)
         TextToolsChannel(this).register(messenger)
@@ -44,6 +46,16 @@ class MainActivity : FlutterActivity() {
         wordListFiles.register(messenger)
         fileImport.register(messenger)
         Telemetry.sendIfDue(this)
+    }
+
+    /**
+     * Downloads no longer used: a translation model from test builds on
+     * 20 Nov 2026, and the English fast model (Parakeet 110M), which the main
+     * models replaced.
+     */
+    private fun removeRetiredModels() {
+        val retired = listOf("whisper-small", "parakeet-110m").map { java.io.File(filesDir, "models/$it") }.filter { it.exists() }
+        if (retired.isNotEmpty()) Thread { retired.forEach { it.deleteRecursively() } }.start()
     }
 
     @Deprecated("Deprecated in Java")

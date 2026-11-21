@@ -386,6 +386,49 @@ class TextPipelineTest {
         assertTrue(TextPipeline.process("scratch that", pro.copy(voiceCommands = false), interactive = true) is Spoken.Text)
     }
 
+    @Test fun scratchThatInsideOneDictationDropsTheSentenceBeforeIt() {
+        fun inline(s: String) = VoiceCommands.inlineScratch(s)
+        assertEquals(VoiceCommands.InlineScratch(false, ""), inline("Move the meeting to Friday, scratch that."))
+        assertEquals(VoiceCommands.InlineScratch(false, "Four o'clock."), inline("Meet at three, scratch that, four o'clock."))
+        assertEquals(VoiceCommands.InlineScratch(false, "Hi Sam."), inline("Hi Sam. Move it to Friday, scratch that."))
+        assertEquals(VoiceCommands.InlineScratch(false, "Hi Sam. See you then."), inline("Hi Sam. Move it to Friday. Scratch that. See you then."))
+        assertEquals(VoiceCommands.InlineScratch(true, "Four o'clock."), inline("Scratch that, four o'clock."))
+        // No comma from the model: a final "scratch that" still counts.
+        assertEquals(VoiceCommands.InlineScratch(false, ""), inline("move it to Friday scratch that"))
+    }
+
+    @Test fun aShortCorrectionAfterScratchThatFixesOnlyTheEnd() {
+        fun inline(s: String) = VoiceCommands.inlineScratch(s)
+        // What the phone heard for "meet me at five, scratch that, at six" (21 Nov 2026).
+        assertEquals(VoiceCommands.InlineScratch(false, "Meet me at 6."), inline("Meet me at 5. Scratch that at 6."))
+        assertEquals(VoiceCommands.InlineScratch(false, "Meet me at 6."), inline("Meet me at 5, scratch that, at 6."))
+        assertEquals(VoiceCommands.InlineScratch(false, "Hi Sam. Send it on Friday."), inline("Hi Sam. Send it on Monday. Scratch that on Friday."))
+        assertEquals(VoiceCommands.InlineScratch(true, "At 6"), inline("Scratch that at 6"))
+        // Across two dictations: "Meet me at 5", then "scratch that, at 6".
+        assertEquals("Meet me at 6", VoiceCommands.spliceCorrection("Meet me at 5", "At 6"))
+        assertEquals("Four o'clock.", VoiceCommands.spliceCorrection("Meet at three", "Four o'clock."))
+        assertEquals("At the office we can talk about it later today.", VoiceCommands.spliceCorrection("Meet at 5", "At the office we can talk about it later today."))
+        assertNull(VoiceCommands.inlineScratch("Done. Scratch that itch later."))
+    }
+
+    @Test fun scratchThatAsPartOfASentenceStaysDictation() {
+        assertNull(VoiceCommands.inlineScratch("I need to scratch that itch."))
+        assertNull(VoiceCommands.inlineScratch("I'll scratch that off the list."))
+        assertNull(VoiceCommands.inlineScratch("I need to scratch that."))
+        assertNull(VoiceCommands.inlineScratch("Please don't scratch that"))
+        assertNull(VoiceCommands.inlineScratch("Move the meeting to Friday."))
+    }
+
+    @Test fun thePipelineActsOnScratchThatInsideOneDictation() {
+        assertEquals(Spoken.Scratched, TextPipeline.process("Move the meeting to Friday, scratch that.", pro, interactive = true))
+        assertEquals("Four o'clock.", text(TextPipeline.process("Meet at three, scratch that, four o'clock.", pro, interactive = true)))
+        val start = TextPipeline.process("Scratch that, four o'clock.", pro, interactive = true)
+        assertEquals(Spoken.Edit(VoiceCommands.Edit.ALL, "Four o'clock."), start)
+        // Off when typing a file or with voice commands switched off.
+        assertTrue(TextPipeline.process("Move it to Friday, scratch that.", pro, interactive = false) is Spoken.Text)
+        assertTrue(TextPipeline.process("Move it to Friday, scratch that.", pro.copy(voiceCommands = false), interactive = true) is Spoken.Text)
+    }
+
     @Test fun aTemplateIsFilledOverSeveralUtterances() {
         val state = TextPipeline.TemplateState()
         val first = TextPipeline.process("template bug report", pro, interactive = true, state = state, nowMs = 0)

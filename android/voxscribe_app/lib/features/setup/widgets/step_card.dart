@@ -3,7 +3,7 @@ import 'package:voxscribe_app/app/theme/vox_colors.dart';
 import 'package:voxscribe_app/shared/widgets/vox_card.dart';
 
 /// Where a setup step stands.
-enum StepStatus { done, todo, waiting }
+enum StepStatus { done, todo, waiting, working }
 
 /// One setup step: a title, its state, and an explanation while it is current.
 class StepCard extends StatelessWidget {
@@ -11,6 +11,7 @@ class StepCard extends StatelessWidget {
     required this.title,
     required this.state,
     this.description,
+    this.details,
     this.highlighted = false,
     this.actionLabel,
     this.onAction,
@@ -22,6 +23,9 @@ class StepCard extends StatelessWidget {
 
   /// Shown under the title. Pass it only for the step being worked on.
   final String? description;
+
+  /// Shown under the description, for steps that need more than a sentence.
+  final Widget? details;
   final bool highlighted;
 
   /// A second way through the step, shown under the description.
@@ -65,6 +69,10 @@ class StepCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(text, style: theme.bodyMedium?.copyWith(color: c.muted)),
               ],
+              if (details case final extra?) ...[
+                const SizedBox(height: 10),
+                extra,
+              ],
               if (actionLabel case final label?)
                 Align(
                   alignment: Alignment.centerRight,
@@ -93,6 +101,7 @@ class _StateChip extends StatelessWidget {
       StepStatus.done => ('Done', c.accentInk),
       StepStatus.todo => ('To do', c.amber),
       StepStatus.waiting => ('Next', c.muted),
+      StepStatus.working => ('Downloading', c.accentInk),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),

@@ -22,6 +22,8 @@ import java.util.UUID
  * - First-run funnel steps (see [FirstRun]): the speech model loaded, the microphone opened,
  *   the first press, and the failures that keep people from a first dictation, each with
  *   a short fixed code.
+ * - "leaver_answer", at most once per install: the choice picked in the one-time
+ *   question shown after a few days without dictating (see [LeaverQuestion]).
  *
  * Each sends the app version, the Android version and a random id made on the
  * phone. Never audio, never text, no word counts, nothing about other apps,
@@ -145,14 +147,27 @@ object Telemetry {
     /** A first-run funnel event (see [FirstRun]): the ping plus a fixed code and the phone's make and memory range. */
     fun sendFunnel(app: Context, event: String, props: Map<String, String>) = post(app, event, props)
 
-    private fun post(app: Context, event: String, extra: Map<String, String> = emptyMap()) {
+    /** The answer to the one-time "why did you stop" question (see [LeaverQuestion]): a fixed key only. */
+    fun sendLeaverAnswer(context: Context, reason: String) = post(
+        context.applicationContext,
+        "leaver_answer",
+        mapOf("reason" to reason),
+        note = "the answer you picked, as a fixed word",
+    )
+
+    private fun post(
+        app: Context,
+        event: String,
+        extra: Map<String, String> = emptyMap(),
+        note: String = "a short fixed code and the phone's make and memory range",
+    ) {
         val body = payload(anonymousId(app), appVersion(app), Build.VERSION.RELEASE.orEmpty(), event, extra)
         val basics = "The event name, the app version, the Android version and a random id"
         NetworkLog.record(
             app,
             what = "Usage ping ($event)",
             url = ENDPOINT,
-            sent = if (extra.isEmpty()) basics else "$basics, a short fixed code and the phone's make and memory range",
+            sent = if (extra.isEmpty()) basics else "$basics, $note",
         )
         Thread {
             try {

@@ -27,29 +27,18 @@
     <string name="settings_section_status">Status</string>
     <string name="settings_section_recognition">Recognition</string>
     <string name="settings_section_text">Text insertion</string>
-    <string name="settings_prefer_whisper">Prefer offline Whisper</string>
-    <string name="settings_prefer_whisper_desc">Use the bundled on-device model when it\'s available. Off = always use the online/offline system recognizer instead.</string>
-    <string name="settings_fallback_language">Fallback recognizer language</string>
     <string name="settings_cleanup">Clean up filler words</string>
     <string name="settings_cleanup_desc">Strip "um", "uh", "like", "you know" and fix spacing/capitalization.</string>
     <string name="settings_trailing_space">Add trailing space</string>
     <string name="settings_trailing_space_desc">Append a space after each dictated phrase, so the next one doesn\'t run in.</string>
-    <string name="settings_test_whisper">Test Whisper (records 3s)</string>
-    <string name="settings_test_whisper_recording">Recording…</string>
-    <string name="settings_test_whisper_transcribing">Transcribing…</string>
-    <string name="settings_test_result_title">Test result</string>
     <string name="settings_mic_permission">Microphone permission</string>
     <string name="settings_keyboard_enabled">VoxScribe keyboard enabled</string>
     <string name="settings_status_yes">Yes</string>
     <string name="settings_status_no">No</string>
-
-    <string name="status_ready">Ready (online recognizer)</string>
-    <string name="status_ready_whisper">Ready (offline Whisper)</string>
     <string name="status_listening">Listening…</string>
     <string name="status_transcribing">Transcribing…</string>
     <string name="status_need_permission">Microphone permission needed, open VoxScribe app to grant it</string>
-    <string name="status_no_recognizer">No speech recognizer available on this device</string>
-    <string name="status_error">Error (%1$d), try again</string>
+    <string name="status_no_microphone">The microphone would not start. Close any app that is recording and try again.</string>
 
     <string name="key_space">space</string>
 
@@ -101,4 +90,11 @@
     <string name="send_cant_press">Could not send here</string>
     <string name="bubble_snooze_target">Drop here to hide for 10 minutes</string>
     <string name="bubble_no_speech">No speech heard. Check the microphone is not muted.</string>
+    <string name="hands_free_started">Hands-free: talk, and each phrase is typed when you pause. Say \"stop listening\" or tap to end.</string>
+    <string name="no_speech_short_hold">Too short to hear. Hold the button the whole time you talk.</string>
+    <string name="no_speech_short_tap">Too short to hear. Tap once, talk, then tap again to stop.</string>
+    <string name="no_speech_short_both">Too short to hear. Tap once, talk, then tap again. Or hold the button while you talk.</string>
+    <string name="no_speech_silent">The microphone heard nothing. Check it is not muted or being used by a call or another app.</string>
+    <string name="no_speech_quiet">Very quiet. Hold the phone closer, or speak a little louder.</string>
+    <string name="no_speech_unclear">Heard sound but no words. Try again a little slower, closer to the phone.</string>
 </resources>

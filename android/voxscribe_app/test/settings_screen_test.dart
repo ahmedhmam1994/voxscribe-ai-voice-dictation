@@ -20,11 +20,16 @@ void main() {
     await tester.pumpWidget(buildTestApp());
     await openTab(tester, 'Settings');
 
-    expect(find.text('Floating button and permissions'), findsOneWidget);
+    expect(find.text('Speech model, button and permissions'), findsOneWidget);
     expect(find.text('Language you speak'), findsOneWidget);
     expect(find.text('English'), findsWidgets);
     expect(find.text('Remove filler words'), findsOneWidget);
     expect(find.text('Add a space after dictated text'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Clear history'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Clear history'), findsOneWidget);
   });
 
@@ -43,7 +48,7 @@ void main() {
     );
     await openTab(tester, 'Settings');
 
-    expect(find.textContaining('1 of 3 done'), findsOneWidget);
+    expect(find.textContaining('2 of 4 done'), findsOneWidget);
   });
 
   testWidgets('a switch changes the setting and saves it', (tester) async {
@@ -139,7 +144,11 @@ void main() {
     await tester.pumpWidget(buildTestApp(history: history));
     await openTab(tester, 'Settings');
 
-    await tester.ensureVisible(find.text('Clear history'));
+    await tester.scrollUntilVisible(
+      find.text('Clear history'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Clear history'));
     await tester.pumpAndSettle();

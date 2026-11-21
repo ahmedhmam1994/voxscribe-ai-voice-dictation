@@ -37,6 +37,7 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             }
             "setupOpened" -> {
                 Telemetry.sendSetupOpened(activity)
+                SettingsStore.setSetupSeen(activity)
                 result.success(null)
             }
             "requestMicrophone" -> {
@@ -62,14 +63,44 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                 )
                 result.success(null)
             }
+            "requestBatteryExemption" -> {
+                requestBatteryExemption()
+                result.success(null)
+            }
             "addQuickTile" -> addQuickTile(result)
             "setBubbleRunning" -> setBubbleRunning(call.argument<Boolean>("running") == true, result)
+            "downloadModel" -> {
+                when (SpeechEngine.neededModel(activity)) {
+                    SpeechEngine.Model.GRANITE -> GraniteModel.download(activity)
+                    SpeechEngine.Model.NEMOTRON -> ArabicModel.download(activity)
+                }
+                result.success(null)
+            }
+            "cancelModel" -> {
+                when (SpeechEngine.neededModel(activity)) {
+                    SpeechEngine.Model.GRANITE -> GraniteModel.cancel()
+                    SpeechEngine.Model.NEMOTRON -> ArabicModel.cancel()
+                }
+                result.success(null)
+            }
+            "setLanguage" -> {
+                val code = call.argument<String>("code").orEmpty()
+                if (code !in SpeechEngine.LANGUAGES) return result.error("bad_language", "That language is not supported.", null)
+                SettingsStore.setLanguage(activity, code)
+                // Loading the other model takes a moment, so keep it off the main thread.
+                Thread {
+                    SpeechEngine.reload(activity)
+                    activity.runOnUiThread { result.success(null) }
+                }.start()
+            }
             else -> result.notImplemented()
         }
     }
 
-    private fun status(): Map<String, Boolean> =
-        mapOf(
+    private fun status(): Map<String, Any?> {
+        // The speech model the chosen language needs: downloaded, downloading, or not yet.
+        val model = SpeechEngine.neededModel(activity).status(activity)
+        return mapOf(
             "microphone" to hasMicrophone(),
             "accessibility" to BubblePermissions.isAccessibilityServiceEnabled(activity),
             // Android can leave the service switched on but disconnected after an app update.
@@ -80,16 +111,50 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             "bubbleRunning" to BubbleService.isRunning,
             // Off by default on Android 13 and newer until the user allows it.
             "notifications" to NotificationManagerCompat.from(activity).areNotificationsEnabled(),
+            // Battery saving can stop the floating button; this says it is exempt.
+            "batteryUnrestricted" to isBatteryUnrestricted(),
+            // Xiaomi phones have their own battery saver on top of Android's.
+            "xiaomi" to isXiaomi(),
+            // A new install starts on the setup steps until it has opened them once.
+            "setupSeen" to SettingsStore.setupSeen(activity),
+            // Until the floating button is pressed once, the app offers a practice box.
+            "bubbleUsed" to SettingsStore.bubbleUsed(activity),
+            "language" to SettingsStore.language(activity),
+            "modelInstalled" to model["installed"],
+            "modelDownloading" to model["downloading"],
+            "modelPercent" to model["percent"],
+            "modelMegabytes" to model["megabytes"],
+            "modelError" to model["error"],
         )
+    }
 
     /** The setup pings (see [Telemetry.SETUP_EVENTS]) whose step is done in [status]. */
-    private fun doneSteps(status: Map<String, Boolean>): Set<String> = buildSet {
+    private fun doneSteps(status: Map<String, Any?>): Set<String> = buildSet {
         if (status["microphone"] == true) add("setup_microphone")
         if (status["accessibility"] == true && status["accessibilityConnected"] == true) {
             add("setup_accessibility")
         }
         if (status["overlay"] == true) add("setup_overlay")
         if (status["bubbleRunning"] == true) add("bubble_started")
+    }
+
+    private fun isBatteryUnrestricted(): Boolean {
+        val power = activity.getSystemService(android.os.PowerManager::class.java) ?: return true
+        return power.isIgnoringBatteryOptimizations(activity.packageName)
+    }
+
+    private fun isXiaomi(): Boolean =
+        Build.MANUFACTURER.lowercase() in setOf("xiaomi", "redmi", "poco")
+
+    /** Android's own one-tap "Allow" dialog, or the battery list where that dialog is missing. */
+    @android.annotation.SuppressLint("BatteryLife") // The floating button is a tool the user starts on purpose.
+    private fun requestBatteryExemption() {
+        val ask = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            android.net.Uri.parse("package:${activity.packageName}"),
+        )
+        val opened = runCatching { activity.startActivity(ask) }.isSuccess
+        if (!opened) runCatching { activity.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
     }
 
     private fun hasMicrophone(): Boolean =

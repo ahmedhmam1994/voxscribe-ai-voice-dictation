@@ -23,12 +23,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Dictate in any app'), findsOneWidget);
-    expect(find.text('0 of 3 done'), findsOneWidget);
+    expect(find.text('0 of 4 done'), findsOneWidget);
 
     await tester.tap(find.text('Set up'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Three quick steps'), findsOneWidget);
+    expect(find.text('A few quick steps'), findsOneWidget);
     expect(setup.openedCount, 1);
   });
 
@@ -47,6 +47,31 @@ void main() {
 
     expect(setup.calls, ['setBubbleRunning:true']);
     expect(find.text('Turn on the floating button'), findsNothing);
+  });
+
+  testWidgets('an update with only the speech model missing downloads it '
+      'and shows the progress', (tester) async {
+    useTallScreen(tester);
+    final setup = FakeSetupPlatform(
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+        modelInstalled: false,
+        modelMegabytes: 536,
+      ),
+    );
+    await tester.pumpWidget(buildTestApp(setup: setup));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Download the speech model'), findsOneWidget);
+    await tester.tap(find.text('Download'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(setup.calls, ['downloadModel']);
+    expect(find.text('Downloading the speech model'), findsOneWidget);
   });
 
   testWidgets('Not now hides the card', (tester) async {

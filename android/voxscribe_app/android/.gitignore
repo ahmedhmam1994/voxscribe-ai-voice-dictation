@@ -13,10 +13,8 @@ key.properties
 **/*.keystore
 **/*.jks
 
-# Binaries fetched by hand (see app/libs/README.md and the whisper assets README).
+# Binaries fetched by hand (see app/libs/README.md).
 app/libs/*.aar
-app/src/main/assets/whisper/*.onnx
-app/src/main/assets/whisper/*.txt
 
 # Release signing passwords. The keystore itself is covered above.
 keystore.properties

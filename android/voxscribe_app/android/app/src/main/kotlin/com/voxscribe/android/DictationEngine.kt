@@ -1,17 +1,12 @@
 package com.voxscribe.android
 
 import android.content.Context
-import android.content.Intent
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.speech.RecognitionListener
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -24,14 +19,10 @@ import kotlin.math.sqrt
  * BubbleService (floating-bubble mode), kept separate from the service so
  * the pipeline has a single owner and no UI dependencies.
  *
- * Two transcription paths, chosen automatically per recording:
- *   - MILESTONE 2 (preferred): [WhisperEngine], a bundled on-device Whisper
- *     model via sherpa-onnx -- the real match to faster-whisper on desktop,
- *     no dependency on device settings. Used whenever the model assets it
- *     needs are present (see WhisperEngine's doc comment).
- *   - MILESTONE 1 (fallback): Android's built-in SpeechRecognizer with
- *     EXTRA_PREFER_OFFLINE=true. Used automatically whenever the bundled
- *     Whisper model isn't available yet.
+ * Records 16 kHz audio and hands it to [SpeechEngine], which runs the
+ * downloaded model for the chosen language on the phone. When that model is
+ * not downloaded yet, [startListening] reports why through [onFailure]
+ * instead of recording.
  *
  * Deliberately knows nothing about UI: callers own their own status
  * text/button visuals around calling startListening()/stopListening(),
@@ -47,9 +38,7 @@ import kotlin.math.sqrt
 class DictationEngine(
     private val context: Context,
     private val onResult: (String) -> Unit,
-    // Named onFailure, not onError -- RecognitionListener (implemented
-    // below) already requires a member function called onError(Int), and
-    // a same-named constructor property here would collide with it.
+    // A message for the user: no microphone, or the model is not ready.
     private val onFailure: (String) -> Unit,
     // Input level from 0 to 1 while recording, delivered on the main thread.
     private val onLevel: (Float) -> Unit = {},
@@ -64,12 +53,14 @@ class DictationEngine(
     private val onSpecial: (Spoken) -> Unit = {},
     // Called after the text of "how are you? send it" has been delivered.
     private val onSend: (VoiceCommands.SendKind) -> Unit = {},
-) : RecognitionListener {
+    // Hands-free only: listening ended (a tap, "stop listening" or two quiet minutes)
+    // and every phrase has been delivered.
+    private val onHandsFreeEnd: () -> Unit = {},
+) {
 
-    private var speechRecognizer: SpeechRecognizer? = null
     private var audioRecord: AudioRecord? = null
     // Guards audioRecord: the capture thread (its own cleanup at the end of
-    // startWhisperCapture's loop) and destroy() (called from the main
+    // startCapture's loop) and destroy() (called from the main
     // thread, e.g. on a fast bubble tap) can otherwise race to stop/release
     // the same AudioRecord, which throws IllegalStateException on the
     // second stop() -- this is exactly the crash a fast tap produced.
@@ -77,35 +68,51 @@ class DictationEngine(
     private var captureThread: Thread? = null
     @Volatile private var capturing = false
     @Volatile private var cancelled = false
-    private var usingWhisper = false
     private val mainHandler = Handler(Looper.getMainLooper())
-
-    val willUseWhisper: Boolean
-        get() = SettingsStore.preferWhisper(context) && WhisperEngine.isAvailable(context)
 
     // The names on screen, read while the person talks (see ScreenWords).
     @Volatile private var screenCapture: FutureTask<List<String>>? = null
 
     @Volatile private var releasedAt = 0L
 
+    /** Why the last dictation had no words, when it had none. Set before the empty result is delivered. */
+    @Volatile var noSpeech: NoSpeech? = null
+        private set
+
+    // Hands-free: each phrase is cut at a pause and transcribed in order on its own thread.
+    @Volatile private var handsFree = false
+    private var phraseWorker: java.util.concurrent.ExecutorService? = null
+
+    /**
+     * Turns the recording that is running into hands-free listening: from now on
+     * every phrase is typed when the speaker pauses. False when it cannot be,
+     * because nothing is recording.
+     */
+    fun startHandsFree(): Boolean {
+        if (!capturing) return false
+        handsFree = true
+        return true
+    }
+
     fun startListening() {
         cancelled = false
+        noSpeech = null
         releasedAt = 0L
         FirstRun.step(context, "first_press", once = true)
+        if (!SpeechEngine.isInstalled(context)) {
+            onFailure(SpeechEngine.notReadyMessage(context))
+            return
+        }
         screenCapture = if (interactive) FutureTask { ScreenWords.capture(context) }.also { Thread(it).start() } else null
-        if (willUseWhisper) startWhisperCapture() else startFallbackRecognizer()
+        startCapture()
     }
 
     fun stopListening() {
         releasedAt = System.currentTimeMillis()
-        if (usingWhisper) {
-            // The capture thread notices `capturing = false`, stops/releases
-            // the AudioRecord, transcribes, and posts the result back to the
-            // main thread itself -- nothing more to do here.
-            capturing = false
-        } else {
-            speechRecognizer?.stopListening()
-        }
+        // The capture thread notices `capturing = false`, stops/releases
+        // the AudioRecord, transcribes, and posts the result back to the
+        // main thread itself -- nothing more to do here.
+        capturing = false
     }
 
     /**
@@ -115,16 +122,10 @@ class DictationEngine(
      */
     fun cancel() {
         cancelled = true
-        if (usingWhisper) {
-            capturing = false
-        } else {
-            speechRecognizer?.cancel()
-        }
+        capturing = false
     }
 
     fun destroy() {
-        speechRecognizer?.destroy()
-        speechRecognizer = null
         capturing = false
         stopAndReleaseRecord()
     }
@@ -172,31 +173,28 @@ class DictationEngine(
         }
     }
 
-    // --- Milestone 2: bundled Whisper via sherpa-onnx -----------------------------------
+    // --- Recording ------------------------------------------------------------------
 
     @Suppress("MissingPermission") // RECORD_AUDIO: see class doc comment
-    private fun startWhisperCapture() {
-        usingWhisper = true
-
+    private fun startCapture() {
         val minBuf = AudioRecord.getMinBufferSize(
-            WhisperEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
+            SpeechEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
         )
-        val bufSize = if (minBuf > 0) minBuf else WhisperEngine.SAMPLE_RATE * 2
+        val bufSize = if (minBuf > 0) minBuf else SpeechEngine.SAMPLE_RATE * 2
 
         val record = AudioRecord(
             MediaRecorder.AudioSource.VOICE_RECOGNITION,
-            WhisperEngine.SAMPLE_RATE,
+            SpeechEngine.SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
             bufSize
         )
         if (record.state != AudioRecord.STATE_INITIALIZED) {
             record.release()
-            usingWhisper = false
             val granted = context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
                 android.content.pm.PackageManager.PERMISSION_GRANTED
             FirstRun.step(context, "mic_failed", FirstRun.micCode(granted))
-            onFailure(context.getString(R.string.status_no_recognizer))
+            onFailure(context.getString(R.string.status_no_microphone))
             return
         }
 
@@ -208,29 +206,59 @@ class DictationEngine(
 
         captureThread = Thread {
             val chunk = ByteArray(bufSize)
+            var splitter: PhraseSplitter? = null
             while (capturing) {
                 val n = record.read(chunk, 0, chunk.size)
                 if (n > 0) {
-                    pcmBytes.write(chunk, 0, n)
                     reportLevel(chunk, n)
+                    pcmBytes.write(chunk, 0, n)
+                    if (handsFree) {
+                        val active = splitter ?: PhraseSplitter().also {
+                            splitter = it
+                            phraseWorker = java.util.concurrent.Executors.newSingleThreadExecutor()
+                        }
+                        // Everything buffered so far: on the first pass that is what was said
+                        // before the tap latched, the start of the first phrase.
+                        active.feed(pcm16BytesToFloat(pcmBytes.toByteArray())).forEach(::queuePhrase)
+                        pcmBytes.reset()
+                        if (active.idleTimedOut) capturing = false
+                    }
                 }
             }
             stopAndReleaseRecord()
 
+            val hfSplitter = splitter
+            if (hfSplitter != null) {
+                if (!cancelled) hfSplitter.flush()?.let(::queuePhrase)
+                val worker = phraseWorker
+                if (worker == null) {
+                    mainHandler.post { onHandsFreeEnd() }
+                } else {
+                    worker.execute { mainHandler.post { onHandsFreeEnd() } }
+                    worker.shutdown()
+                }
+                return@Thread
+            }
+
             if (!cancelled) {
                 val samples = pcm16BytesToFloat(pcmBytes.toByteArray())
-                // sherpa-onnx's native decoder segfaults (null deref) on a
-                // near-empty buffer -- a very fast tap-and-release can reach
-                // here with only a handful of samples. Below this floor
-                // there's nothing usable to transcribe anyway.
-                val heldMs = samples.size * 1000L / WhisperEngine.SAMPLE_RATE
+                // A very fast tap-and-release can reach here with only a
+                // handful of samples: nothing usable to transcribe.
+                val heldMs = samples.size * 1000L / SpeechEngine.SAMPLE_RATE
                 if (heldMs < FirstRun.TAP_MS) FirstRun.step(context, "tap_too_short")
-                if (samples.size < WhisperEngine.SAMPLE_RATE / 4) {
+                val peak = samples.maxOfOrNull { kotlin.math.abs(it) } ?: 0f
+                if (samples.size < SpeechEngine.SAMPLE_RATE / 4) {
+                    noSpeech = NoSpeech.TOO_SHORT
                     mainHandler.post { onResult("") }
                 } else {
-                    val spoken = TranscriptCleanup.removeNonSpeechTags(WhisperEngine.transcribe(samples))
+                    val heard = SpeechEngine.transcribe(context, samples)
+                    if (heard == null) {
+                        mainHandler.post { onFailure(SpeechEngine.notReadyMessage(context)) }
+                        return@Thread
+                    }
+                    val spoken = TranscriptCleanup.removeNonSpeechTags(heard)
+                    if (spoken.isBlank()) noSpeech = NoSpeech.reason(heldMs, peak)
                     if (heldMs >= FirstRun.TAP_MS && spoken.isBlank()) {
-                        val peak = samples.maxOfOrNull { kotlin.math.abs(it) } ?: 0f
                         FirstRun.step(context, "no_speech", extra = mapOf("level" to FirstRun.levelFor(peak)))
                     }
                     val finished = finish(spoken)
@@ -238,6 +266,31 @@ class DictationEngine(
                 }
             }
         }.also { it.start() }
+    }
+
+    /** Transcribes one hands-free phrase after the ones before it, and types it unless it was "stop listening". */
+    private fun queuePhrase(samples: FloatArray) {
+        val worker = phraseWorker ?: return
+        worker.execute {
+            if (cancelled) return@execute
+            val heard = SpeechEngine.transcribe(context, samples)
+            if (heard == null) {
+                // The model went away mid-session (deleted, or it failed to load): stop and say why.
+                if (capturing) {
+                    capturing = false
+                    mainHandler.post { onFailure(SpeechEngine.notReadyMessage(context)) }
+                }
+                return@execute
+            }
+            val raw = TranscriptCleanup.removeNonSpeechTags(heard)
+            if (raw.isBlank()) return@execute
+            if (PhraseSplitter.isStopCommand(raw)) {
+                capturing = false
+                return@execute
+            }
+            val finished = finish(raw)
+            mainHandler.post { deliver(finished) }
+        }
     }
 
     /** Reports the loudness of one PCM16 chunk as a 0 to 1 level. */
@@ -261,58 +314,6 @@ class DictationEngine(
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts)
         return FloatArray(shorts.size) { shorts[it] / 32768.0f }
     }
-
-    // --- Milestone 1: Android's built-in SpeechRecognizer (fallback) -------------------
-
-    private fun startFallbackRecognizer() {
-        usingWhisper = false
-
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            onFailure(context.getString(R.string.status_no_recognizer))
-            return
-        }
-
-        speechRecognizer?.destroy()
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).also {
-            it.setRecognitionListener(this)
-        }
-
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            SettingsStore.fallbackLanguage(context)?.let { lang ->
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, lang)
-            }
-        }
-        speechRecognizer?.startListening(intent)
-    }
-
-    // --- RecognitionListener callbacks (Milestone 1 path only) -------------------------
-
-    override fun onResults(results: Bundle?) {
-        if (cancelled) return
-        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        val raw = matches?.firstOrNull().orEmpty()
-        deliver(finish(raw))
-    }
-
-    override fun onError(error: Int) {
-        if (cancelled) return
-        onFailure(context.getString(R.string.status_error, error))
-    }
-
-    override fun onPartialResults(partialResults: Bundle?) {}
-    override fun onReadyForSpeech(params: Bundle?) {}
-    override fun onBeginningOfSpeech() {}
-    override fun onRmsChanged(rmsdB: Float) {
-        // The recognizer reports roughly -2 to 10 dB.
-        onLevel(((rmsdB + 2f) / 12f).coerceIn(0f, 1f))
-    }
-    override fun onBufferReceived(buffer: ByteArray?) {}
-    override fun onEndOfSpeech() {}
-    override fun onEvent(eventType: Int, params: Bundle?) {}
 
     private companion object {
         const val LEVEL_GAIN = 6.0

@@ -82,7 +82,12 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     // Offline recognizer. A prebuilt AAR from k2-fsa/sherpa-onnx, downloaded by
     // hand into libs/ (see libs/README.md), because it is not on Maven Central.
-    implementation(files("libs/sherpa-onnx-1.13.6.aar"))
+    implementation(files("libs/sherpa-onnx-2.0.2.aar"))
+    // Runs the downloaded Granite model: onnxruntime-android 1.28.0 from Maven,
+    // rebuilt by tools/make_ort_aar.py so its Java bridge uses the
+    // libonnxruntime.so (1.28.2) inside the sherpa-onnx AAR. Two copies of that
+    // library cannot both ship, and each refuses the other's (see the script).
+    implementation(files("libs/onnxruntime-android-1.28.0-vox.aar"))
 
     // Ed25519 for checking Pro license keys. Not in the JDK until Android 13.
     implementation("net.i2p.crypto:eddsa:0.3.0")

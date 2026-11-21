@@ -7,7 +7,11 @@ import 'support/test_app.dart';
 
 Future<void> _openPro(WidgetTester tester) async {
   await openTab(tester, 'Settings');
-  await tester.tap(find.text('VoxScribe Pro').first);
+  await tester.tap(
+    find.textContaining('Pro is unlocked').evaluate().isNotEmpty
+        ? find.text('Pro is unlocked')
+        : find.text('Unlock Pro'),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -16,7 +20,7 @@ void main() {
     useTallScreen(tester);
     await tester.pumpWidget(buildTestApp());
     await openTab(tester, 'Settings');
-    final locked = find.textContaining('Locked. Unlock snippets');
+    final locked = find.text('Unlock Pro');
     await tester.scrollUntilVisible(
       locked,
       200,

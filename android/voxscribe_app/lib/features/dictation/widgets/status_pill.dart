@@ -10,12 +10,16 @@ class StatusPill extends StatelessWidget {
     required this.status,
     required this.levels,
     this.errorMessage,
+    this.readyLabel = 'Ready',
     super.key,
   });
 
   final DictationStatus status;
   final List<double> levels;
   final String? errorMessage;
+
+  /// What the idle pill says: 'Ready', or why dictation cannot type yet.
+  final String readyLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +71,7 @@ class StatusPill extends StatelessWidget {
   }
 
   String get _label => switch (status) {
-    DictationStatus.ready => 'Ready',
+    DictationStatus.ready => readyLabel,
     DictationStatus.recording => 'Listening',
     DictationStatus.transcribing => 'Transcribing',
     DictationStatus.noSpeech => 'No speech heard',

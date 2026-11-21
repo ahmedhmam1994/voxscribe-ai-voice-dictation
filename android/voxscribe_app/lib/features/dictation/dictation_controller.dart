@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_engine.dart';
+import 'package:voxscribe_app/features/dictation/domain/no_speech_advice.dart';
 import 'package:voxscribe_app/features/history/domain/dictation_entry.dart';
 import 'package:voxscribe_app/features/history/history_controller.dart';
 import 'package:voxscribe_app/features/dictation/domain/dictation_status.dart';
@@ -12,7 +13,11 @@ class DictationController extends ChangeNotifier {
     required this._engine,
     required this._history,
     this._clock = DateTime.now,
+    this.onLanguageChanged,
   });
+
+  /// Called after the language changes here, so setup can offer its model.
+  final VoidCallback? onLanguageChanged;
 
   /// How many recent input levels the meter shows.
   static const meterBars = 14;
@@ -28,6 +33,7 @@ class DictationController extends ChangeNotifier {
   DictationStatus _status = DictationStatus.ready;
   String? _transcript;
   String? _errorMessage;
+  String? _noSpeechAdvice;
   var _language = 'en';
   var _changingLanguage = false;
   List<double> _levels = const [];
@@ -40,6 +46,10 @@ class DictationController extends ChangeNotifier {
   /// Set while [status] is [DictationStatus.failed].
   String? get errorMessage => _errorMessage;
 
+  /// What to try next, while [status] is [DictationStatus.noSpeech].
+  String? get nothingHeardAdvice =>
+      _status == DictationStatus.noSpeech ? _noSpeechAdvice : null;
+
   /// The last [meterBars] input levels, oldest first.
   List<double> get recentLevels => _levels.length > meterBars
       ? _levels.sublist(_levels.length - meterBars)
@@ -48,7 +58,7 @@ class DictationController extends ChangeNotifier {
   /// The last [waveformBars] input levels of this recording, oldest first.
   List<double> get waveform => _levels;
 
-  /// The language code in use, or an empty string for automatic detection.
+  /// The language code in use.
   String get language => _language;
 
   /// True while the model reloads after a language change.
@@ -77,6 +87,7 @@ class DictationController extends ChangeNotifier {
     try {
       await _engine.setLanguage(code);
       _language = code;
+      onLanguageChanged?.call();
     } on DictationException catch (error) {
       _errorMessage = error.message;
       _status = DictationStatus.failed;
@@ -96,6 +107,7 @@ class DictationController extends ChangeNotifier {
       await _engine.start();
     } on DictationException catch (error) {
       await _fail(error.message);
+      _failedForModel = error.modelMissing;
     }
   }
 
@@ -120,6 +132,7 @@ class DictationController extends ChangeNotifier {
   Future<void> _finish(DictationResult result) async {
     final text = result.text.trim();
     if (text.isEmpty) {
+      _noSpeechAdvice = noSpeechAdvice(result.noSpeech);
       _setStatus(DictationStatus.noSpeech);
       return;
     }
@@ -134,7 +147,20 @@ class DictationController extends ChangeNotifier {
     );
   }
 
+  // The last failure was the speech model not being there yet.
+  var _failedForModel = false;
+
+  /// The speech model is downloading or there: a "download it first" error
+  /// no longer applies, so it goes away.
+  void modelArrived() {
+    if (!_failedForModel || _status != DictationStatus.failed) return;
+    _failedForModel = false;
+    _errorMessage = null;
+    _setStatus(DictationStatus.ready);
+  }
+
   Future<void> _fail(String message) async {
+    _failedForModel = false;
     await _stopListeningToLevels();
     _errorMessage = message;
     _setStatus(DictationStatus.failed);

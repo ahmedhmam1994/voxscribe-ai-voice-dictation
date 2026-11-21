@@ -20,6 +20,7 @@ class AppSettings {
     this.usagePing = true,
     this.recordingMode = RecordingMode.both,
     this.bubbleSize = BubbleSize.medium,
+    this.handsFree = false,
   });
 
   /// What a fresh install uses.
@@ -46,6 +47,9 @@ class AppSettings {
   /// The size of the floating button.
   final BubbleSize bubbleSize;
 
+  /// Pro: a tap on the floating button keeps listening and types each phrase at a pause.
+  final bool handsFree;
+
   AppSettings copyWith({
     bool? cleanup,
     bool? trailingSpace,
@@ -53,6 +57,7 @@ class AppSettings {
     bool? usagePing,
     RecordingMode? recordingMode,
     BubbleSize? bubbleSize,
+    bool? handsFree,
   }) {
     return AppSettings(
       cleanup: cleanup ?? this.cleanup,
@@ -61,6 +66,7 @@ class AppSettings {
       usagePing: usagePing ?? this.usagePing,
       recordingMode: recordingMode ?? this.recordingMode,
       bubbleSize: bubbleSize ?? this.bubbleSize,
+      handsFree: handsFree ?? this.handsFree,
     );
   }
 }

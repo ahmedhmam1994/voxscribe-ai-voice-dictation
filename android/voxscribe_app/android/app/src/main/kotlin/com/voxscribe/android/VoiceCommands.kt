@@ -143,6 +143,103 @@ object VoiceCommands {
         return best?.second
     }
 
+    /** What "scratch that" said inside a longer dictation left to type. */
+    data class InlineScratch(
+        /** "scratch that, ..." at the very start: take back the last dictation first. */
+        val undoPrevious: Boolean,
+        /** What is left to type once each scratched sentence is gone. May be empty. */
+        val text: String,
+    )
+
+    // "scratch that" after a pause the model wrote down (a comma or a full stop), and
+    // followed by another pause or the end. "scratch that itch" and "I'll scratch that
+    // off the list" have neither, so they stay dictation.
+    private val inlineScratchRegex = Regex("(^|[,.;:!?])\\s*scratch that\\s*(?:[,.;:!?]+\\s*|$)", RegexOption.IGNORE_CASE)
+    // Without any comma, a final "scratch that" still counts unless the word before it
+    // makes it part of the sentence ("I need to scratch that").
+    private val bareTrailingScratch = Regex("^(.*\\S)\\s+scratch that[.!?]*$", RegexOption.IGNORE_CASE)
+    private val SCRATCH_OBJECT_LEADS = setOf(
+        "to", "will", "i'll", "we'll", "you'll", "can", "could", "should", "would", "must",
+        "gonna", "please", "and", "just", "i", "we", "you", "they", "don't", "didn't", "not", "never",
+    )
+    // "Meet me at 5. Scratch that at 6.": after a pause, "scratch that" counts even when the
+    // correction follows with no second pause, unless the next word makes it a sentence
+    // ("Scratch that itch", "scratch that off the list").
+    private val pausedScratchThenWords = Regex(
+        "(^|[,.;:!?])\\s*scratch that\\s+(?!(?:itch|off|out|from|up|down|one|part|idea|plan|word|sentence)\\b)(?=\\w)",
+        RegexOption.IGNORE_CASE,
+    )
+    private val sentenceEnd = Regex("[.!?]")
+
+    /**
+     * "scratch that" said inside one dictation takes back the sentence just before it,
+     * back to the last full stop, question or exclamation mark. Said at the start, it takes
+     * back the last dictation and the rest is typed. Null when the dictation has no such
+     * "scratch that". A dictation that is only "scratch that" is [editingCommand]'s job.
+     */
+    fun inlineScratch(text: String): InlineScratch? {
+        var source = pausedScratchThenWords.replace(text.trim()) { "${it.groupValues[1]} scratch that, " }.trim()
+        if (inlineScratchRegex.find(source) == null) {
+            val bare = bareTrailingScratch.matchEntire(source) ?: return null
+            val lastWord = bare.groupValues[1].trim().split(Regex("\\s+")).last().lowercase().trim(',', '.')
+            if (lastWord in SCRATCH_OBJECT_LEADS) return null
+            source = bare.groupValues[1].trim() + ", scratch that"
+        }
+        var kept = ""
+        var undoPrevious = false
+        var rest = source
+        var first = true
+        var dropped = ""
+        while (true) {
+            val match = inlineScratchRegex.find(rest) ?: break
+            val before = rest.substring(0, match.range.first) + match.groupValues[1]
+            val sofar = (kept + " " + before).trim()
+            if (first && sofar.isEmpty()) {
+                undoPrevious = true
+            } else {
+                kept = dropLastSentence(sofar)
+                dropped = sofar.substring(kept.length).trim()
+            }
+            rest = rest.substring(match.range.last + 1)
+            first = false
+        }
+        val tail = spliceCorrection(dropped, rest.trim())
+        val joined = when {
+            kept.isEmpty() -> capitalizeFirst(tail)
+            tail.isEmpty() -> kept
+            else -> "$kept ${capitalizeFirst(tail)}"
+        }
+        return InlineScratch(undoPrevious, joined.trim())
+    }
+
+    /**
+     * A short correction that starts with a word from the sentence it replaces fixes
+     * only the end of that sentence: "Meet me at 5," then "at 6" gives "Meet me at 6".
+     * Anything else replaces the whole sentence, so [correction] comes back as it was.
+     */
+    fun spliceCorrection(dropped: String, correction: String): String {
+        val words = correction.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (dropped.isEmpty() || words.isEmpty() || words.size > 5) return correction
+        val lead = words[0].trim(',', '.', ';', ':', '!', '?').lowercase()
+        if (lead.isEmpty()) return correction
+        val body = dropped.trimEnd('.', '!', '?', ',', ';', ':', ' ')
+        val at = Regex("\\b${Regex.escape(lead)}\\b", RegexOption.IGNORE_CASE).findAll(body).lastOrNull()
+        if (at == null || at.range.first == 0) return correction
+        // Keep the sentence's own spelling of the shared word: "At 6" after "Meet me" reads "at 6".
+        val leadEnd = correction.indexOf(words[0]) + lead.length
+        return body.substring(0, at.range.last + 1) + correction.substring(leadEnd)
+    }
+
+    /** [text] without its last sentence: "Hi Sam. Move it to Friday," becomes "Hi Sam." */
+    private fun dropLastSentence(text: String): String {
+        val body = text.trimEnd().trimEnd('.', '!', '?', ',', ';', ':').trimEnd()
+        val end = sentenceEnd.findAll(body).lastOrNull() ?: return ""
+        return body.substring(0, end.range.last + 1).trim()
+    }
+
+    private fun capitalizeFirst(text: String): String =
+        if (text.isEmpty()) text else text.substring(0, 1).uppercase() + text.substring(1)
+
     private val KEY_WORDS = setOf("scratch", "scrap", "delete", "cancel", "undo", "word", "sentence")
 
     /** A long key word still counts when the first four letters are right ("scrape" for "scratch"). */

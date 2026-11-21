@@ -22,6 +22,7 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
                     "usagePing" to SettingsStore.usagePingEnabled(context),
                     "recordingMode" to SettingsStore.recordingMode(context).key,
                     "bubbleSize" to SettingsStore.bubbleSize(context).key,
+                    "handsFree" to SettingsStore.handsFree(context),
                 ),
             )
             "getDiagnostics" -> result.success(FirstRun.diagnosticsText(context))
@@ -44,6 +45,15 @@ class SettingsChannel(private val context: Context) : MethodChannel.MethodCallHa
             "setBubbleSize" -> {
                 SettingsStore.setBubbleSize(context, BubbleSize.fromKey(call.argument<String>("value")))
                 BubbleService.instance?.refreshSize()
+                result.success(null)
+            }
+            "setHandsFree" -> {
+                SettingsStore.setHandsFree(context, call.argument<Boolean>("value") == true)
+                result.success(null)
+            }
+            "leaverQuestionDue" -> result.success(LeaverQuestion.isDue(context))
+            "answerLeaverQuestion" -> {
+                LeaverQuestion.answer(context, call.argument<String>("value"))
                 result.success(null)
             }
             "setTheme" -> {

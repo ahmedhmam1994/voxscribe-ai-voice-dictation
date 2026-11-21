@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:voxscribe_app/shared/widgets/brand_mark.dart';
 
 /// A short animated intro that plays over the app while it loads underneath,
 /// then fades away. A tap skips it. The first frame matches the native launch
@@ -116,13 +117,6 @@ class _IntroPainter extends CustomPainter {
   // Confident arrival, no bounce.
   static const _arrive = Cubic(0.16, 1, 0.3, 1);
 
-  // The real VoxScribe mark, in its own 108 unit grid: four rounded bars of
-  // these heights, 8.4 wide, centres 14.4 apart, all centred on one line.
-  static const _heights = [24.0, 48.0, 60.0, 36.0];
-  static const _barWidth = 8.4;
-  static const _pitch = 14.4;
-  static const _markHeight = 60.0;
-
   double _ease(double v) => Curves.easeOutCubic.transform(v.clamp(0.0, 1.0));
 
   double _span(double from, double to) =>
@@ -136,7 +130,7 @@ class _IntroPainter extends CustomPainter {
 
     final unit = math.min(size.width, size.height);
     final center = Offset(size.width / 2, size.height * 0.42);
-    final scale = unit * 0.30 / _markHeight;
+    final scale = unit * 0.30 / MarkShape.height;
 
     // Glow that swells as the bars come alive.
     final glow = _ease(_span(0.05, 0.4));
@@ -152,28 +146,30 @@ class _IntroPainter extends CustomPainter {
         ).createShader(Rect.fromCircle(center: center, radius: unit * 0.5)),
     );
 
-    // Each bar grows from nothing with a small overshoot, left to right, then
-    // all four pulse like live audio and settle back to the true logo shape.
+    // The bars grow from nothing with a small overshoot, left to right, and
+    // pulse like live audio; then the text cursor appears and blinks once:
+    // voice turning into typed words. Everything settles on the true logo.
     final pulse = _span(0.4, 0.74);
     final settle = 1 - _ease(_span(0.62, 0.78));
-    for (var i = 0; i < _heights.length; i++) {
-      final grow = _arrive.transform(_span(0.04 + i * 0.07, 0.40 + i * 0.07));
-      final wiggle = !calm && pulse > 0 && pulse < 1
-          ? 1 + 0.32 * settle * math.sin(pulse * 17 + i * 1.7)
-          : 1.0;
-      final height = _heights[i] * grow * wiggle * scale;
-      if (height <= 0) continue;
-      final x = center.dx + (i - 1.5) * _pitch * scale;
-      final width = _barWidth * scale;
-      final bar = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(x, center.dy),
-          width: width,
-          height: math.max(height, width),
-        ),
-        Radius.circular(width / 2),
-      );
-      canvas.drawRRect(bar, Paint()..color = accent);
+    final grow = [
+      for (var i = 0; i < MarkShape.barX.length; i++)
+        _arrive.transform(_span(0.04 + i * 0.07, 0.40 + i * 0.07)) *
+            (!calm && pulse > 0 && pulse < 1
+                ? 1 + 0.32 * settle * math.sin(pulse * 17 + i * 1.7)
+                : 1.0),
+    ];
+    final paint = Paint()..color = accent;
+    for (final bar in MarkShape.bars(center, scale, grow)) {
+      canvas.drawRRect(bar, paint);
+    }
+    final appear = _ease(_span(0.36, 0.5));
+    final blink = !calm && t > 0.6 && t < 0.68 ? 0.25 : 1.0;
+    if (appear > 0) {
+      final cursorPaint = Paint()
+        ..color = accent.withValues(alpha: appear * blink);
+      for (final part in MarkShape.cursor(center, scale)) {
+        canvas.drawRRect(part, cursorPaint);
+      }
     }
 
     _text(
@@ -188,7 +184,7 @@ class _IntroPainter extends CustomPainter {
     );
     _text(
       canvas,
-      'Talk. It types.',
+      'Whisper in, words out.',
       Offset(center.dx, size.height * 0.64 + unit * 0.105),
       fontSize: unit * 0.04,
       weight: FontWeight.w500,
