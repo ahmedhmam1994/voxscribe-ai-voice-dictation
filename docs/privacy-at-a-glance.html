@@ -74,11 +74,11 @@
         <tr><td class="first">Usage pings (both)</td><td data-label="When">At launch (Windows: every launch, Android: at most once a day), the first time you dictate, and once on each day you dictate. Unless you turn them off in Settings</td><td data-label="What is sent">The event name, app version, Windows or Android version and a random id made on your device. Never what you said or how much</td></tr>
         <tr><td class="first">Update check (both)</td><td data-label="When">When the app starts</td><td data-label="What is sent">A request for the latest version number on GitHub</td></tr>
         <tr><td class="first">Pro activation (both)</td><td data-label="When">Once, when you unlock Pro</td><td data-label="What is sent">Your key and a device id, so one key covers two PCs and two phones. Remove license sends them once more to free that device</td></tr>
-        <tr><td class="first">Android's own recognizer</td><td data-label="When">Only if you turn off the built-in model, or it cannot run</td><td data-label="What is sent">Your audio may go to Google if its offline language pack is missing</td></tr>
+        <tr><td class="first">Speech model download (Android)</td><td data-label="When">Once, when you set up the app or pick a language that needs the other model</td><td data-label="What is sent">A plain file request to this project's GitHub releases. Nothing about you or your voice</td></tr>
       </tbody>
     </table>
   </div>
-  <p>With the built-in model (the default), the Android app works in airplane mode.</p>
+  <p>Once the speech model for your language is downloaded, the Android app dictates in airplane mode. It never sends your audio to Google or anyone else.</p>
 
   <h2>What the Android button can see</h2>
   <p>Android only lets an app type into other apps through an accessibility service, so VoxScribe needs one. Here is all it does with it:</p>

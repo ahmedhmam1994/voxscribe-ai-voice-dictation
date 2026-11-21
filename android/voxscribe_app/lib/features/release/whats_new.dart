@@ -1,6 +1,18 @@
 /// What each version added. A version with no entry here shows no "what's
 /// new" sheet on first launch, so a quiet bug fix stays quiet.
 const whatsNewByVersion = <String, List<String>>{
+  '1.2.0': [
+    'New speech models, more accurate than before: one for English, French, German, Italian, Portuguese and Spanish, one for Arabic and 14 more languages. Download the one for your language once in Setup (536 or 682 MB, so use Wi-Fi); after that everything stays offline.',
+    '21 languages: Arabic, Chinese, Czech, Dutch, English, Finnish, French, German, Hindi, Hungarian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Slovak, Spanish, Turkish, Ukrainian and Vietnamese. Pick yours from the language button.',
+    'The old built-in model and the English fast model are gone, and their files are deleted to free space.',
+    'Hands-free (Pro): tap the floating button once and talk. Each phrase is typed when you pause. Say "stop listening" or tap again to end.',
+    '"Scratch that" works inside one dictation: "meet me at five, scratch that, at six" types "Meet me at 6".',
+    'Notes inbox: tap the notes icon on the Dictation screen and hold to save a thought with the time. Copy or share them all at once.',
+    'When nothing is typed, VoxScribe says why: too short, mic silent, too quiet, or no words heard.',
+    'Setup asks to keep the floating button running in the background, with extra steps for Xiaomi phones.',
+    'Export and import your words in one file, shared with VoxScribe for Windows: word lists, learned words, snippets and templates.',
+    'If you stop dictating for 5 days, VoxScribe asks once why, with fixed choices. The answer is sent only while the usage ping is on.',
+  ],
   '1.1.4': [
     'Dictating into a draft no longer erases it: your words are added at the cursor and the text you already wrote stays.',
     'Share a voice note to VoxScribe: in WhatsApp or any app, share an audio file to VoxScribe and the text comes back.',
