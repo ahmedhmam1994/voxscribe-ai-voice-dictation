@@ -278,6 +278,8 @@ td.no{color:var(--soft)}
 
 .tiers{margin:40px 0 18px}
 .pro-buy{margin-top:30px}
+.deal{position:relative; z-index:8; margin:0; padding:9px 16px; background:var(--accent); color:var(--on-accent); font:600 15px/1.4 Inter,sans-serif; text-align:center; transition:background-color .9s ease}
+.deal a{color:inherit; text-decoration:underline; text-underline-offset:3px; white-space:nowrap}
 
 .typed-float{position:fixed; left:12px; right:12px; bottom:72px; z-index:8; padding:12px 16px 14px; border:1px solid var(--line); border-radius:14px; background:var(--sky); box-shadow:0 18px 44px -18px #17352b73; opacity:0; visibility:hidden; transform:translateY(14px); transition:opacity .3s ease,transform .4s cubic-bezier(.16,1,.3,1),visibility .3s}
 .typed-float.on{opacity:1; visibility:visible; transform:none}
@@ -506,6 +508,21 @@ html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
 <svg class="plane" id="plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 3 3 10.5l6.8 2.7L12.5 20 21 3Z"/><path d="M21 3 9.8 13.2"/></svg>
 <div id="dayline"><button id="snd" type="button" aria-pressed="false" aria-label="Meadow sounds"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M16 9.5a4 4 0 0 1 0 5M19 7a8 8 0 0 1 0 10"/></svg></button><label><span class="vh">Move through the day and the page</span><input id="day" type="range" min="0" max="1000" value="0"></label><span id="clock" aria-hidden="true">6:10 am</span></div>
 
+<p class="deal" id="deal" hidden>Black Friday: VoxScribe Pro is $24 instead of $39 until Monday, 30 Nov. <a href="https://hmamster3.gumroad.com/l/tbsfom/BF2026">Get Pro for $24</a></p>
+<script>
+(function () {
+  // Shown only while the Gumroad code BF2026 works (27 Nov to the end of 30 Nov, US Pacific).
+  var now = Date.now();
+  if (now < Date.UTC(2026, 10, 27) || now >= Date.UTC(2026, 11, 1, 8)) return;
+  document.getElementById("deal").hidden = false;
+  document.addEventListener("DOMContentLoaded", function () {
+    var buy = document.querySelector(".pro-buy");
+    if (!buy) return;
+    buy.href = "https://hmamster3.gumroad.com/l/tbsfom/BF2026";
+    buy.textContent = "Get VoxScribe Pro: $24 (Black Friday, usually $39)";
+  });
+})();
+</script>
 <nav>
   <div class="inner">
     <a class="brand" href="#top"><svg class="bars" viewBox="24 26 60 56" width="23" height="21" aria-hidden="true"><rect x="24" y="44" width="8" height="20" rx="4"/><rect x="38" y="36" width="8" height="36" rx="4"/><rect x="52" y="44" width="8" height="20" rx="4"/><rect x="70" y="29" width="7" height="50"/><rect x="63" y="26" width="21" height="6" rx="3"/><rect x="63" y="76" width="21" height="6" rx="3"/></svg>VoxScribe</a>
