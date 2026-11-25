@@ -12,7 +12,18 @@
           "value": "getvoxscribe.vercel.app"
         }
       ],
-      "destination": "https://voxscribe-ai-voice-dictation.vercel.app/$1",
+      "destination": "https://voxscribe.dev/$1",
+      "permanent": true
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "voxscribe-ai-voice-dictation.vercel.app"
+        }
+      ],
+      "destination": "https://voxscribe.dev/$1",
       "permanent": true
     }
   ],
