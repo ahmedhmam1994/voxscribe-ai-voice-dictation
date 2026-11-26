@@ -136,6 +136,13 @@ nav .inner{display:flex; align-items:center; justify-content:space-between; gap:
 h1{font-weight:800; font-size:clamp(46px,8.4vw,96px); line-height:.98; letter-spacing:-.03em}
 .caret{display:inline-block; width:.07em; height:.74em; margin-left:.08em; border-radius:99px; background:var(--accent); vertical-align:-.02em}
 .sub{max-width:34em; margin:24px 0 26px; color:var(--soft)}
+.eyebrow{margin:0 0 16px; font:700 13px/1.3 Inter,sans-serif; letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+.sub .who{display:block; margin-top:10px; color:var(--ink)}
+.plans{display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:36em; margin:20px 0 0; padding:0; list-style:none; font-size:14.5px; line-height:1.45; color:var(--soft)}
+.plans li{padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:color-mix(in srgb, var(--cloud) 55%, transparent)}
+.plans b{display:block; margin-bottom:2px; color:var(--ink); font-size:15px}
+.plans a{color:var(--accent)}
+@media (max-width:560px){ .plans{grid-template-columns:1fr} }
 kbd{font:600 .85em Inter,sans-serif; padding:1px 8px 2px; border:1px solid var(--line); border-radius:7px; color:var(--ink)}
 .cta{display:flex; flex-wrap:wrap; gap:12px}
 .facts{margin:20px 0 0; font-size:14.5px; color:var(--soft)}
@@ -539,13 +546,18 @@ html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
 <div class="hero-pin"><header class="hero" data-time="dawn">
   <div class="hero-in" id="top">
     <div class="copy">
+      <p class="eyebrow">Offline voice dictation for Windows and Android</p>
       <h1><span class="vh">Offline, open source dictation for your PC and your phone. </span><span id="talk">Whisper in,</span><br>words out.<span class="caret" aria-hidden="true"></span></h1>
-      <p class="sub">On Android, names are spelled the way your screen spells them, fully offline. Open source dictation for your PC and your phone. On Windows, hold <kbd>F9</kbd>, speak, release. On Android, tap the floating button. Your words are transcribed on your own device and typed into any app. No cloud upload, no subscription.</p>
+      <p class="sub">Talk, and your words are typed into any app: email, Word, a browser, a chat. On Windows, hold <kbd>F9</kbd>, speak, release. On Android, tap the floating button. Speech is transcribed on your own device, with no cloud upload and no subscription.<span class="who">Made for people who write all day, and for anyone who finds typing hard, such as with RSI, dyslexia or after a stroke.</span></p>
       <div class="cta">
         <a class="btn primary" id="dl-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg><span class="dl-label">Download for Windows</span></a>
         <a class="btn" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
         <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
       </div>
+      <ul class="plans" aria-label="Free and Pro">
+        <li><b>Free, forever</b>All dictation, file to text and captions, word packs, on Windows and Android.</li>
+        <li><b>Pro, $39 one-time</b>Hands-free mode, rewrite by voice, form fill, snippets and bigger models. <a href="#pro-waitlist">Compare</a></li>
+      </ul>
       <p class="facts">Free and open source (MIT). Runs 100% locally. Windows 10/11 and <a href="free-offline-voice-typing-android.html">Android</a>. <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/tag/v1.9.0">v1.9.0</a></p>
       <form class="updates-form hero-signup" id="updates-form" novalidate>
         <label class="updates-hp" aria-hidden="true">Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
