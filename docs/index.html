@@ -143,6 +143,12 @@ h1{font-weight:800; font-size:clamp(46px,8.4vw,96px); line-height:.98; letter-sp
 .plans b{display:block; margin-bottom:2px; color:var(--ink); font-size:15px}
 .plans a{color:var(--accent)}
 @media (max-width:560px){ .plans{grid-template-columns:1fr} }
+.star-btn{border-color:#e3a008; background:#fff4d6; color:#5a3d00}
+.star-btn:hover{background:#ffe9ad}
+.star-btn svg{color:#e3a008; fill:#e3a008}
+.star-line{display:flex; align-items:center; gap:12px; max-width:36em; margin:16px 0 0; padding:12px 16px; border:2px solid #e3a008; border-radius:14px; background:#fff4d6; color:#3d2a00; font-weight:600; font-size:16px; line-height:1.4}
+.star-line svg{flex:none; width:26px; height:26px; color:#e3a008; fill:#e3a008}
+.star-line a{color:#7a5200; text-decoration:underline; text-underline-offset:3px; white-space:nowrap}
 kbd{font:600 .85em Inter,sans-serif; padding:1px 8px 2px; border:1px solid var(--line); border-radius:7px; color:var(--ink)}
 .cta{display:flex; flex-wrap:wrap; gap:12px}
 .facts{margin:20px 0 0; font-size:14.5px; color:var(--soft)}
@@ -552,8 +558,9 @@ html.lenis,.lenis.lenis-smooth{scroll-behavior:auto !important}
       <div class="cta">
         <a class="btn primary" id="dl-primary" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13M7 11l5 5 5-5M5 21h14"/></svg><span class="dl-label">Download for Windows</span></a>
         <a class="btn" id="dl-secondary" href="free-offline-voice-typing-android.html">Android app</a>
-        <a class="btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">GitHub</a>
+        <a class="btn star-btn" href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>Star on GitHub</a>
       </div>
+      <p class="star-line"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg><span>Like VoxScribe? <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation">Leave a star on GitHub</a>. It takes a second and helps other people find the app.</span></p>
       <ul class="plans" aria-label="Free and Pro">
         <li><b>Free, forever</b>All dictation, file to text and captions, word packs, on Windows and Android.</li>
         <li><b>Pro, $39 one-time</b>Hands-free mode, rewrite by voice, form fill, snippets and bigger models. <a href="#pro-waitlist">Compare</a></li>
