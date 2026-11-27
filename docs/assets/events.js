@@ -7,9 +7,9 @@ document.addEventListener('click', function (e) {
   var place = a.id || (a.closest('nav') ? 'nav' : a.closest('footer') ? 'footer' : 'page');
   if (/gumroad\.com/.test(a.href)) {
     gtag('event', 'buy_click', { placement: place });
-  } else if (/\/releases|android\.html/.test(a.href)) {
+  } else if (/\/releases|typing-android(\.html)?(?=[?#]|$)/.test(a.href)) {
     gtag('event', 'download_click', {
-      platform: /releases\/tag\/android|android\.html/.test(a.href) ? 'android' : 'windows',
+      platform: /releases\/tag\/android|typing-android(\.html)?(?=[?#]|$)/.test(a.href) ? 'android' : 'windows',
       placement: place
     });
   }
