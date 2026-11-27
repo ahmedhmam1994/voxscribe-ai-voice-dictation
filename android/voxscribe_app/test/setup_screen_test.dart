@@ -128,7 +128,7 @@ void main() {
     // The speech model and the microphone.
     expect(find.text('DONE'), findsNWidgets(2));
     expect(find.text('Open accessibility settings'), findsOneWidget);
-    expect(find.textContaining('tap VoxScribe and turn it on'), findsOneWidget);
+    expect(find.textContaining('opens again by itself'), findsOneWidget);
   });
 
   testWidgets('a restricted switch warns before the user tries it', (
@@ -333,5 +333,80 @@ void main() {
       ),
     );
     expect(find.text('Keep the button from disappearing'), findsNothing);
+  });
+
+  testWidgets('asks to allow running in background before the button', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: false,
+        batteryUnrestricted: false,
+      ),
+    );
+
+    await tester.tap(find.text('Allow running in background'));
+    await tester.pumpAndSettle();
+    expect(platform.calls, contains('requestBatteryExemption'));
+    // Asked once: if it was refused, the button can still be turned on.
+    expect(find.text('Show floating button'), findsOneWidget);
+  });
+
+  testWidgets('Xiaomi tips open Autostart and go away on Done', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    final platform = await _openSetup(
+      tester,
+      const SetupStatus(
+        microphone: true,
+        accessibility: true,
+        overlay: true,
+        bubbleRunning: true,
+        xiaomi: true,
+        xiaomiTipsDone: false,
+      ),
+    );
+
+    expect(
+      find.text('On Xiaomi: stop the phone closing VoxScribe'),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Open Autostart'));
+    await tester.tap(find.text('Open Autostart'));
+    await tester.pumpAndSettle();
+    expect(platform.calls, contains('openAutostart'));
+    await tester.ensureVisible(find.text('Done'));
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+    expect(platform.calls, contains('setXiaomiTipsDone'));
+  });
+
+  testWidgets('a disconnected typing service leads with Reconnect', (
+    tester,
+  ) async {
+    useTallScreen(tester);
+    await tester.pumpWidget(
+      buildTestApp(
+        setup: FakeSetupPlatform(
+          const SetupStatus(
+            microphone: true,
+            accessibility: false,
+            accessibilityNeedsRestart: true,
+            overlay: true,
+            bubbleRunning: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reconnect VoxScribe'), findsOneWidget);
+    expect(find.textContaining('turn it off, then on again'), findsOneWidget);
   });
 }

@@ -77,8 +77,16 @@ class BubbleService : Service() {
     override fun onCreate() {
         super.onCreate()
         Telemetry.sendIfDue(this)
-        if (SettingsStore.bubbleAlive(this)) FirstRun.step(this, "service_killed")
+        if (SettingsStore.bubbleAlive(this)) {
+            // Says whether battery saving was allowed to stop it, the usual cause.
+            val power = getSystemService(android.os.PowerManager::class.java)
+            val unrestricted = power?.isIgnoringBatteryOptimizations(packageName) ?: true
+            FirstRun.step(this, "service_killed", if (unrestricted) "battery_unrestricted" else "battery_restricted")
+        }
         SettingsStore.setBubbleAlive(this, true)
+        SettingsStore.setBubbleWanted(this, true)
+        BubbleWatchJob.clearNotice(this)
+        BubbleWatchJob.schedule(this)
         isRunning = true
         instance = this
         DictationTileService.requestRefresh(this)
@@ -923,7 +931,7 @@ class BubbleService : Service() {
         val openSettings = PendingIntent.getActivity(
             this,
             1,
-            BubblePermissions.accessibilitySettingsIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            BubblePermissions.accessibilitySettingsIntent(this).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, ALERT_CHANNEL_ID)

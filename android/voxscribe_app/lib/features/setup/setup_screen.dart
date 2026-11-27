@@ -98,6 +98,13 @@ class _SetupScreenState extends State<SetupScreen> {
                       onAllow: widget.controller.requestBatteryExemption,
                       onAppInfo: widget.controller.openAppInfo,
                     ),
+                  if (status.xiaomi &&
+                      status.permissionsComplete &&
+                      !status.xiaomiTipsDone)
+                    _XiaomiTips(
+                      onAutostart: widget.controller.openAutostart,
+                      onDone: widget.controller.finishXiaomiTips,
+                    ),
                   if (!status.notifications)
                     _NotificationNotice(
                       onOpen: widget.controller.openNotificationSettings,
@@ -116,7 +123,9 @@ class _SetupScreenState extends State<SetupScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
                 child: _PrimaryButton(
-                  label: _primaryLabel(status, appInfo: appInfo),
+                  label: widget.controller.batteryNext
+                      ? 'Allow running in background'
+                      : _primaryLabel(status, appInfo: appInfo),
                   onPressed: widget.controller.busy
                       ? null
                       : widget.controller.performPrimaryAction,
@@ -157,9 +166,10 @@ class _SetupScreenState extends State<SetupScreen> {
       'VoxScribe listens only while you hold the button. Your voice is '
           'transcribed on this phone.',
     SetupStep.accessibility when status.accessibilityNeedsRestart =>
-      'It is switched on, but Android disconnected it, which can happen '
-          'after an update. In the list, tap VoxScribe, turn it off, then on '
-          'again.',
+      'It is switched on, but Android disconnected it after the phone '
+          'closed VoxScribe (or after an update). Under Downloaded apps, tap '
+          'VoxScribe, turn it off, then on again. VoxScribe opens again by '
+          'itself.',
     SetupStep.accessibility when status.accessibilityRestricted =>
       'Android requires this to let an app type into other apps. It blocks '
           'the switch for apps installed from a file, so it may say '
@@ -167,9 +177,12 @@ class _SetupScreenState extends State<SetupScreen> {
     SetupStep.accessibility =>
       'Android requires this to let an app type into other apps. VoxScribe '
           'only watches which text box is focused, so it can put your '
-          'dictation there. In the list, tap VoxScribe and turn it on.',
+          'dictation there. Tap Downloaded apps (or Installed apps), then '
+          'VoxScribe, and turn it on. VoxScribe opens again by itself once '
+          'it is on.',
     SetupStep.overlay =>
-      'This lets the small button float above your keyboard and other apps.',
+      'This lets the small button float above your keyboard and other apps. '
+          'Switch it on and the app comes back by itself.',
   };
 
   /// The numbered taps past Android's Restricted setting block, with the one
@@ -341,18 +354,27 @@ class _Intro extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).textTheme;
     final ready = status.permissionsComplete;
+    final reconnect = status.accessibilityNeedsRestart;
     return Padding(
       padding: const EdgeInsets.only(top: 10, bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            ready ? 'You are set' : 'A few quick steps',
+            reconnect
+                ? 'Reconnect VoxScribe'
+                : ready
+                ? 'You are set'
+                : 'A few quick steps',
             style: theme.titleLarge,
           ),
           const SizedBox(height: 6),
           Text(
-            ready
+            reconnect
+                ? 'Your phone closed VoxScribe, and Android does not reconnect '
+                      'it by itself. One switch below brings the floating '
+                      'button back.'
+                : ready
                 ? 'Turn on the floating button and hold it over any app. Your '
                       'own keyboard stays exactly as it is.'
                 : 'Then hold the floating button over any app. Your own '
@@ -362,8 +384,10 @@ class _Intro extends StatelessWidget {
               fontSize: 15,
             ),
           ),
-          const SizedBox(height: 14),
-          const HowItWorksDemo(),
+          if (!reconnect) ...[
+            const SizedBox(height: 14),
+            const HowItWorksDemo(),
+          ],
         ],
       ),
     );
@@ -516,6 +540,75 @@ class _BatteryNotice extends StatelessWidget {
                 TextButton(
                   onPressed: onAllow,
                   child: Text('Allow', style: TextStyle(color: c.accentInk)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Xiaomi phones close apps that Android itself would keep running. MIUI
+/// does not let apps read these settings, so the card stays until Done.
+class _XiaomiTips extends StatelessWidget {
+  const _XiaomiTips({required this.onAutostart, required this.onDone});
+
+  final VoidCallback onAutostart;
+  final VoidCallback onDone;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.vox;
+    final body = Theme.of(context).textTheme.bodyMedium
+        ?.copyWith(color: c.muted);
+    return Container(
+      margin: const EdgeInsets.only(top: 6, bottom: 14),
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.amber.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.phone_android, color: c.amber, size: 22),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'On Xiaomi: stop the phone closing VoxScribe',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text('1. Open Autostart and switch VoxScribe on.', style: body),
+          const SizedBox(height: 4),
+          Text(
+            '2. In recent apps, press and hold VoxScribe and tap the lock, so '
+            'clearing recent apps does not close it.',
+            style: body,
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: onAutostart,
+                  child: Text(
+                    'Open Autostart',
+                    style: TextStyle(color: c.accentInk),
+                  ),
+                ),
+                TextButton(
+                  onPressed: onDone,
+                  child: Text('Done', style: TextStyle(color: c.accentInk)),
                 ),
               ],
             ),

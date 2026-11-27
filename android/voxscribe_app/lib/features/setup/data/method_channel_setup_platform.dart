@@ -30,6 +30,7 @@ class MethodChannelSetupPlatform implements SetupPlatform {
       bubbleUsed: map['bubbleUsed'] ?? true,
       batteryUnrestricted: map['batteryUnrestricted'] ?? true,
       xiaomi: map['xiaomi'] ?? false,
+      xiaomiTipsDone: map['xiaomiTipsDone'] ?? true,
       language: values['language'] as String? ?? 'en',
       modelInstalled: map['modelInstalled'] ?? false,
       modelDownloading: map['modelDownloading'] ?? false,
@@ -58,6 +59,12 @@ class MethodChannelSetupPlatform implements SetupPlatform {
 
   @override
   Future<void> requestBatteryExemption() => _invoke('requestBatteryExemption');
+
+  @override
+  Future<void> openAutostart() => _invoke('openAutostart');
+
+  @override
+  Future<void> setXiaomiTipsDone() => _invoke('setXiaomiTipsDone');
 
   @override
   Future<void> setupOpened() => _invoke('setupOpened');

@@ -132,7 +132,8 @@ object SpeechEngine {
         val model = modelFor(language)
         if (!model.isInstalled(app)) {
             Log.i(TAG, "The ${model.key} model is not downloaded yet.")
-            FirstRun.step(app, "model_failed", FirstRun.modelCode(null, filesPresent = false))
+            // Not a failure: the download simply has not finished. Kept apart from model_failed.
+            FirstRun.step(app, "model_missing")
             return
         }
         val started = System.currentTimeMillis()

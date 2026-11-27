@@ -45,7 +45,8 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                 result.success(null)
             }
             "openAccessibilitySettings" -> {
-                activity.startActivity(BubblePermissions.accessibilitySettingsIntent())
+                SettingsStore.setAccessibilityAskedAt(activity, System.currentTimeMillis())
+                activity.startActivity(BubblePermissions.accessibilitySettingsIntent(activity))
                 result.success(null)
             }
             "openAppInfo" -> {
@@ -54,6 +55,7 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             }
             "openOverlaySettings" -> {
                 activity.startActivity(BubblePermissions.overlayPermissionIntent(activity))
+                watchOverlay()
                 result.success(null)
             }
             "openNotificationSettings" -> {
@@ -61,6 +63,14 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
                     Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                         .putExtra(Settings.EXTRA_APP_PACKAGE, activity.packageName),
                 )
+                result.success(null)
+            }
+            "openAutostart" -> {
+                openAutostart()
+                result.success(null)
+            }
+            "setXiaomiTipsDone" -> {
+                SettingsStore.setXiaomiTipsDone(activity)
                 result.success(null)
             }
             "requestBatteryExemption" -> {
@@ -115,6 +125,7 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
             "batteryUnrestricted" to isBatteryUnrestricted(),
             // Xiaomi phones have their own battery saver on top of Android's.
             "xiaomi" to isXiaomi(),
+            "xiaomiTipsDone" to SettingsStore.xiaomiTipsDone(activity),
             // A new install starts on the setup steps until it has opened them once.
             "setupSeen" to SettingsStore.setupSeen(activity),
             // Until the floating button is pressed once, the app offers a practice box.
@@ -155,6 +166,35 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
         )
         val opened = runCatching { activity.startActivity(ask) }.isSuccess
         if (!opened) runCatching { activity.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+    }
+
+    /** MIUI's Autostart list, where VoxScribe can be allowed to start again after the phone closes it; App info where it is missing. */
+    private fun openAutostart() {
+        val autostart = Intent().setComponent(
+            ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
+        )
+        val opened = runCatching { activity.startActivity(autostart) }.isSuccess
+        if (!opened) activity.startActivity(BubblePermissions.appInfoIntent(activity))
+    }
+
+    /**
+     * Android leaves the user on the "display over other apps" screen after they
+     * allow it. Watch for the permission and bring VoxScribe back for the next step.
+     */
+    private fun watchOverlay() {
+        val main = Handler(Looper.getMainLooper())
+        val started = System.currentTimeMillis()
+        val check = object : Runnable {
+            override fun run() {
+                if (activity.isDestroyed) return
+                if (BubblePermissions.hasOverlayPermission(activity)) {
+                    BubbleRevive.openApp(activity)
+                    return
+                }
+                if (System.currentTimeMillis() - started < OVERLAY_WATCH_MS) main.postDelayed(this, OVERLAY_POLL_MS)
+            }
+        }
+        main.postDelayed(check, OVERLAY_POLL_MS)
     }
 
     private fun hasMicrophone(): Boolean =
@@ -214,6 +254,9 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
     private fun setBubbleRunning(running: Boolean, result: MethodChannel.Result) {
         val intent = Intent(activity, BubbleService::class.java)
         if (!running) {
+            // Turned off on purpose: do not bring it back by itself.
+            SettingsStore.setBubbleWanted(activity, false)
+            BubbleWatchJob.cancel(activity)
             activity.stopService(intent)
             result.success(null)
             return
@@ -231,5 +274,7 @@ class SetupChannel(private val activity: Activity) : MethodChannel.MethodCallHan
     private companion object {
         const val CHANNEL_NAME = "com.voxscribe.android/setup"
         const val REQUEST_CODE = 1002
+        const val OVERLAY_POLL_MS = 500L
+        const val OVERLAY_WATCH_MS = 3 * 60_000L
     }
 }

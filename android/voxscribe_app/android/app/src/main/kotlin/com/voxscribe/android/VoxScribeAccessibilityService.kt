@@ -68,6 +68,12 @@ class VoxScribeAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         instance = this
         Log.d(TAG, "VoxScribeAccessibilityService connected")
+        // Just switched on from the setup steps: go back to VoxScribe for the next one.
+        if (BubbleRevive.returnDue(SettingsStore.accessibilityAskedAt(this), System.currentTimeMillis())) {
+            SettingsStore.setAccessibilityAskedAt(this, 0L)
+            BubbleRevive.openApp(this)
+        }
+        BubbleRevive.ifWanted(this)
     }
 
     // The "missing cases" lint would otherwise flag are event types this
@@ -105,6 +111,8 @@ class VoxScribeAccessibilityService : AccessibilityService() {
                 focusedNode.recycleCompat()
                 focusedNode = null
                 lastWrittenText = null
+                // Moving to another app: if Android stopped the button, bring it back.
+                BubbleRevive.ifWanted(this)
             }
         }
         refreshBubbleVisibility()

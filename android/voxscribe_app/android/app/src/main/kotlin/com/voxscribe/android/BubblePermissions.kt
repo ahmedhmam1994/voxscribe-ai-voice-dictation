@@ -40,11 +40,16 @@ object BubblePermissions {
     }
 
     /**
-     * Android provides no reliable deep link straight to one service's
-     * toggle across OEMs -- this opens the general Accessibility settings
-     * list, so the setup screen tells the user which entry ("VoxScribe") to tap.
+     * The Accessibility settings list. Opening VoxScribe's own page directly
+     * needs a system-only permission, so this asks the list to scroll to and
+     * highlight VoxScribe instead: stock Android does, MIUI ignores it (there
+     * VoxScribe is under Downloaded apps, which the setup text says).
      */
-    fun accessibilitySettingsIntent(): Intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+    fun accessibilitySettingsIntent(context: Context): Intent =
+        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).putExtra(
+            ":settings:fragment_args_key",
+            android.content.ComponentName(context, VoxScribeAccessibilityService::class.java).flattenToString(),
+        )
 
     fun appInfoIntent(context: Context): Intent =
         Intent(

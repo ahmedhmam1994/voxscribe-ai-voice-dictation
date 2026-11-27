@@ -25,6 +25,8 @@ class DictationTileService : TileService() {
     override fun onClick() {
         super.onClick()
         if (BubbleService.isRunning) {
+            SettingsStore.setBubbleWanted(this, false)
+            BubbleWatchJob.cancel(this)
             stopService(Intent(this, BubbleService::class.java))
             refresh(running = false)
             return

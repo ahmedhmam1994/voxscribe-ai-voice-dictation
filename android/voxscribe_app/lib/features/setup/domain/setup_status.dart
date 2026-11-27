@@ -19,6 +19,7 @@ class SetupStatus {
     this.bubbleUsed = true,
     this.batteryUnrestricted = true,
     this.xiaomi = false,
+    this.xiaomiTipsDone = true,
     this.language = 'en',
     this.modelInstalled = true,
     this.modelDownloading = false,
@@ -72,6 +73,10 @@ class SetupStatus {
   /// Android's and needs "No restrictions" in App info as well.
   final bool xiaomi;
 
+  /// The Xiaomi tips (Autostart, lock in recent apps) were read and closed.
+  /// MIUI does not let apps read either setting, so this is all there is.
+  final bool xiaomiTipsDone;
+
   /// The language the user speaks, as a code from `dictationLanguages`.
   final String language;
 
@@ -123,6 +128,7 @@ class SetupStatus {
       bubbleUsed: bubbleUsed,
       batteryUnrestricted: batteryUnrestricted,
       xiaomi: xiaomi,
+      xiaomiTipsDone: xiaomiTipsDone,
       language: language,
       modelInstalled: modelInstalled,
       modelDownloading: modelDownloading,

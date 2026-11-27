@@ -33,6 +33,12 @@ abstract interface class SetupPlatform {
   /// in [getStatus].
   Future<void> requestBatteryExemption();
 
+  /// Opens MIUI's Autostart list, or App info where it is missing.
+  Future<void> openAutostart();
+
+  /// Remembers that the Xiaomi tips were read, so they stop showing.
+  Future<void> setXiaomiTipsDone();
+
   /// Tells the native side the setup screen opened, for its one-time ping.
   Future<void> setupOpened();
 

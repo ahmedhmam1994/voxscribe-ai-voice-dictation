@@ -102,6 +102,34 @@ object SettingsStore {
         prefs(context).edit().putBoolean("bubble_alive", alive).apply()
     }
 
+    /** The user turned the floating button on and has not turned it off, so it should come back after Android stops it. */
+    fun bubbleWanted(context: Context): Boolean = prefs(context).getBoolean("bubble_wanted", false)
+
+    fun setBubbleWanted(context: Context, wanted: Boolean) {
+        prefs(context).edit().putBoolean("bubble_wanted", wanted).apply()
+    }
+
+    /** The "phone closed VoxScribe" notification was shown for the current break. */
+    fun brokenNotified(context: Context): Boolean = prefs(context).getBoolean("broken_notified", false)
+
+    fun setBrokenNotified(context: Context, notified: Boolean) {
+        prefs(context).edit().putBoolean("broken_notified", notified).apply()
+    }
+
+    /** The Xiaomi tips (Autostart, lock in recent apps) were read and closed. */
+    fun xiaomiTipsDone(context: Context): Boolean = prefs(context).getBoolean("xiaomi_tips_done", false)
+
+    fun setXiaomiTipsDone(context: Context) {
+        prefs(context).edit().putBoolean("xiaomi_tips_done", true).apply()
+    }
+
+    /** When setup sent the user to the accessibility switch, so the app can come back once it is on. */
+    fun accessibilityAskedAt(context: Context): Long = prefs(context).getLong("accessibility_asked_at", 0L)
+
+    fun setAccessibilityAskedAt(context: Context, atMillis: Long) {
+        prefs(context).edit().putLong("accessibility_asked_at", atMillis).apply()
+    }
+
     fun setFunnelNote(context: Context, step: String, code: String, atMillis: Long) {
         prefs(context).edit()
             .putString("funnel_last_step", step).putString("funnel_last_code", code)

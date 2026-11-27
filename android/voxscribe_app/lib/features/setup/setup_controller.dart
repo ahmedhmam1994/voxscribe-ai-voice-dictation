@@ -97,6 +97,9 @@ class SetupController extends ChangeNotifier {
       if (firstLook && !_status.setupSeen && !_status.permissionsComplete) {
         _firstRun = true;
       }
+      // The phone closed VoxScribe and Android left the typing service
+      // disconnected: lead with the one switch that fixes it.
+      if (firstLook && _status.accessibilityNeedsRestart) _firstRun = true;
       // Pressed the button in another app: the first run has done its job.
       if (_firstRun &&
           _status.permissionsComplete &&
@@ -159,6 +162,26 @@ class SetupController extends ChangeNotifier {
   Future<void> requestBatteryExemption() =>
       _open(platform.requestBatteryExemption);
 
+  /// Opens MIUI's Autostart list.
+  Future<void> openAutostart() => _open(platform.openAutostart);
+
+  /// Done on the Xiaomi tips: hides them for good.
+  Future<void> finishXiaomiTips() async {
+    await _open(platform.setXiaomiTipsDone);
+    await refresh();
+  }
+
+  var _batteryAsked = false;
+
+  /// Before the floating button is turned on, the main button first asks to
+  /// stop battery saving for VoxScribe, once per visit: battery saving is
+  /// the usual reason the phone closes the button.
+  bool get batteryNext =>
+      _status.permissionsComplete &&
+      !_status.batteryUnrestricted &&
+      !_status.bubbleRunning &&
+      !_batteryAsked;
+
   /// Opens App info, where a restricted accessibility switch is allowed.
   Future<void> openAppInfo() {
     _triedSwitch = false;
@@ -209,6 +232,10 @@ class SetupController extends ChangeNotifier {
   Future<void> _run(SetupStep? step) {
     final appInfo = appInfoNext;
     if (step == SetupStep.accessibility) _triedSwitch = !appInfo;
+    if (step == null && batteryNext) {
+      _batteryAsked = true;
+      return platform.requestBatteryExemption();
+    }
     return switch (step) {
       SetupStep.model => platform.downloadModel(),
       SetupStep.microphone => platform.requestMicrophone(),

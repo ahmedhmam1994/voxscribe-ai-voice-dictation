@@ -1,6 +1,14 @@
 /// What each version added. A version with no entry here shows no "what's
 /// new" sheet on first launch, so a quiet bug fix stays quiet.
 const whatsNewByVersion = <String, List<String>>{
+  '1.2.1': [
+    'The floating button comes back by itself if your phone stopped it, as soon as you switch apps.',
+    'If your phone closes VoxScribe, Android disconnects its typing service. VoxScribe now tells you with a notification and opens a Reconnect screen: one switch fixes it.',
+    'Setup takes you back to VoxScribe by itself after you turn on Accessibility or allow display over other apps.',
+    'Clearer Accessibility step: VoxScribe is under Downloaded apps (or Installed apps) on most phones.',
+    'Before the button first turns on, setup asks to let VoxScribe run in the background, so battery saving does not close it.',
+    'On Xiaomi phones, a card opens Autostart and shows how to lock VoxScribe in recent apps.',
+  ],
   '1.2.0': [
     'New speech models, more accurate than before: one for English, French, German, Italian, Portuguese and Spanish, one for Arabic and 14 more languages. Download the one for your language once in Setup (536 or 682 MB, so use Wi-Fi); after that everything stays offline.',
     '21 languages: Arabic, Chinese, Czech, Dutch, English, Finnish, French, German, Hindi, Hungarian, Italian, Japanese, Korean, Polish, Portuguese, Russian, Slovak, Spanish, Turkish, Ukrainian and Vietnamese. Pick yours from the language button.',

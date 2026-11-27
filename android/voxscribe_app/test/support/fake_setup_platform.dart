@@ -34,6 +34,12 @@ class FakeSetupPlatform implements SetupPlatform {
   @override
   Future<void> requestBatteryExemption() => _record('requestBatteryExemption');
 
+  @override
+  Future<void> openAutostart() => _record('openAutostart');
+
+  @override
+  Future<void> setXiaomiTipsDone() => _record('setXiaomiTipsDone');
+
   /// How often the setup screen reported itself open (kept out of [calls]).
   var openedCount = 0;
 

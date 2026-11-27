@@ -92,6 +92,13 @@
                 android:value="Floating dictation bubble: an alternative to switching keyboards, lets the user hold the bubble to record and dictate into the focused field." />
         </service>
 
+        <!-- About every 15 minutes while the floating button should be on: notices
+             when the phone closed VoxScribe and tells the user how to reconnect. -->
+        <service
+            android:name=".BubbleWatchJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <!-- Quick Settings tile: turns the floating button on and off from the
              notification shade. -->
         <service
