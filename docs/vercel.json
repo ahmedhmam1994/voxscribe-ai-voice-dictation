@@ -49,6 +49,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://voxscribe.dev/api/:path*"
+    },
+    {
       "source": "/:slug([a-z0-9-]+)",
       "destination": "/:slug.html"
     }

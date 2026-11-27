@@ -20,4 +20,4 @@ VoxScribe is a solo-maintained project. One person currently holds all three rol
 
 ## Privacy
 
-This program will not transfer any information to other networked systems unless specifically requested by the user. See VoxScribe's full [privacy policy](https://getvoxscribe.vercel.app/privacy.html) for exactly what the app does and does not send over the network.
+This program will not transfer any information to other networked systems unless specifically requested by the user. See VoxScribe's full [privacy policy](https://voxscribe.dev/privacy) for exactly what the app does and does not send over the network.

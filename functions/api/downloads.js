@@ -1,5 +1,4 @@
-// Cloudflare Pages Function: the README's downloads badge, same as docs/api/downloads.js (the
-// Vercel copy). Drawn here instead of by shields.io, whose shared GitHub quota sometimes runs
+// Cloudflare Pages Function: the README's downloads badge. Drawn here instead of by shields.io, whose shared GitHub quota sometimes runs
 // out and leaves the badge reading "invalid".
 //
 // Total = every asset download across all releases (Windows and Android). The last good total

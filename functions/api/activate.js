@@ -1,12 +1,11 @@
 // Cloudflare Pages Function: checks/claims a VoxScribe Pro license key against a hardware id,
-// so a key can't just be typed into an unlimited number of machines. Same behaviour as
-// docs/api/activate.js, the Vercel copy, which installed apps still call at
-// getvoxscribe.vercel.app/api/activate and which must keep running for them.
+// so a key can't just be typed into an unlimited number of machines. Installed apps up to
+// 1.9.0 (Windows) and 1.2.1 (Android) call getvoxscribe.vercel.app/api/activate; Vercel
+// passes those calls on to this function (docs/vercel.json), so that host must stay up.
 // Day-to-day Pro checks (core/license.py's is_pro()) stay fully offline; this only runs once,
 // when the user clicks Unlock.
 //
-// Storage: Upstash Redis (REST API), the same database as the Vercel copy, so both see the
-// same slots. Needs UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in the Pages settings.
+// Storage: Upstash Redis (REST API). Needs UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in the Pages settings.
 //
 // One key unlocks two Windows PCs and two Android phones: each platform has its own slots.
 // action "deactivate" frees this device's slot, so a key can move to a new PC or phone.

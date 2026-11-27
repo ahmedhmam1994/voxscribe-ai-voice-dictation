@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml"><img src="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases/latest"><img src="https://img.shields.io/github/v/release/ahmedhmam1994/voxscribe-ai-voice-dictation" alt="Latest release"></a>
-  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases"><img src="https://voxscribe-ai-voice-dictation.vercel.app/api/downloads" alt="Downloads"></a>
+  <a href="https://github.com/ahmedhmam1994/voxscribe-ai-voice-dictation/releases"><img src="https://voxscribe.dev/api/downloads" alt="Downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License"></a>
 </p>
 
@@ -166,7 +166,7 @@ The Android source is in [`android/voxscribe_app`](android/voxscribe_app): Flutt
 
 - Audio is captured, transcribed, and discarded locally: your audio and text are never sent to a server
 - Text cleanup is regex-based, running entirely on your machine: no AI API calls
-- Network use is limited to: the one-time Whisper model download on first run (plus any optional speech model or GPU files you choose to download), a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, once on each day you dictate, and on both apps a few first-run steps and failure codes such as the model loading, the microphone opening or a dictation coming back empty, with no messages, device names, audio or text; can be turned off in Settings), and a one-time activation request if you buy Pro. On Android, Settings has a privacy receipt that lists every one of these connections and what it sent. See the [privacy policy](https://voxscribe-ai-voice-dictation.vercel.app/privacy.html) for details
+- Network use is limited to: the one-time Whisper model download on first run (plus any optional speech model or GPU files you choose to download), a check for new versions on GitHub, anonymous usage pings (event name, app version, OS version and a random id; on launch (every launch on Windows, at most once a day on Android), the first time you dictate, once on each day you dictate, and on both apps a few first-run steps and failure codes such as the model loading, the microphone opening or a dictation coming back empty, with no messages, device names, audio or text; can be turned off in Settings), and a one-time activation request if you buy Pro. On Android, Settings has a privacy receipt that lists every one of these connections and what it sent. See the [privacy policy](https://voxscribe.dev/privacy) for details
 
 ## Building from source
 

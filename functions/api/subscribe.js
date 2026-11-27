@@ -1,5 +1,5 @@
-// Cloudflare Pages Function: the same "get one email when a big update ships or the price
-// changes" box as docs/api/subscribe.js (the Vercel copy, kept until Vercel is switched off).
+// Cloudflare Pages Function: the optional "get one email when a big update ships or the price
+// changes" box on the home page.
 //
 // An address is kept only when the visitor types it in and presses the button. It is stored in
 // Upstash Redis as a sorted set, with the sign-up time as the score. Nothing else is stored: no
